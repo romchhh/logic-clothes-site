@@ -1,0 +1,38 @@
+import React from "react";
+
+interface ComponentCardProps {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  desc?: string;
+  actions?: React.ReactNode;
+}
+
+const ComponentCard: React.FC<ComponentCardProps> = ({
+  title,
+  children,
+  className = "",
+  desc = "",
+  actions,
+}) => {
+  return (
+    <section className={`admin-panel ${className}`}>
+      <div className="admin-panel-head">
+        <div className="min-w-0">
+          <h3 className="admin-panel-title">{title}</h3>
+          {desc ? <p className="admin-panel-desc">{desc}</p> : null}
+        </div>
+        {actions ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {actions}
+          </div>
+        ) : null}
+      </div>
+      <div className="p-5 sm:p-6">
+        <div className="space-y-5">{children}</div>
+      </div>
+    </section>
+  );
+};
+
+export default ComponentCard;

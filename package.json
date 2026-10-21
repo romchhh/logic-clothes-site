@@ -1,0 +1,47 @@
+{
+  "name": "logic-clothes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Logic Clothes — український бренд жіночого одягу. Next.js store.",
+  "scripts": {
+    "dev": "next dev --turbopack -p 3002",
+    "build": "next build",
+    "build:fast": "next build --turbopack",
+    "start": "next start -p 3002",
+    "start:prod": "NODE_ENV=production next start -p 3002",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .next tsconfig.tsbuildinfo",
+    "migrate": "node scripts/migrate.mjs",
+    "db:seed": "node scripts/seed-from-json.mjs",
+    "db:import-catalog": "node scripts/import-catalog.mjs",
+    "db:enrich": "node scripts/enrich-catalog.mjs",
+    "db:setup": "npm run migrate && npm run db:seed"
+  },
+  "dependencies": {
+    "next": "15.5.28",
+    "pg": "8.23.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "sharp": "0.35.5",
+    "tailwind-merge": "3.7.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "3.3.7",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "20.19.43",
+    "@types/pg": "8.23.1",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "eslint": "9.39.5",
+    "eslint-config-next": "15.5.28",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "overrides": {
+    "postcss": "8.5.31"
+  }
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "LC-MVH8TH0P",
+    "createdAt": "2026-10-20T22:16:39.529Z",
+    "status": "new",
+    "customerName": "ІО-24 Федонюк Роман Ігорович",
+    "phone": "09903949053",
+    "email": "fedoniuk.roman_io24@edu.kpi.ua",
+    "deliveryMethod": "nova_poshta_locker",
+    "city": "Київ",
+    "address": "Поштомат \"Нова Пошта\" №22342: Дніпровська Набережна, 9а, під'їзд №7 (ТІЛЬКИ ДЛЯ МЕШКАНЦІВ)",
+    "locale": "uk",
+    "items": [
+      {
+        "productId": "shirtdress",
+        "name": "Long Shirt",
+        "size": "L",
+        "quantity": 1,
+        "priceNum": 2950
+      },
+      {
+        "productId": "cropvest",
+        "name": "Warm hooded short vest",
+        "size": "по мірках",
+        "quantity": 1,
+        "priceNum": 1950
+      }
+    ],
+    "total": 4900,
+    "notified": false
+  }
+]
