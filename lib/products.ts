@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { readProducts } from "@/lib/adminStore";
 import { isCatalogProduct } from "@/lib/catalogProduct";
 import { resolvePaletteId } from "@/lib/colorPalette";
+import { isDbUnavailableError } from "@/lib/db";
 import type { Product, ProductColorVariant } from "@/lib/types";
 
 function toColorVariant(p: Product): ProductColorVariant {
@@ -43,8 +44,19 @@ function enrichColorVariants(products: Product[]): Product[] {
 /** Server product cache — 5 min, matches ISR + public API. */
 export const getProducts = unstable_cache(
   async (): Promise<Product[]> => {
-    const products = await readProducts();
-    return enrichColorVariants(products);
+    try {
+      const products = await readProducts();
+      return enrichColorVariants(products);
+    } catch (err) {
+      if (isDbUnavailableError(err)) {
+        console.warn(
+          "[products] database not ready (run npm run db:setup):",
+          err instanceof Error ? err.message : err
+        );
+        return [];
+      }
+      throw err;
+    }
   },
   ["logic-clothes-products"],
   { revalidate: 300, tags: ["products"] }

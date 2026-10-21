@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { revalidateTag } from "next/cache";
-import { query } from "@/lib/db";
+import { isDbUnavailableError, query } from "@/lib/db";
 import type { Locale } from "@/lib/i18n/config";
 import { slugFromLabels, slugifyId } from "@/lib/slug";
 
@@ -100,7 +100,20 @@ async function fetchCategoriesFromDb(opts?: {
 
 /** Public storefront list (visible only), cached. */
 export const getCategories = unstable_cache(
-  async (): Promise<Category[]> => fetchCategoriesFromDb({ includeHidden: false }),
+  async (): Promise<Category[]> => {
+    try {
+      return await fetchCategoriesFromDb({ includeHidden: false });
+    } catch (err) {
+      if (isDbUnavailableError(err)) {
+        console.warn(
+          "[categories] database not ready (run npm run db:setup):",
+          err instanceof Error ? err.message : err
+        );
+        return [];
+      }
+      throw err;
+    }
+  },
   ["logic-clothes-categories"],
   { revalidate: 300, tags: ["categories"] }
 );

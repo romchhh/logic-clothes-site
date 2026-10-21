@@ -1,8 +1,22 @@
 import { Pool, type PoolClient } from "pg";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __lcPgPool: Pool | undefined;
+}
+
+/** Missing tables / first boot before `npm run migrate`. */
+export function isDbUnavailableError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const code = "code" in err ? String((err as { code?: string }).code) : "";
+  // 42P01 undefined_table, 3D000 invalid_catalog_name, ECONNREFUSED, etc.
+  return (
+    code === "42P01" ||
+    code === "3D000" ||
+    code === "ECONNREFUSED" ||
+    code === "ENOTFOUND" ||
+    code === "ETIMEDOUT" ||
+    code === "57P03" // cannot_connect_now
+  );
 }
 
 function createPool() {

@@ -42,6 +42,9 @@
     "node": ">=20"
   },
   "overrides": {
-    "postcss": "8.5.31"
+    "postcss": "8.5.31",
+    "braces": "3.0.3",
+    "micromatch": "4.0.8",
+    "fast-glob": "3.3.3"
   }
 }
