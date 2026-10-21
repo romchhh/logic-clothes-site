@@ -5,14 +5,43 @@ Storefront, admin і checkout читають/пишуть **Postgres**, не JSO
 ## Setup
 
 1. Створи БД і додай `DATABASE_URL` у `.env.local` (див. `.env.example`).
-2. Застосуй схему та (опційно) імпортуй старий JSON:
+2. Застосуй схему та імпортуй дані:
 
 ```bash
+# Свіжий сервер (migrate + catalog-dump або seed)
+npm run db:init
+
+# або старий шлях:
 npm run db:setup   # migrate + seed from data/*.json
-# або окремо:
-npm run migrate
-npm run db:seed
 ```
+
+### Локальна БД → сервер
+
+**Варіант A — напряму** (з ноутбука, якщо є доступ до Postgres на сервері):
+
+```bash
+# 1) на сервері один раз: схема
+DATABASE_URL='postgresql://…server…' npm run migrate
+
+# 2) локально: скопіювати каталог (товари + категорії)
+TARGET_DATABASE_URL='postgresql://…server…' npm run db:push
+```
+
+**Варіант B — через файл** (scp):
+
+```bash
+# локально
+npm run db:export
+scp data/catalog-dump.json user@server:~/logic-clothes-site/data/
+
+# на сервері
+cd ~/logic-clothes-site
+npm run db:init    # migrate + import dump
+# або якщо схема вже є:
+npm run db:import
+```
+
+`--with-settings` додає `site_settings` (ключі Telegram / НП) у dump / push.
 
 ## Tables
 
@@ -32,7 +61,11 @@ npm run db:seed
 
 | Command | Action |
 |---------|--------|
-| `npm run migrate` | Apply `database/schema.sql` |
+| `npm run migrate` | Apply schema + migrations |
+| `npm run db:export` | Dump catalog from DB → `data/catalog-dump.json` |
+| `npm run db:import` | Replace catalog from dump |
+| `npm run db:push` | Local DB → `TARGET_DATABASE_URL` |
+| `npm run db:init` | migrate + import dump (або seed) |
 | `npm run db:seed` | Import `data/products.json` + `data/orders.json` |
 | `npm run db:setup` | migrate + seed |
 

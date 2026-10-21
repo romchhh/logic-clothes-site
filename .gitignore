@@ -32,3 +32,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local DB catalog dumps (may contain settings if exported with --with-settings)
+/data/catalog-dump.json
+/data/*.dump.json
