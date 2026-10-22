@@ -1047,8 +1047,17 @@
     max-width:100%;
   }
   .home-rail{
-    overflow-x:clip;
     max-width:100%;
+    /* Horizontal inset lives on head + track so the rail can scroll edge-to-edge
+       without negative margins getting clipped by overflow-x. */
+    padding-left:0;
+    padding-right:0;
+    padding-bottom:12px;
+    overflow-x:clip;
+  }
+  .home-rail .section-head{
+    padding-left:var(--page-gutter);
+    padding-right:var(--page-gutter);
   }
   .home-featured-sub{display:none;}
   .home-rails{
@@ -1056,7 +1065,6 @@
     flex-direction:column;
     gap:0;
   }
-  .home-rail{padding-bottom:12px;}
   .home-rail + .home-rail{padding-top:8px;}
   .home-rail-actions{
     display:flex;
@@ -1079,14 +1087,15 @@
     gap:14px;
     overflow-x:auto;
     scroll-snap-type:x mandatory;
+    scroll-padding-inline:var(--page-gutter);
     -webkit-overflow-scrolling:touch;
     overscroll-behavior-x:contain;
     scrollbar-width:none;
-    padding:4px 0 12px;
-    margin:0 calc(-1 * var(--page-gutter));
-    padding-left:var(--page-gutter);
-    padding-right:var(--page-gutter);
+    padding:4px var(--page-gutter) 12px;
+    margin:0;
+    width:100%;
     max-width:100%;
+    box-sizing:border-box;
   }
   .home-rail-track::-webkit-scrollbar{display:none;}
   .home-rail-item{
