@@ -110,9 +110,16 @@ export default function ProductsTable() {
   }
 
   const stockBadge = (p: Product) => (
-    <Badge size="sm" color={p.inStock ? "success" : "error"}>
-      {p.inStock ? "В наявності" : "Немає"}
-    </Badge>
+    <span className="inline-flex flex-wrap gap-1">
+      <Badge size="sm" color={p.inStock ? "success" : "error"}>
+        {p.inStock ? "В наявності" : "Немає"}
+      </Badge>
+      {p.isVisible === false ? (
+        <Badge size="sm" color="warning">
+          Приховано
+        </Badge>
+      ) : null}
+    </span>
   );
 
   async function handleDuplicate(product: Product) {

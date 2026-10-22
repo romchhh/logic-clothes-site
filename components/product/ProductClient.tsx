@@ -349,6 +349,11 @@ export default function ProductClient({
             </div>
 
             <div className="pdp-actions">
+              {!canBuy && (
+                <p className="pdp-stock-note" role="status">
+                  {t.product.outOfStock}
+                </p>
+              )}
               <button
                 className="pdp-cart pdp-cart--desktop"
                 type="button"

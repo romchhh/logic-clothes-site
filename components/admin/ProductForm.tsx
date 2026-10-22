@@ -53,6 +53,7 @@ type FormState = {
   descriptionEn: string;
   sortOrder: string;
   inStock: boolean;
+  isVisible: boolean;
   isNew: boolean;
   isPopular: boolean;
   isSale: boolean;
@@ -79,6 +80,7 @@ const EMPTY: FormState = {
   descriptionEn: "",
   sortOrder: "",
   inStock: true,
+  isVisible: true,
   isNew: false,
   isPopular: false,
   isSale: false,
@@ -254,6 +256,7 @@ export default function ProductForm({ productId }: Props) {
           sortOrder:
             p.sortOrder != null ? String(p.sortOrder) : "0",
           inStock: p.inStock !== false,
+          isVisible: p.isVisible !== false,
           isNew: Boolean(p.isNew),
           isPopular: Boolean(p.isPopular),
           isSale: Boolean(p.isSale),
@@ -410,6 +413,7 @@ export default function ProductForm({ productId }: Props) {
         return Number.isFinite(n) ? Math.max(0, Math.round(n)) : undefined;
       })(),
       inStock: form.inStock,
+      isVisible: form.isVisible,
       isNew: form.isNew,
       isPopular: form.isPopular,
       isSale: form.isSale || (compareAt != null && compareAt > priceNum),
@@ -656,27 +660,41 @@ export default function ProductForm({ productId }: Props) {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-6">
-            <ToggleSwitch
-              label="В наявності"
-              enabled={form.inStock}
-              setEnabled={(v) => set("inStock", v)}
-            />
-            <ToggleSwitch
-              label="New"
-              enabled={form.isNew}
-              setEnabled={(v) => set("isNew", v)}
-            />
-            <ToggleSwitch
-              label="Sale"
-              enabled={form.isSale}
-              setEnabled={(v) => set("isSale", v)}
-            />
-            <ToggleSwitch
-              label="Популярні"
-              enabled={form.isPopular}
-              setEnabled={(v) => set("isPopular", v)}
-            />
+          <div className="flex flex-col gap-4 pt-6">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <ToggleSwitch
+                label="В наявності"
+                enabled={form.inStock}
+                setEnabled={(v) => set("inStock", v)}
+              />
+              <ToggleSwitch
+                label="Показувати в каталозі"
+                enabled={form.isVisible}
+                setEnabled={(v) => set("isVisible", v)}
+              />
+            </div>
+            <p className="text-xs text-gray-400">
+              Без наявності товар лишається на сайті, але його не можна
+              замовити. Без «в каталозі» — не видно в каталозі / пошуку /
+              головній (сторінка товару за прямим посиланням працює).
+            </p>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <ToggleSwitch
+                label="New"
+                enabled={form.isNew}
+                setEnabled={(v) => set("isNew", v)}
+              />
+              <ToggleSwitch
+                label="Sale"
+                enabled={form.isSale}
+                setEnabled={(v) => set("isSale", v)}
+              />
+              <ToggleSwitch
+                label="Популярні"
+                enabled={form.isPopular}
+                setEnabled={(v) => set("isPopular", v)}
+              />
+            </div>
           </div>
         </div>
       </ComponentCard>

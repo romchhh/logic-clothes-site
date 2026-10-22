@@ -125,7 +125,7 @@ export async function getRelatedProducts(
     const map = new Map(products.map((p) => [p.id, p]));
     return current.lookProductIds
       .map((rid) => map.get(rid))
-      .filter((p): p is Product => !!p && p.id !== id)
+      .filter((p): p is Product => !!p && p.id !== id && isCatalogProduct(p))
       .slice(0, limit);
   }
   return products
@@ -134,7 +134,7 @@ export async function getRelatedProducts(
 }
 
 export async function getAllProductIds(): Promise<string[]> {
-  const products = await getProducts();
+  const products = (await getProducts()).filter(isCatalogProduct);
   return products.map((p) => p.id);
 }
 

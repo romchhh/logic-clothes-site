@@ -40,8 +40,16 @@ export default function ProductCard({
             priority={priority}
             style={{ objectFit: "cover", objectPosition: "center" }}
           />
-          {(product.isNew || onSale || product.isPopular) && (
+          {(product.isNew ||
+            onSale ||
+            product.isPopular ||
+            product.inStock === false) && (
             <div className="product-badges">
+              {product.inStock === false && (
+                <span className="product-badge is-oos">
+                  {t.product.outOfStock}
+                </span>
+              )}
               {product.isNew && <span className="product-badge">New</span>}
               {onSale && <span className="product-badge is-sale">Sale</span>}
               {product.isPopular && (

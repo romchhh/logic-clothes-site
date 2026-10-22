@@ -59,6 +59,8 @@ export interface Product {
   media?: ProductMedia[];
   swatches: ProductSwatch[];
   inStock: boolean;
+  /** When false, product is hidden from catalog / search / home rails (PDP still works). */
+  isVisible?: boolean;
   sku: number | string;
   category?: string;
   isNew?: boolean;

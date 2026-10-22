@@ -133,6 +133,10 @@ export function productFromBody(
       : base.swatches || [],
     inStock:
       body.inStock != null ? Boolean(body.inStock) : base.inStock !== false,
+    isVisible:
+      body.isVisible != null
+        ? Boolean(body.isVisible)
+        : base.isVisible !== false,
     sku:
       body.sku != null
         ? (body.sku as string | number)

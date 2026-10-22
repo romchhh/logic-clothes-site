@@ -3,6 +3,7 @@ import { getCategories } from "@/lib/categories";
 import { getLegalSlugs } from "@/lib/content/legal";
 import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n/config";
 import { getSiteUrl } from "@/lib/i18n/seo";
+import { isCatalogProduct } from "@/lib/catalogProduct";
 import { getProducts } from "@/lib/products";
 import type { Product } from "@/lib/types";
 
@@ -54,7 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let categoryIds: string[] = [];
 
   try {
-    products = await getProducts();
+    products = (await getProducts()).filter(isCatalogProduct);
   } catch (err) {
     console.warn(
       "[sitemap] skipping product URLs:",
