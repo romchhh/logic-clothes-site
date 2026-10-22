@@ -21,9 +21,17 @@ function fetchStats(): Promise<AdminStats> {
       credentials: "include",
       cache: "no-store",
     })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<AdminStats>;
+      .then(async (res) => {
+        const data = (await res.json().catch(() => ({}))) as AdminStats & {
+          error?: string;
+          message?: string;
+        };
+        if (!res.ok) {
+          throw new Error(
+            data.message || data.error || `HTTP ${res.status}`
+          );
+        }
+        return data as AdminStats;
       })
       .finally(() => {
         // Allow a fresh request on the next mount / manual refresh.
@@ -47,7 +55,8 @@ export function useAdminStats() {
       setStats(await fetchStats());
     } catch (e) {
       console.error("Error fetching admin stats:", e);
-      setError("Не вдалося завантажити статистику");
+      const detail = e instanceof Error && e.message ? ` (${e.message})` : "";
+      setError(`Не вдалося завантажити статистику${detail}`);
     } finally {
       setLoading(false);
     }

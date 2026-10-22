@@ -2,6 +2,7 @@ import { Pool, type PoolClient } from "pg";
 
 declare global {
   var __lcPgPool: Pool | undefined;
+  var __lcSchemaReady: Promise<void> | undefined;
 }
 
 /** Missing tables / first boot before `npm run migrate`. */
@@ -47,23 +48,62 @@ export function getPool(): Pool {
   return global.__lcPgPool;
 }
 
+/**
+ * Idempotent column patches so a deploy that ships code before `npm run migrate`
+ * still works (undefined_column was emptying the catalog / breaking admin stats).
+ */
+async function ensureSchemaPatches(pool: Pool): Promise<void> {
+  await pool.query(`
+    ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS is_visible boolean NOT NULL DEFAULT true
+  `);
+  await pool.query(`
+    ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS payment_type text NOT NULL DEFAULT 'pay_after',
+      ADD COLUMN IF NOT EXISTS payment_status text NOT NULL DEFAULT 'pending',
+      ADD COLUMN IF NOT EXISTS amount_to_pay numeric(12,2) NOT NULL DEFAULT 0
+  `);
+  await pool.query(`
+    ALTER TABLE order_items
+      ADD COLUMN IF NOT EXISTS color text,
+      ADD COLUMN IF NOT EXISTS length_opt text,
+      ADD COLUMN IF NOT EXISTS material_opt text,
+      ADD COLUMN IF NOT EXISTS size_label text
+  `);
+}
+
+export async function ensureDbReady(): Promise<Pool> {
+  const pool = getPool();
+  if (!global.__lcSchemaReady) {
+    global.__lcSchemaReady = ensureSchemaPatches(pool).catch((err) => {
+      // Allow retry on next request if DB was briefly unavailable.
+      global.__lcSchemaReady = undefined;
+      throw err;
+    });
+  }
+  await global.__lcSchemaReady;
+  return pool;
+}
+
 /** Neon-style tagged template helper on top of node-postgres. */
 export const sql = Object.assign(
   async (strings: TemplateStringsArray, ...values: unknown[]) => {
-    let query = strings[0];
+    let text = strings[0];
     for (let i = 0; i < values.length; i++) {
-      query += `$${i + 1}` + strings[i + 1];
+      text += `$${i + 1}` + strings[i + 1];
     }
-    const result = await getPool().query(query, values);
+    const pool = await ensureDbReady();
+    const result = await pool.query(text, values);
     return result.rows;
   },
   {
     query: async (strings: TemplateStringsArray, ...values: unknown[]) => {
-      let query = strings[0];
+      let text = strings[0];
       for (let i = 0; i < values.length; i++) {
-        query += `$${i + 1}` + strings[i + 1];
+        text += `$${i + 1}` + strings[i + 1];
       }
-      const result = await getPool().query(query, values);
+      const pool = await ensureDbReady();
+      const result = await pool.query(text, values);
       return result.rows;
     },
   }
@@ -72,7 +112,8 @@ export const sql = Object.assign(
 export async function withTransaction<T>(
   callback: (client: PoolClient) => Promise<T>
 ): Promise<T> {
-  const client = await getPool().connect();
+  const pool = await ensureDbReady();
+  const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const result = await callback(client);
@@ -90,6 +131,7 @@ export async function query<T extends Record<string, unknown> = Record<string, u
   text: string,
   params?: unknown[]
 ): Promise<T[]> {
-  const result = await getPool().query(text, params);
+  const pool = await ensureDbReady();
+  const result = await pool.query(text, params);
   return result.rows as T[];
 }

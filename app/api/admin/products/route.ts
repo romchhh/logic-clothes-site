@@ -14,8 +14,18 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   const denied = requireAdmin(request);
   if (denied) return denied;
-  const products = await readProducts();
-  return NextResponse.json(products);
+  try {
+    const products = await readProducts();
+    return NextResponse.json(products);
+  } catch (error) {
+    console.error("[GET /api/admin/products]", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to load products";
+    return NextResponse.json(
+      { error: "products_failed", message },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {

@@ -60,6 +60,33 @@ export async function PUT(
   }
 }
 
+/** Partial update for list quick-toggles (stock / visibility). */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+  const { id } = await params;
+  const current = await getProductById(id);
+  if (!current) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+    const next = { ...current };
+    if (typeof body.inStock === "boolean") next.inStock = body.inStock;
+    if (typeof body.isVisible === "boolean") next.isVisible = body.isVisible;
+    await upsertProduct(next);
+    const fresh = await getProductById(id);
+    return NextResponse.json(fresh ?? next);
+  } catch (error) {
+    console.error("[PATCH /api/admin/products/:id]", error);
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

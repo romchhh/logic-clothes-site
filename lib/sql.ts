@@ -1,6 +1,6 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { normalizeSizeOptions } from "@/lib/catalogProduct";
-import { getPool, query, withTransaction } from "@/lib/db";
+import { ensureDbReady, query, withTransaction } from "@/lib/db";
 import {
   resolveProductAssetUrl,
   resolveProductImages,
@@ -500,7 +500,8 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
 }
 
 export async function sqlDeleteProduct(slug: string): Promise<boolean> {
-  const result = await getPool().query(
+  const pool = await ensureDbReady();
+  const result = await pool.query(
     `DELETE FROM products WHERE slug = $1`,
     [slug]
   );
@@ -748,7 +749,8 @@ export async function sqlUpdateOrder(
 }
 
 export async function sqlDeleteOrder(id: string): Promise<boolean> {
-  const result = await getPool().query(`DELETE FROM orders WHERE id = $1`, [id]);
+  const pool = await ensureDbReady();
+  const result = await pool.query(`DELETE FROM orders WHERE id = $1`, [id]);
   return (result.rowCount ?? 0) > 0;
 }
 

@@ -85,6 +85,16 @@ const migrations = [
     description: "Order line color / length / material fields",
     file: "database/migrations/2026-10-21_lc_order_item_variants.sql",
   },
+  {
+    id: "2026-10-22_lc_order_payments",
+    description: "Order payment type / status / amount for WayForPay",
+    file: "database/migrations/2026-10-22_lc_order_payments.sql",
+  },
+  {
+    id: "2026-10-22_lc_product_visibility",
+    description: "Product catalog visibility flag",
+    file: "database/migrations/2026-10-22_lc_product_visibility.sql",
+  },
 ];
 
 async function main() {
