@@ -1,12 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ProductCard from "@/components/catalog/ProductCard";
 import SidebarFilter, {
   type SortOrder,
 } from "@/components/layout/SidebarFilter";
 import type { Category, CategoryId } from "@/lib/categories";
+import {
+  clearCatalogState,
+  loadCatalogState,
+  saveCatalogState,
+} from "@/lib/catalogState";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import type { Product } from "@/lib/types";
@@ -40,6 +51,26 @@ export default function CatalogClient({
   const [minPrice, setMinPrice] = useState<number | null>(null);
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_STEP);
+  const [ready, setReady] = useState(false);
+  const pendingScrollY = useRef(0);
+  const filterKeyRef = useRef<string | null>(null);
+  const persistRef = useRef({
+    sortOrder,
+    selectedSizes,
+    selectedColors,
+    minPrice,
+    maxPrice,
+    visibleCount,
+  });
+
+  persistRef.current = {
+    sortOrder,
+    selectedSizes,
+    selectedColors,
+    minPrice,
+    maxPrice,
+    visibleCount,
+  };
 
   const activeLabel =
     categories.find((c) => c.id === category)?.label[lang] || t.catalog.title;
@@ -87,9 +118,112 @@ export default function CatalogClient({
     });
   }, [filteredProducts, sortOrder]);
 
+  const filterKey = useMemo(
+    () =>
+      JSON.stringify({
+        category,
+        sortOrder,
+        selectedSizes,
+        selectedColors,
+        minPrice,
+        maxPrice,
+      }),
+    [category, sortOrder, selectedSizes, selectedColors, minPrice, maxPrice]
+  );
+
+  // Restore filters + scroll after back-navigation from a product page.
+  useLayoutEffect(() => {
+    const saved = loadCatalogState(lang, category);
+    if (saved) {
+      setSortOrder(saved.sortOrder);
+      setSelectedSizes(saved.selectedSizes);
+      setSelectedColors(saved.selectedColors);
+      setMinPrice(saved.minPrice);
+      setMaxPrice(saved.maxPrice);
+      setVisibleCount(saved.visibleCount);
+      pendingScrollY.current = saved.scrollY;
+    } else {
+      pendingScrollY.current = 0;
+    }
+    filterKeyRef.current = null;
+    setReady(true);
+
+    try {
+      if ("scrollRestoration" in history) {
+        history.scrollRestoration = "manual";
+      }
+    } catch {
+      /* ignore */
+    }
+
+    return () => {
+      try {
+        if ("scrollRestoration" in history) {
+          history.scrollRestoration = "auto";
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [lang, category]);
+
+  useLayoutEffect(() => {
+    if (!ready) return;
+    const y = pendingScrollY.current;
+    if (y <= 0) return;
+    pendingScrollY.current = 0;
+    const id = window.requestAnimationFrame(() => {
+      window.scrollTo(0, y);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [ready, sortedProducts.length, visibleCount]);
+
   useEffect(() => {
-    setVisibleCount(PAGE_STEP);
-  }, [category, selectedSizes, selectedColors, minPrice, maxPrice, sortOrder]);
+    if (!ready) return;
+    if (filterKeyRef.current === null) {
+      filterKeyRef.current = filterKey;
+      return;
+    }
+    if (filterKeyRef.current !== filterKey) {
+      filterKeyRef.current = filterKey;
+      setVisibleCount(PAGE_STEP);
+    }
+  }, [filterKey, ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const persist = () => {
+      const cur = persistRef.current;
+      saveCatalogState(lang, category, {
+        sortOrder: cur.sortOrder,
+        selectedSizes: cur.selectedSizes,
+        selectedColors: cur.selectedColors,
+        minPrice: cur.minPrice,
+        maxPrice: cur.maxPrice,
+        visibleCount: cur.visibleCount,
+        scrollY: window.scrollY || 0,
+      });
+    };
+    persist();
+    const onScroll = () => persist();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pagehide", persist);
+    return () => {
+      persist();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pagehide", persist);
+    };
+  }, [
+    ready,
+    lang,
+    category,
+    sortOrder,
+    selectedSizes,
+    selectedColors,
+    minPrice,
+    maxPrice,
+    visibleCount,
+  ]);
 
   useEffect(() => {
     if (!isFilterOpen) return;
@@ -116,6 +250,8 @@ export default function CatalogClient({
     setSelectedColors([]);
     setMinPrice(null);
     setMaxPrice(null);
+    setVisibleCount(PAGE_STEP);
+    clearCatalogState(lang, category);
     if (category !== "all") {
       router.push(`/${lang}/catalog`);
     }
