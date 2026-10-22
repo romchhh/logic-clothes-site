@@ -111,7 +111,7 @@ export const legalPages: Record<Locale, LegalPage[]> = {
         {
           heading: "4. Оплата",
           paragraphs: [
-            "Можливі способи: банківський переказ / онлайн-оплата / оплата в магазині — за домовленістю. Деталі — на сторінці «Оплата і доставка».",
+            "Можливі способи: повна оплата / передоплата 200 ₴ / післяплата через WayForPay. Деталі — на сторінці «Оплата і доставка».",
           ],
         },
         {
@@ -171,9 +171,9 @@ export const legalPages: Record<Locale, LegalPage[]> = {
         {
           heading: "1. Оплата",
           bullets: [
-            "Онлайн-оплата або банківський переказ — після підтвердження замовлення менеджером.",
-            "Оплата в concept store (готівка / картка) — за наявності товару в магазині.",
-            "Для кастомних замовлень можлива передоплата — узгоджується індивідуально.",
+            "Повна оплата онлайн карткою через WayForPay.",
+            "Передоплата 200 ₴ онлайн через WayForPay — решту суми сплачуєте при отриманні.",
+            "Післяплата — оплата при отриманні замовлення.",
           ],
         },
         {
@@ -352,7 +352,7 @@ export const legalPages: Record<Locale, LegalPage[]> = {
         {
           heading: "4. Payment",
           paragraphs: [
-            "Possible methods: bank transfer / online payment / in-store payment — by arrangement. See “Shipping & Payment”.",
+            "Possible methods: full payment / 200 UAH prepayment / cash on delivery via WayForPay. See “Shipping & Payment”.",
           ],
         },
         {
@@ -412,9 +412,9 @@ export const legalPages: Record<Locale, LegalPage[]> = {
         {
           heading: "1. Payment",
           bullets: [
-            "Online payment or bank transfer — after manager confirmation.",
-            "In-store payment (cash / card) — when the item is available in the store.",
-            "Custom orders may require prepayment — agreed individually.",
+            "Pay in full online by card via WayForPay.",
+            "200 UAH prepayment online via WayForPay — balance on delivery.",
+            "Cash on delivery — pay when you receive the order.",
           ],
         },
         {

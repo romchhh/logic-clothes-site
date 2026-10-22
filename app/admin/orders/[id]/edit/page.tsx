@@ -146,6 +146,34 @@ export default function EditOrderPage() {
               />
               <Row label="Email" value={order.email} />
               <Row label="Доставка" value={deliveryLabel(order.deliveryMethod)} />
+              <Row
+                label="Оплата"
+                value={
+                  order.paymentType === "full"
+                    ? "Повна (WayForPay)"
+                    : order.paymentType === "prepay"
+                      ? "Передоплата 200 ₴"
+                      : "Післяплата"
+                }
+              />
+              <Row
+                label="Статус оплати"
+                value={
+                  order.paymentStatus === "paid"
+                    ? "Оплачено"
+                    : order.paymentStatus === "failed"
+                      ? "Помилка"
+                      : order.paymentStatus === "refunded"
+                        ? "Повернення"
+                        : "Очікує"
+                }
+              />
+              {order.amountToPay > 0 ? (
+                <Row
+                  label="Сума до оплати онлайн"
+                  value={formatAdminMoney(order.amountToPay)}
+                />
+              ) : null}
               <Row label="Місто" value={order.city} />
               <Row label="Адреса / відділення" value={order.address} />
             </div>

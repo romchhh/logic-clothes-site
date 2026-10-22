@@ -8,6 +8,8 @@ import {
 import type {
   CheckoutPayload,
   DeliveryMethod,
+  PaymentStatus,
+  PaymentType,
   Product,
   ProductMedia,
   ProductSwatch,
@@ -21,6 +23,9 @@ export type StoredOrder = {
   phone: string;
   email?: string;
   deliveryMethod: DeliveryMethod;
+  paymentType: PaymentType;
+  paymentStatus: PaymentStatus;
+  amountToPay: number;
   city: string;
   address: string;
   comment?: string;
@@ -507,6 +512,9 @@ type OrderRow = {
   phone: string;
   email: string | null;
   delivery_method: DeliveryMethod;
+  payment_type: PaymentType | null;
+  payment_status: PaymentStatus | null;
+  amount_to_pay: string | number | null;
   city: string;
   address: string;
   comment: string | null;
@@ -530,6 +538,9 @@ function mapOrder(row: OrderRow): StoredOrder {
     phone: row.phone,
     ...(row.email ? { email: row.email } : {}),
     deliveryMethod: row.delivery_method,
+    paymentType: (row.payment_type as PaymentType) || "pay_after",
+    paymentStatus: (row.payment_status as PaymentStatus) || "pending",
+    amountToPay: num(row.amount_to_pay),
     city: row.city,
     address: row.address,
     ...(row.comment ? { comment: row.comment } : {}),
@@ -549,6 +560,9 @@ const ORDER_SELECT = `
     o.phone,
     o.email,
     o.delivery_method,
+    o.payment_type,
+    o.payment_status,
+    o.amount_to_pay,
     o.city,
     o.address,
     o.comment,
@@ -634,10 +648,12 @@ export async function sqlAppendOrder(order: StoredOrder): Promise<StoredOrder> {
       `
       INSERT INTO orders (
         id, created_at, status, customer_name, phone, email,
-        delivery_method, city, address, comment, locale, total, notified
+        delivery_method, payment_type, payment_status, amount_to_pay,
+        city, address, comment, locale, total, notified
       ) VALUES (
         $1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10, $11, $12, $13
+        $7, $8, $9, $10,
+        $11, $12, $13, $14, $15, $16
       )
       `,
       [
@@ -648,6 +664,9 @@ export async function sqlAppendOrder(order: StoredOrder): Promise<StoredOrder> {
         order.phone,
         order.email ?? null,
         order.deliveryMethod,
+        order.paymentType || "pay_after",
+        order.paymentStatus || "pending",
+        order.amountToPay ?? 0,
         order.city,
         order.address,
         order.comment ?? null,
@@ -684,12 +703,15 @@ export async function sqlUpdateOrder(
         phone = $4,
         email = $5,
         delivery_method = $6,
-        city = $7,
-        address = $8,
-        comment = $9,
-        locale = $10,
-        total = $11,
-        notified = $12
+        payment_type = $7,
+        payment_status = $8,
+        amount_to_pay = $9,
+        city = $10,
+        address = $11,
+        comment = $12,
+        locale = $13,
+        total = $14,
+        notified = $15
       WHERE id = $1
       `,
       [
@@ -699,6 +721,9 @@ export async function sqlUpdateOrder(
         next.phone,
         next.email ?? null,
         next.deliveryMethod,
+        next.paymentType || "pay_after",
+        next.paymentStatus || "pending",
+        next.amountToPay ?? 0,
         next.city,
         next.address,
         next.comment ?? null,

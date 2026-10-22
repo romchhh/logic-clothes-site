@@ -177,6 +177,9 @@ export default function OrdersTable() {
                   Сума
                 </TableCell>
                 <TableCell isHeader className={thClass}>
+                  Оплата
+                </TableCell>
+                <TableCell isHeader className={thClass}>
                   Статус
                 </TableCell>
                 <TableCell isHeader className={thClass}>
@@ -188,7 +191,7 @@ export default function OrdersTable() {
               {loading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className="py-6 text-center text-gray-500 dark:text-gray-400"
                   >
                     Завантаження...
@@ -197,7 +200,7 @@ export default function OrdersTable() {
               ) : paginated.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className="py-6 text-center text-gray-500 dark:text-gray-400"
                   >
                     Замовлень поки немає
@@ -216,6 +219,20 @@ export default function OrdersTable() {
                     <TableCell className={tdClass}>{o.phone}</TableCell>
                     <TableCell className="px-5 py-4 text-sm font-medium text-gray-800 dark:text-white/90">
                       {formatAdminMoney(o.total)}
+                    </TableCell>
+                    <TableCell className={tdClass}>
+                      {o.paymentType === "full"
+                        ? "Повна"
+                        : o.paymentType === "prepay"
+                          ? "Передоплата 200"
+                          : "Післяплата"}
+                      <span className="mt-0.5 block text-xs text-gray-400">
+                        {o.paymentStatus === "paid"
+                          ? "оплачено"
+                          : o.paymentStatus === "failed"
+                            ? "помилка"
+                            : "очікує"}
+                      </span>
                     </TableCell>
                     <TableCell className="px-5 py-4">
                       {statusSelect(o)}
@@ -255,6 +272,19 @@ export default function OrdersTable() {
               </div>
               <div className="text-sm font-medium text-gray-800 dark:text-white/90">
                 {formatAdminMoney(o.total)}
+              </div>
+              <div className="text-xs text-gray-500">
+                {o.paymentType === "full"
+                  ? "Повна"
+                  : o.paymentType === "prepay"
+                    ? "Передоплата 200"
+                    : "Післяплата"}{" "}
+                ·{" "}
+                {o.paymentStatus === "paid"
+                  ? "оплачено"
+                  : o.paymentStatus === "failed"
+                    ? "помилка"
+                    : "очікує"}
               </div>
               {statusSelect(o)}
               {actions(o)}

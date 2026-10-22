@@ -30,15 +30,23 @@ export async function generateMetadata({
 
 export default async function FinalPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ lang: string }>;
+  searchParams: Promise<{ order?: string; paid?: string }>;
 }) {
   const lang = parseLangParam((await params).lang);
+  const { order, paid } = await searchParams;
   const suggested = await getFeaturedProducts(8);
 
   return (
     <PageShell kind="catalog">
-      <FinalCheckout lang={lang} suggested={suggested} />
+      <FinalCheckout
+        lang={lang}
+        suggested={suggested}
+        returnOrderId={order || null}
+        returnPaid={paid === "1" || paid === "true"}
+      />
     </PageShell>
   );
 }

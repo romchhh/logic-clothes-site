@@ -118,13 +118,39 @@ export type Messages = {
     addressHint: string;
     comment: string;
     commentPlaceholder: string;
+    payment: string;
+    paymentMethod: string;
+    paymentHint: string;
+    paymentTypes: {
+      full: string;
+      prepay: string;
+      pay_after: string;
+    };
+    paymentHints: {
+      full: string;
+      prepay: string;
+      pay_after: string;
+    };
+    methodHints: {
+      nova_poshta_branch: string;
+      nova_poshta_locker: string;
+      nova_poshta_courier: string;
+      pickup: string;
+      international: string;
+    };
+    payNow: string;
+    amountDue: string;
+    bagToggle: string;
+    commentOptional: string;
     orderSummary: string;
     summaryPositions: string;
     managerNote: string;
     submit: string;
     submitting: string;
+    redirectingPay: string;
     successTitle: string;
     successText: string;
+    successPaidText: string;
     successOrderId: string;
     successDetails: string;
     successFollowUp: string;
@@ -143,6 +169,7 @@ export type Messages = {
       phone: string;
       city: string;
       address: string;
+      payment: string;
       empty: string;
       generic: string;
       np: string;
@@ -298,9 +325,9 @@ const uk: Messages = {
     ],
     paymentTitle: "Оплата",
     paymentText: [
-      "Онлайн-оплата або банківський переказ — після підтвердження менеджером.",
-      "Оплата в concept store (готівка / картка).",
-      "Для кастомних замовлень можлива передоплата.",
+      "Повна оплата онлайн через WayForPay.",
+      "Передоплата 200 ₴ онлайн — решта при отриманні.",
+      "Післяплата при отриманні замовлення.",
     ],
   },
   basket: {
@@ -313,8 +340,8 @@ const uk: Messages = {
     size: "Розмір",
   },
   checkout: {
-    title: "Оформлення замовлення",
-    subtitle: "Залиште контакти та зручний спосіб отримання — менеджер підтвердить деталі.",
+    title: "Оформлення",
+    subtitle: "Контакти, доставка й оплата — кілька хвилин.",
     emptyTitle: "У кошику поки порожньо",
     emptyCta: "До каталогу",
     contact: "Контакти",
@@ -334,21 +361,48 @@ const uk: Messages = {
     courierAddress: "Адреса доставки",
     courierAddressPlaceholder: "Вулиця, будинок, квартира",
     address: "Відділення / адреса",
-    addressHint: "Оберіть місто зі списку Нової Пошти, потім відділення",
+    addressHint: "Спочатку місто зі списку, потім відділення",
     comment: "Коментар",
     commentPlaceholder: "Колір / принт / кастом — якщо потрібно",
+    commentOptional: "за бажанням",
+    payment: "Оплата",
+    paymentMethod: "Спосіб оплати",
+    paymentHint: "Картка — через WayForPay. Післяплата — при отриманні.",
+    paymentTypes: {
+      full: "Повна оплата",
+      prepay: "Передоплата 200 ₴",
+      pay_after: "Післяплата",
+    },
+    paymentHints: {
+      full: "Уся сума зараз карткою",
+      prepay: "200 ₴ зараз, решта при отриманні",
+      pay_after: "Оплата при отриманні",
+    },
+    methodHints: {
+      nova_poshta_branch: "Класичне відділення",
+      nova_poshta_locker: "Поштомат 24/7",
+      nova_poshta_courier: "До дверей",
+      pickup: "Київ, Софіївська 5",
+      international: "За кордон",
+    },
+    payNow: "Оплатити",
+    amountDue: "До сплати зараз",
+    bagToggle: "Кошик",
     orderSummary: "Ваше замовлення",
     summaryPositions: "поз.",
-    managerNote: "Менеджер зв’яжеться з вами для підтвердження перед відправкою.",
+    managerNote: "Після оформлення менеджер підтвердить деталі.",
     submit: "Підтвердити замовлення",
     submitting: "Надсилаємо…",
+    redirectingPay: "Переходимо до оплати…",
     successTitle: "Замовлення прийнято",
     successText:
       "Дякуємо! Ми отримали ваше замовлення — нижче всі деталі для перевірки.",
+    successPaidText:
+      "Дякуємо! Оплату прийнято. Замовлення вже в роботі — деталі нижче.",
     successOrderId: "Номер замовлення",
     successDetails: "Деталі замовлення",
     successFollowUp:
-      "Наш менеджер зв’яжеться з вами найближчим часом за вказаним телефоном, щоб підтвердити замовлення та узгодити оплату й доставку.",
+      "Наш менеджер зв’яжеться з вами найближчим часом за вказаним телефоном, щоб підтвердити доставку.",
     successCta: "На головну",
     backToShop: "Продовжити покупки",
     alsoLike: "Вам може сподобатися",
@@ -364,6 +418,7 @@ const uk: Messages = {
       phone: "Вкажіть коректний телефон",
       city: "Оберіть місто зі списку",
       address: "Оберіть відділення або вкажіть адресу",
+      payment: "Оберіть спосіб оплати",
       empty: "Кошик порожній",
       generic: "Не вдалося надіслати замовлення. Спробуйте ще раз або зателефонуйте нам.",
       np: "Не вдалося завантажити дані Нової Пошти. Перевірте ключ API або введіть адресу вручну.",
@@ -521,9 +576,9 @@ const en: Messages = {
     ],
     paymentTitle: "Payment",
     paymentText: [
-      "Online payment or bank transfer — after manager confirmation.",
-      "In-store payment (cash / card).",
-      "Custom orders may require prepayment.",
+      "Pay in full online via WayForPay.",
+      "200 UAH prepayment online — balance on delivery.",
+      "Cash on delivery.",
     ],
   },
   basket: {
@@ -537,8 +592,7 @@ const en: Messages = {
   },
   checkout: {
     title: "Checkout",
-    subtitle:
-      "Leave your contacts and preferred delivery — a manager will confirm the details.",
+    subtitle: "Contacts, delivery and payment — a few minutes.",
     emptyTitle: "Your bag is empty",
     emptyCta: "Go to catalog",
     contact: "Contacts",
@@ -558,21 +612,48 @@ const en: Messages = {
     courierAddress: "Delivery address",
     courierAddressPlaceholder: "Street, building, apartment",
     address: "Branch / address",
-    addressHint: "Pick a Nova Poshta city, then a warehouse",
+    addressHint: "City from the list first, then a warehouse",
     comment: "Comment",
     commentPlaceholder: "Colour / print / custom — if needed",
+    commentOptional: "optional",
+    payment: "Payment",
+    paymentMethod: "Payment method",
+    paymentHint: "Card via WayForPay. Cash on delivery — pay on receipt.",
+    paymentTypes: {
+      full: "Pay in full",
+      prepay: "Prepayment 200 UAH",
+      pay_after: "Cash on delivery",
+    },
+    paymentHints: {
+      full: "Full amount by card now",
+      prepay: "200 UAH now, balance on delivery",
+      pay_after: "Pay when you receive it",
+    },
+    methodHints: {
+      nova_poshta_branch: "Classic branch",
+      nova_poshta_locker: "Locker 24/7",
+      nova_poshta_courier: "To your door",
+      pickup: "Kyiv, Sofiivska 5",
+      international: "Abroad",
+    },
+    payNow: "Pay now",
+    amountDue: "Pay now",
+    bagToggle: "Bag",
     orderSummary: "Your order",
     summaryPositions: "items",
-    managerNote: "Our team will contact you to confirm before shipping.",
+    managerNote: "After checkout a manager will confirm the details.",
     submit: "Place order",
     submitting: "Sending…",
+    redirectingPay: "Redirecting to payment…",
     successTitle: "Order received",
     successText:
       "Thank you! We’ve received your order — review the details below.",
+    successPaidText:
+      "Thank you! Payment received. Your order is in progress — details below.",
     successOrderId: "Order number",
     successDetails: "Order details",
     successFollowUp:
-      "Our manager will call you shortly at the phone number below to confirm your order and arrange payment and delivery.",
+      "Our manager will call you shortly at the phone number below to confirm delivery.",
     successCta: "Back home",
     backToShop: "Continue shopping",
     alsoLike: "You may also like",
@@ -588,6 +669,7 @@ const en: Messages = {
       phone: "Enter a valid phone number",
       city: "Pick a city from the list",
       address: "Pick a warehouse or enter an address",
+      payment: "Choose a payment method",
       empty: "Bag is empty",
       generic: "Could not send the order. Try again or call us.",
       np: "Could not load Nova Poshta data. Check the API key or enter the address manually.",

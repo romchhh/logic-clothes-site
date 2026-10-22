@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
 import { appendOrder, readOrders, type StoredOrder } from "@/lib/adminStore";
-import type { DeliveryMethod } from "@/lib/types";
+import type { DeliveryMethod, PaymentStatus, PaymentType } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -34,6 +34,9 @@ export async function POST(request: NextRequest) {
       email: body.email ? String(body.email) : undefined,
       deliveryMethod: (body.deliveryMethod ||
         "nova_poshta_branch") as DeliveryMethod,
+      paymentType: (body.paymentType || "pay_after") as PaymentType,
+      paymentStatus: (body.paymentStatus || "pending") as PaymentStatus,
+      amountToPay: Number(body.amountToPay) || 0,
       city: String(body.city || ""),
       address: String(body.address || ""),
       comment: body.comment ? String(body.comment) : undefined,

@@ -120,11 +120,15 @@ export type DeliveryMethod =
   | "pickup"
   | "international";
 
+export type PaymentType = "full" | "prepay" | "pay_after";
+export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
+
 export interface CheckoutPayload {
   customerName: string;
   phone: string;
   email?: string;
   deliveryMethod: DeliveryMethod;
+  paymentType: PaymentType;
   city: string;
   address: string;
   comment?: string;

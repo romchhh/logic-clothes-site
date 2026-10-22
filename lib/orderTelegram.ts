@@ -1,7 +1,8 @@
-import type { CheckoutPayload, DeliveryMethod } from "@/lib/types";
+import type { CheckoutPayload, DeliveryMethod, PaymentType } from "@/lib/types";
 import { variantSummary } from "@/lib/orderVariant";
 import { resolveSetting } from "@/lib/settings";
 import { SITE_NAME } from "@/lib/siteContact";
+import { PREPAY_AMOUNT_UAH } from "@/lib/wayforpay";
 
 const DELIVERY_LABELS: Record<DeliveryMethod, string> = {
   nova_poshta_branch: "Нова Пошта · відділення",
@@ -11,13 +12,20 @@ const DELIVERY_LABELS: Record<DeliveryMethod, string> = {
   international: "Міжнародна доставка",
 };
 
+const PAYMENT_LABELS: Record<PaymentType, string> = {
+  full: "Повна оплата (WayForPay)",
+  prepay: `Передоплата ${PREPAY_AMOUNT_UAH} ₴ (WayForPay)`,
+  pay_after: "Післяплата",
+};
+
 function formatMoney(amount: number): string {
   return `${Math.round(amount).toLocaleString("uk-UA")} ₴`;
 }
 
 export async function sendOrderTelegramNotification(
   payload: CheckoutPayload,
-  orderId: string
+  orderId: string,
+  opts?: { amountToPay?: number; paymentPending?: boolean }
 ): Promise<boolean> {
   const BOT_TOKEN = await resolveSetting("telegram_bot_token", [
     process.env.BOT_TOKEN,
@@ -42,6 +50,12 @@ export async function sendOrderTelegramNotification(
     })
     .join("\n");
 
+  const paymentType = payload.paymentType || "pay_after";
+  const payLine =
+    opts?.amountToPay != null && opts.amountToPay > 0
+      ? `\n💳 <b>До оплати зараз:</b> ${formatMoney(opts.amountToPay)}${opts.paymentPending ? " (очікуємо WayForPay)" : ""}`
+      : "";
+
   const text = `
 🛒 <b>Нове замовлення · ${SITE_NAME}</b>
 
@@ -52,6 +66,7 @@ export async function sendOrderTelegramNotification(
 📱 <b>Тел:</b> ${escapeHtml(payload.phone)}
 📧 <b>Email:</b> ${escapeHtml(payload.email || "—")}
 🚚 <b>Доставка:</b> ${DELIVERY_LABELS[payload.deliveryMethod] || payload.deliveryMethod}
+💰 <b>Оплата:</b> ${PAYMENT_LABELS[paymentType] || paymentType}${payLine}
 🏙️ <b>Місто:</b> ${escapeHtml(payload.city)}
 🏤 <b>Адреса:</b> ${escapeHtml(payload.address)}
 📝 <b>Коментар:</b> ${escapeHtml(payload.comment || "—")}
