@@ -189,6 +189,21 @@ export const ADMIN_TOUR_STEPS: AdminTourStep[] = [
     placement: "bottom",
   },
   {
+    id: "hero",
+    path: "/admin/hero",
+    target: "tour-hero-page",
+    section: "Hero",
+    title: "Головний екран сайту",
+    description:
+      "Тут змінюєте фото hero, напис «З 2015» (UK/EN) і опційний заголовок з підзаголовком. Після «Зберегти» головна оновлюється.",
+    action: "Завантажте фото → заповніть написи → Зберегти.",
+    tips: [
+      "Порожній заголовок/підзаголовок — на hero лишаються лише фото й категорії",
+      "Позиція кадру керує object-position (напр. center 22%)",
+    ],
+    placement: "bottom",
+  },
+  {
     id: "feeds",
     path: "/admin/feeds",
     target: "tour-feeds-page",

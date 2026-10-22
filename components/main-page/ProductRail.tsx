@@ -24,8 +24,8 @@ export default function ProductRail({
 }) {
   const { t } = useI18n();
   const trackRef = useRef<HTMLDivElement>(null);
+  const showNav = products.length > 1;
 
-  // Keep cards left-aligned — scroll-snap can center a single item on some browsers.
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
@@ -51,26 +51,28 @@ export default function ProductRail({
               {t.home.seeAll}
             </Link>
           )}
-          <div className="cat-nav">
-            <button
-              type="button"
-              aria-label={lang === "uk" ? "Назад" : "Previous"}
-              onClick={() => scrollBy(-1)}
-            >
-              <svg viewBox="0 0 24 24">
-                <path d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              aria-label={lang === "uk" ? "Далі" : "Next"}
-              onClick={() => scrollBy(1)}
-            >
-              <svg viewBox="0 0 24 24">
-                <path d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
+          {showNav && (
+            <div className="cat-nav">
+              <button
+                type="button"
+                aria-label={lang === "uk" ? "Назад" : "Previous"}
+                onClick={() => scrollBy(-1)}
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                aria-label={lang === "uk" ? "Далі" : "Next"}
+                onClick={() => scrollBy(1)}
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

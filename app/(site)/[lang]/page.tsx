@@ -5,6 +5,7 @@ import FeaturedServer from "@/components/main-page/FeaturedServer";
 import Hero from "@/components/main-page/Hero";
 import PageShell from "@/components/shared/PageShell";
 import { getCategories } from "@/lib/categories";
+import { getHeroContent } from "@/lib/hero";
 import { parseLangParam, pageAlternates, seoCopy } from "@/lib/i18n/seo";
 
 export const revalidate = 300;
@@ -32,12 +33,15 @@ export default async function HomePage({
 }) {
   const { lang: raw } = await params;
   const lang = parseLangParam(raw);
-  const categories = await getCategories();
+  const [categories, hero] = await Promise.all([
+    getCategories(),
+    getHeroContent(),
+  ]);
 
   return (
     <PageShell kind="home">
       <div className="home-shell">
-        <Hero lang={lang} categories={categories} />
+        <Hero lang={lang} categories={categories} content={hero} />
         <Suspense fallback={<div className="home-section" />}>
           <FeaturedServer lang={lang} />
         </Suspense>

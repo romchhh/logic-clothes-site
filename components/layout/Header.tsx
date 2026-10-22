@@ -34,7 +34,7 @@ export default function Header({ lang }: { lang: Locale }) {
   }
 
   return (
-    <div className="site-bar" id="site-bar">
+    <div className="site-bar is-stuck" id="site-bar">
       <header className="site-header">
         <Link href={`/${lang}`} className="site-logo" aria-label={SITE_NAME}>
           <Image
@@ -48,7 +48,8 @@ export default function Header({ lang }: { lang: Locale }) {
           />
         </Link>
 
-        <div className="site-left">
+        {/* Nav lives in the burger menu — header chrome matches home on every page */}
+        <div className="site-left" hidden aria-hidden="true">
           <nav className="site-nav" aria-label="Main">
             {nav.map((item) => (
               <Link key={item.label + item.href} href={item.href}>

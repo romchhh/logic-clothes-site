@@ -24,6 +24,9 @@ export default function AdminDashboard() {
             <Link href="/admin/products/add" className="admin-btn-primary">
               Додати товар
             </Link>
+            <Link href="/admin/hero" className="admin-btn-secondary">
+              Hero
+            </Link>
             <Link href="/admin/orders" className="admin-btn-secondary">
               Замовлення
             </Link>

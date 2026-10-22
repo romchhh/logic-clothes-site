@@ -55,7 +55,9 @@ export async function POST(request: NextRequest) {
     }
 
     const crop = parseCrop(form.get("crop"));
-    const fitIg = form.get("fit") === "instagram" || Boolean(crop);
+    const fitMode = String(form.get("fit") || "");
+    const fitIg = fitMode === "instagram" || Boolean(crop);
+    const fitHero = fitMode === "hero";
 
     const dir = productMediaDir();
     await fs.mkdir(dir, { recursive: true });
@@ -105,6 +107,10 @@ export async function POST(request: NextRequest) {
         pipeline = sharp(buf)
           .rotate()
           .resize(IG_W, IG_H, { fit: "cover", position: "centre" });
+      } else if (fitHero) {
+        pipeline = sharp(buf)
+          .rotate()
+          .resize({ width: 2400, withoutEnlargement: true });
       } else {
         pipeline = sharp(buf)
           .rotate()

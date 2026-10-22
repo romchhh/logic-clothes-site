@@ -67,6 +67,36 @@ function FeedIcon({ className }: { className?: string }) {
   );
 }
 
+function HeroIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden
+    >
+      <rect
+        x="3"
+        y="5"
+        width="18"
+        height="14"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M3 15l4.5-4.5a1.5 1.5 0 012.1 0L14 15l2.2-2.2a1.5 1.5 0 012.1 0L21 16"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <circle cx="8.5" cy="9" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
 function UsersIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -125,6 +155,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Система",
     items: [
+      { name: "Hero", icon: <HeroIcon />, path: "/admin/hero" },
       { name: "Фіди", icon: <FeedIcon />, path: "/admin/feeds" },
       {
         name: "Налаштування",

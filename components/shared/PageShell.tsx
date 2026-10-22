@@ -17,32 +17,32 @@ export default function PageShell({
     body.classList.toggle("catalog-on", kind === "catalog");
     body.classList.toggle("product-on", kind === "product");
 
-    const onScroll = () => {
-      const bar = document.getElementById("site-bar");
-      if (!bar) return;
-      const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
-      const solid = kind === "catalog" || kind === "product";
-      let stuck = scrollTop > 12;
+    const bar = document.getElementById("site-bar");
 
-      if (kind === "home") {
-        const hero = document.querySelector(".home-hero-stage");
-        if (hero) {
-          const heroBottom = hero.getBoundingClientRect().bottom;
-          stuck = scrollTop > 12 || heroBottom < 72;
-        }
-        bar.classList.toggle("is-stuck", stuck);
-      } else {
-        bar.classList.toggle("is-stuck", stuck || solid);
+    const syncStuck = () => {
+      if (!bar) return;
+      // Non-home pages: always solid fixed header.
+      if (kind !== "home") {
+        bar.classList.add("is-stuck");
+        return;
       }
+      const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+      let stuck = scrollTop > 12;
+      const hero = document.querySelector(".home-hero-stage");
+      if (hero) {
+        const heroBottom = hero.getBoundingClientRect().bottom;
+        stuck = scrollTop > 12 || heroBottom < 72;
+      }
+      bar.classList.toggle("is-stuck", stuck);
     };
 
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
+    syncStuck();
+    window.addEventListener("scroll", syncStuck, { passive: true });
+    window.addEventListener("resize", syncStuck, { passive: true });
 
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("scroll", syncStuck);
+      window.removeEventListener("resize", syncStuck);
       body.classList.remove("home-on", "catalog-on", "product-on");
     };
   }, [kind]);

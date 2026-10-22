@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
+import { bustHeroCache } from "@/lib/hero";
 import {
   SETTING_KEYS,
   getSettingsForAdmin,
   type SettingKey,
   upsertSettings,
 } from "@/lib/settings";
+import { HERO_SETTING_KEYS } from "@/lib/settingsTypes";
 
 export const runtime = "nodejs";
 
@@ -27,6 +29,8 @@ export async function PUT(request: NextRequest) {
       if (body[key] != null) patch[key] = String(body[key]);
     }
     await upsertSettings(patch);
+    const touchedHero = HERO_SETTING_KEYS.some((k) => k in patch);
+    if (touchedHero) bustHeroCache();
     const data = await getSettingsForAdmin();
     return NextResponse.json(data);
   } catch (error) {

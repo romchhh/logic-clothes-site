@@ -89,27 +89,26 @@
   button{font:inherit;cursor:pointer;border:none;background:none;color:inherit;}
   main{min-height:40vh;}
 
-  /* ========== STICKY CHROME ========== */
+  /* ========== FIXED CHROME (same on all pages) ========== */
+  :root{--site-bar-h:76px;}
   .site-bar{
-    position:sticky;
+    position:fixed;
+    left:0;
+    right:0;
     top:0;
     z-index:100;
     width:100%;
     background:var(--white);
     transition:background .28s ease, box-shadow .28s ease;
   }
-  body.home-on .site-bar{
-    position:fixed;
-    left:0;
-    right:0;
-    top:0;
-    width:100%;
+  /* Offset page content under the fixed bar (home hero sits under it) */
+  body:not(.home-on){
+    padding-top:var(--site-bar-h);
   }
   body.home-on .site-bar:not(.is-stuck){
     background:transparent;
   }
-  .site-bar.is-stuck,
-  body.home-on .site-bar.is-stuck{
+  .site-bar.is-stuck{
     background:var(--white);
     box-shadow:0 1px 0 rgba(0,0,0,.06);
   }
@@ -129,7 +128,7 @@
     transition:color .28s ease;
   }
   .site-logo{grid-area:logo;justify-self:start;}
-  .site-left{grid-area:left;display:none;}
+  .site-left{display:none !important;}
   .site-icons{grid-area:icons;}
   .site-icons{
     display:flex;
@@ -137,52 +136,26 @@
     gap:4px;
     justify-self:end;
   }
-  @media (min-width:1101px){
-    .site-header{
-      grid-template-columns:1fr auto 1fr;
-      grid-template-areas:"left logo icons";
-      gap:16px;
-    }
-    .site-left{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      justify-self:start;
-    }
-    .site-left .site-nav{margin-left:0;}
-    .site-logo{justify-self:center;}
-  }
   body.home-on .site-bar:not(.is-stuck) .site-header{
     color:var(--white);
   }
-  body.home-on .site-bar:not(.is-stuck) .site-nav a,
-  body.home-on .site-bar:not(.is-stuck) .site-icons button{
+  body.home-on .site-bar:not(.is-stuck) .site-icons button,
+  body.home-on .site-bar:not(.is-stuck) .site-icons a{
     color:var(--white);
-  }
-  body.home-on .site-bar:not(.is-stuck) .site-nav a:hover{
-    opacity:.55;
   }
   body.home-on .site-bar:not(.is-stuck) .site-logo img{
     filter:brightness(0) invert(1);
   }
-  .site-bar.is-stuck .site-header,
-  body.home-on .site-bar.is-stuck .site-header{
+  .site-bar.is-stuck .site-header{
     color:var(--ink);
   }
-  body.home-on .site-bar.is-stuck .site-nav a,
-  body.home-on .site-bar.is-stuck .site-icons button{
-    color:var(--ink);
-  }
-  body.home-on .site-bar.is-stuck .site-nav a:hover{
-    opacity:.55;
-  }
-  body.home-on .site-bar.is-stuck .site-logo img{
+  .site-bar.is-stuck .site-logo img{
     filter:none;
   }
-  body.home-on .site-bar.is-stuck .hdr-icon--light{display:none;}
-  body.home-on .site-bar.is-stuck .hdr-icon--dark{display:block;}
-  body.home-on .site-bar.is-stuck .icon-btn--wish svg{stroke:currentColor;fill:none;}
-  body.home-on .site-bar.is-stuck .icon-btn--cart svg{color:currentColor;}
+  .site-bar.is-stuck .hdr-icon--light{display:none;}
+  .site-bar.is-stuck .hdr-icon--dark{display:block;}
+  .site-bar.is-stuck .icon-btn--wish svg{stroke:currentColor;fill:none;}
+  .site-bar.is-stuck .icon-btn--cart svg{color:currentColor;}
   .site-logo{
     display:block;
     width:min(148px, 42vw);
@@ -193,6 +166,7 @@
   }
   @media (min-width:1101px){
     .site-logo{width:min(148px,38vw);}
+    :root{--site-bar-h:80px;}
   }
   .site-nav{
     display:flex;
@@ -348,28 +322,12 @@
     display:flex;align-items:center;justify-content:center;
   }
   .icon-badge[hidden]{display:none;}
-  .site-burger{display:none;}
-  @media (max-width:1100px){
-    .site-burger{display:inline-flex;}
-    .site-left .site-nav{display:none;}
-  }
-  /* Home hero chrome: search + menu only (like the mock) */
-  body.home-on .site-burger{display:inline-flex;}
-  body.home-on .site-left{display:none !important;}
+  /* Same chrome everywhere: logo + search / wish / cart / burger */
+  .site-burger{display:inline-flex;}
+  /* On home over the hero: only search + menu until scrolled */
   body.home-on .site-bar:not(.is-stuck) .icon-btn--wish,
   body.home-on .site-bar:not(.is-stuck) .icon-btn--cart{
     display:none;
-  }
-  body.home-on .site-header{
-    grid-template-columns:auto 1fr;
-    grid-template-areas:"logo icons";
-  }
-  body.home-on .site-logo{justify-self:start;}
-  @media (min-width:1101px){
-    body.home-on .site-header{
-      grid-template-columns:auto 1fr;
-      grid-template-areas:"logo icons";
-    }
   }
 
   /* Mobile menu — Ave Maria style */
@@ -672,6 +630,31 @@
     pointer-events:none;
   }
   .home-hero-ui > *{pointer-events:auto;}
+  .home-hero-copy{
+    position:absolute;
+    left:0;right:0;
+    top:clamp(88px, 14vh, 140px);
+    z-index:2;
+    padding:0 var(--page-gutter);
+    max-width:min(560px, 92vw);
+    color:var(--white);
+    text-shadow:0 2px 18px rgba(0,0,0,.45);
+    animation:rise .75s .05s ease both;
+  }
+  .home-hero-title{
+    margin:0;
+    font-size:clamp(1.6rem, 4.2vw, 2.6rem);
+    font-weight:var(--weight-medium);
+    letter-spacing:var(--track-title);
+    line-height:1.15;
+  }
+  .home-hero-subtitle{
+    margin:10px 0 0;
+    font-size:clamp(.95rem, 2vw, 1.1rem);
+    line-height:1.45;
+    opacity:.92;
+    max-width:36ch;
+  }
 
   /* Categories — centered on hero photo (mock) */
   .hero-cats-anchor{
@@ -896,10 +879,12 @@
     to{opacity:1;transform:none;}
   }
   .home-section{
+    width:100%;
     max-width:min(1480px, 100%);
     margin:0 auto;
     padding:56px var(--page-gutter);
     overflow-x:clip;
+    box-sizing:border-box;
   }
   @media (min-width:900px){
     .home-section{padding:72px var(--page-gutter);}
@@ -1047,29 +1032,39 @@
     max-width:100%;
   }
   .home-rail{
+    width:100%;
     max-width:100%;
+    box-sizing:border-box;
     /* Horizontal inset lives on head + track so the rail can scroll edge-to-edge
        without negative margins getting clipped by overflow-x. */
     padding-left:0;
     padding-right:0;
     padding-bottom:12px;
     overflow-x:clip;
+    text-align:left;
   }
   .home-rail .section-head{
+    width:100%;
+    box-sizing:border-box;
     padding-left:var(--page-gutter);
     padding-right:var(--page-gutter);
+    justify-content:space-between;
+    text-align:left;
   }
   .home-featured-sub{display:none;}
   .home-rails{
     display:flex;
     flex-direction:column;
+    align-items:stretch;
     gap:0;
+    width:100%;
   }
   .home-rail + .home-rail{padding-top:8px;}
   .home-rail-actions{
     display:flex;
     align-items:center;
     gap:14px;
+    margin-left:auto;
   }
   .home-rail-all{
     font-size:13px;
@@ -1082,14 +1077,18 @@
     white-space:nowrap;
   }
   .home-rail-all:hover{color:var(--ink);}
+  /* Grid (not flex) so a single card never gets centered in leftover space */
   .home-rail-track{
-    display:flex;
-    justify-content:flex-start;
-    align-items:stretch;
+    display:grid;
+    grid-auto-flow:column;
+    grid-auto-columns:min(46vw, 220px);
+    justify-content:start;
+    justify-items:stretch;
+    align-content:start;
     gap:14px;
     overflow-x:auto;
-    scroll-snap-type:x proximity;
-    scroll-padding-inline:var(--page-gutter);
+    overflow-y:hidden;
+    scroll-snap-type:none;
     -webkit-overflow-scrolling:touch;
     overscroll-behavior-x:contain;
     scrollbar-width:none;
@@ -1098,21 +1097,26 @@
     width:100%;
     max-width:100%;
     box-sizing:border-box;
+    text-align:left;
   }
   .home-rail-track::-webkit-scrollbar{display:none;}
   .home-rail-item{
-    flex:0 0 min(46vw, 220px);
-    scroll-snap-align:start;
-    scroll-snap-stop:normal;
+    width:100%;
     min-width:0;
-    margin-inline:0;
+    margin:0;
+    padding:0;
+  }
+  .home-rail-item .product{
+    width:100%;
   }
   @media (min-width:700px){
-    .home-rail-track{gap:18px;}
-    .home-rail-item{flex-basis:min(28vw, 260px);}
+    .home-rail-track{
+      gap:18px;
+      grid-auto-columns:min(28vw, 260px);
+    }
   }
   @media (min-width:1100px){
-    .home-rail-item{flex-basis:min(22vw, 280px);}
+    .home-rail-track{grid-auto-columns:min(22vw, 280px);}
   }
   .home-rail-item .product-img{
     aspect-ratio:3 / 4;

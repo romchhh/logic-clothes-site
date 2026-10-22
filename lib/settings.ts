@@ -18,6 +18,14 @@ function emptySettings(): SettingsMap {
     telegram_chat_id: "",
     nova_poshta_api_key: "",
     site_url: "",
+    hero_image: "",
+    hero_image_position: "",
+    hero_since_uk: "",
+    hero_since_en: "",
+    hero_title_uk: "",
+    hero_title_en: "",
+    hero_subtitle_uk: "",
+    hero_subtitle_en: "",
   };
 }
 
@@ -102,6 +110,14 @@ export async function getSettingsForAdmin(): Promise<{
       process.env.NEXT_PUBLIC_NOVA_POSHTA_API_KEY ||
       "",
     site_url: process.env.NEXT_PUBLIC_SITE_URL || "",
+    hero_image: "",
+    hero_image_position: "",
+    hero_since_uk: "",
+    hero_since_en: "",
+    hero_title_uk: "",
+    hero_title_en: "",
+    hero_subtitle_uk: "",
+    hero_subtitle_en: "",
   };
 
   for (const key of SETTING_KEYS) {

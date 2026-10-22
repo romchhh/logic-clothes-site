@@ -1,33 +1,48 @@
 import Image from "next/image";
 import type { Category } from "@/lib/categories";
 import type { Locale } from "@/lib/i18n/config";
-import { getMessages } from "@/lib/i18n/messages";
+import { heroText, type HeroContent } from "@/lib/hero";
 import HeroCategories from "@/components/main-page/HeroCategories";
 
 export default function Hero({
   lang,
   categories,
+  content,
 }: {
   lang: Locale;
   categories: Category[];
+  content: HeroContent;
 }) {
-  const t = getMessages(lang);
+  const copy = heroText(content, lang);
+  const showCopy = Boolean(copy.title || copy.subtitle);
 
   return (
     <div className="home-hero-stage">
       <div className="home-hero">
         <Image
-          src="/assets/hero.png"
+          src={content.image || "/assets/hero.png"}
           alt=""
           fill
           priority
           sizes="100vw"
           quality={85}
-          style={{ objectFit: "cover", objectPosition: "center 22%" }}
+          style={{
+            objectFit: "cover",
+            objectPosition: content.imagePosition || "center 22%",
+          }}
         />
       </div>
 
       <div className="home-hero-ui">
+        {showCopy && (
+          <div className="home-hero-copy">
+            {copy.title ? <h1 className="home-hero-title">{copy.title}</h1> : null}
+            {copy.subtitle ? (
+              <p className="home-hero-subtitle">{copy.subtitle}</p>
+            ) : null}
+          </div>
+        )}
+
         <div className="hero-cats-anchor">
           <HeroCategories lang={lang} categories={categories} />
         </div>
@@ -37,7 +52,7 @@ export default function Hero({
             <span className="home-ua-brush home-ua-brush--blue" />
             <span className="home-ua-brush home-ua-brush--yellow" />
           </span>
-          <span className="home-ua-since">{t.home.since}</span>
+          <span className="home-ua-since">{copy.since}</span>
         </div>
       </div>
     </div>
