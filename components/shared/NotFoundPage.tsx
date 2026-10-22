@@ -45,6 +45,9 @@ export default function NotFoundPage({ lang: langProp }: { lang?: Locale }) {
           <Link href={`/${lang}/catalog`} className="nf-btn nf-btn--ghost">
             {t.notFound.catalog}
           </Link>
+          <Link href={`/${lang}/about`} className="nf-btn nf-btn--ghost">
+            {t.nav.about}
+          </Link>
         </div>
       </div>
     </section>

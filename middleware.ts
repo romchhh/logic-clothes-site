@@ -57,6 +57,6 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/assets/products/:path*",
-    "/((?!api|_next/static|_next/image|favicon.ico|assets/|admin-icons/|feeds/|robots.txt|sitemap.xml|site.webmanifest|sw.js|.*\\..*).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|assets/|admin-icons/|feeds/|robots.txt|sitemap.xml|manifest.webmanifest|site.webmanifest|llms\\.txt|llms-full\\.txt|humans\\.txt|sw.js|\\.well-known/|.*\\..*).*)",
   ],
 };

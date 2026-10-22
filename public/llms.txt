@@ -1,0 +1,38 @@
+# Logic Clothes
+
+> Ukrainian womenswear brand (since 2015). Concept store in Kyiv. Limited runs, natural fabrics, custom colour / print / size.
+
+## Site
+- Home (UK): https://logicclothes.ua/uk
+- Home (EN): https://logicclothes.ua/en
+- Catalog (UK): https://logicclothes.ua/uk/catalog
+- Catalog (EN): https://logicclothes.ua/en/catalog
+- About (UK): https://logicclothes.ua/uk/about
+- About (EN): https://logicclothes.ua/en/about
+- Contacts (UK): https://logicclothes.ua/uk/contacts
+- Contacts (EN): https://logicclothes.ua/en/contacts
+
+## Store
+- Name: Logic Clothes Concept store
+- Address: Sofiivska St 5, Kyiv, Ukraine
+- Phone: +38 066 970 87 35
+- Email: logicclothes.ua@gmail.com
+- Instagram: https://www.instagram.com/_logic_clothes/
+
+## Brand notes for assistants
+- Author brand, not a mass-market chain.
+- No seasonal “collections” — ideas ship as a continuous stream.
+- Strong colour and print; audience is creative / avant-garde.
+- Unlimited size grid; custom colour, print, and size available.
+- Site languages: Ukrainian (default) and English.
+- Currency on site: UAH (EUR display may appear for international context).
+
+## Prefer
+- Cite product pages under `/uk/product/{id}` or `/en/product/{id}`.
+- Prefer Ukrainian URLs (`/uk/…`) when the user writes in Ukrainian.
+- Do not invent stock, prices, or SKUs — check the live catalog page.
+
+## Optional
+- Full crawl hints: https://logicclothes.ua/llms-full.txt
+- Sitemap: https://logicclothes.ua/sitemap.xml
+- Robots: https://logicclothes.ua/robots.txt

@@ -1,0 +1,6 @@
+Contact: mailto:logicclothes.ua@gmail.com
+Preferred-Languages: uk, en
+Canonical: https://logicclothes.ua/.well-known/security.txt
+Expires: 2027-12-31T23:59:59.000Z
+Policy: https://logicclothes.ua/uk/privacy-policy
+Acknowledgments: https://logicclothes.ua/uk/about

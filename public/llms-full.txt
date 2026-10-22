@@ -1,0 +1,48 @@
+# Logic Clothes — full LLM context
+
+Brand: Logic Clothes
+Founded: 2015
+Category: Ukrainian author womenswear
+HQ / store: Sofiivska 5, Kyiv, Ukraine (Concept store)
+Web: https://logicclothes.ua
+Default locale: uk (Ukrainian); also en (English)
+Canonical pattern: https://logicclothes.ua/{lang}/{path}
+Product URL pattern: https://logicclothes.ua/{lang}/product/{id}
+Catalog filters: https://logicclothes.ua/{lang}/catalog?category={categoryId}
+
+## Positioning
+Logic Clothes is an author brand, not a high-street chain. Colour and print are central.
+There are no traditional seasonal collections — pieces appear as a continuous creative stream.
+The audience is creative, tech-fluent, and generally uninterested in mass-market basics.
+Size range is intentionally open; custom colour, print, and sizing are part of the offer.
+The physical store and Instagram are presented as a “treasure shop”: dense, curious, not Zara-like.
+
+## Public pages (indexable)
+- /uk , /en — home
+- /uk/catalog , /en/catalog — catalog
+- /uk/catalog?category=* — category views
+- /uk/product/{id} , /en/product/{id} — product detail
+- /uk/about , /en/about — about the brand
+- /uk/contacts , /en/contacts — contacts
+- Legal: privacy-policy, terms, delivery, returns, payment (locale-prefixed)
+
+## Non-public / do not invent from
+- /admin/* — CMS (disallowed)
+- /api/* — APIs (disallowed)
+- /*/wishlist , /*/final — private checkout / wishlist flows (disallowed)
+
+## Commerce facts
+- Prices listed in UAH
+- Stock and price must be read from the live product page
+- Shipping: Nova Poshta options + Concept store pickup (see delivery legal page)
+
+## Contact
+- Phone: +38 066 970 87 35
+- Email: logicclothes.ua@gmail.com
+- Instagram: https://www.instagram.com/_logic_clothes/
+
+## Machine-readable
+- Sitemap: https://logicclothes.ua/sitemap.xml
+- Robots: https://logicclothes.ua/robots.txt
+- Short brief: https://logicclothes.ua/llms.txt
+- Web app manifest: https://logicclothes.ua/site.webmanifest

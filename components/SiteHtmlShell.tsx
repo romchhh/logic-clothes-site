@@ -14,6 +14,7 @@ import { HTML_LANG, getSiteUrl } from "@/lib/i18n/seo";
 import type { Locale } from "@/lib/i18n/config";
 import {
   generateOrganizationStructuredData,
+  generateStoreStructuredData,
   generateWebsiteStructuredData,
 } from "@/lib/seo";
 
@@ -45,16 +46,18 @@ export default function SiteHtmlShell({
         <meta name="format-detection" content="telephone=no" />
         <link rel="icon" href="/assets/logo-header.png" type="image/png" />
         <link rel="apple-touch-icon" href="/assets/logo-header.png" />
-        <link rel="manifest" href="/site.webmanifest" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#111111" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="author" href="/humans.txt" />
         <link rel="preload" href="/assets/logo-header.png" as="image" />
         <link rel="preload" href="/assets/hero.png" as="image" />
         <link rel="dns-prefetch" href={baseUrl} />
       </head>
       <body className={jost.className}>
         <JsonLd data={generateOrganizationStructuredData(baseUrl)} />
+        <JsonLd data={generateStoreStructuredData(baseUrl)} />
         <JsonLd data={generateWebsiteStructuredData(baseUrl)} />
         <I18nProvider lang={lang}>
           <AppProvider>

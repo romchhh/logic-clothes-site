@@ -45,7 +45,12 @@ export async function generateMetadata({
       icon: [{ url: "/assets/logo-header.png", type: "image/png" }],
       apple: [{ url: "/assets/logo-header.png" }],
     },
-    manifest: "/site.webmanifest",
+    manifest: "/manifest.webmanifest",
+    verification: {
+      google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+      yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION || undefined,
+    },
+    category: "fashion",
     openGraph: {
       type: "website",
       locale: OG_LOCALE[lang],

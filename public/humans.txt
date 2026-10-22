@@ -1,0 +1,12 @@
+/* TEAM */
+Brand: Logic Clothes
+Site: https://logicclothes.ua
+Location: Kyiv, Ukraine
+Contact: logicclothes.ua@gmail.com
+Instagram: @_logic_clothes
+
+/* SITE */
+Standards: HTML5, CSS3, Schema.org
+Languages: uk, en
+Built with: Next.js
+Last update: 2026

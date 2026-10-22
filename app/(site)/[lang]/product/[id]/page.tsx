@@ -59,7 +59,7 @@ export async function generateMetadata({
       url: `${base}/${lang}/product/${id}`,
       siteName: SITE_NAME,
       locale: OG_LOCALE[lang],
-      images: [{ url: imageUrl, alt: title }],
+      images: [{ url: imageUrl, width: 1200, height: 1500, alt: title }],
     },
     twitter: {
       card: "summary_large_image",
@@ -68,8 +68,12 @@ export async function generateMetadata({
       images: [imageUrl],
     },
     other: {
+      "og:type": "product",
       "product:price:amount": Number(product.priceNum || 0).toFixed(2),
       "product:price:currency": "UAH",
+      "product:availability": product.inStock ? "in stock" : "out of stock",
+      "product:brand": SITE_NAME,
+      "product:retailer_item_id": String(product.sku || product.id),
     },
   };
 }
@@ -96,7 +100,10 @@ export default async function ProductPage({
           [
             { name: t.product.home, url: `/${lang}` },
             { name: t.product.catalog, url: `/${lang}/catalog` },
-            { name: product.name, url: `/${lang}/product/${id}` },
+            {
+              name: productName(product, lang),
+              url: `/${lang}/product/${id}`,
+            },
           ],
           baseUrl
         )}
