@@ -89,7 +89,7 @@ export default function CustomersTable() {
   );
 
   return (
-    <div className="admin-panel">
+    <div className="admin-panel" data-tour="tour-customers-page">
       <div className="admin-panel-head">
         <div>
           <h2 className="admin-panel-title">

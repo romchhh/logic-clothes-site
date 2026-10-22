@@ -188,8 +188,8 @@ export default function ProductsTable() {
   );
 
   return (
-    <div className="admin-panel">
-      <div className="admin-panel-head">
+    <div className="admin-panel" data-tour="tour-products-table">
+      <div className="admin-panel-head" data-tour="tour-products-toolbar">
         <div>
           <h2 className="admin-panel-title">
             Каталог{" "}

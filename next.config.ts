@@ -22,6 +22,16 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Product uploads change at runtime — do not mark immutable (404s would stick).
+        source: "/assets/products/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
         source: "/assets/:path*",
         headers: [
           {

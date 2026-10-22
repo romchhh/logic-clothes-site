@@ -73,3 +73,12 @@ export async function cachedFetch<T>(
 export const CACHE_KEYS = {
   PRODUCTS: "cache_products",
 };
+
+export function clearCachedData(key: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}

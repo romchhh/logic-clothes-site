@@ -17,17 +17,22 @@ export default function AdminDashboard() {
         title="Огляд"
         description="Стан магазину за останніми замовленнями та каталогом."
         actions={
-          <>
+          <div
+            data-tour="tour-dashboard-actions"
+            className="flex flex-wrap items-center gap-2"
+          >
             <Link href="/admin/products/add" className="admin-btn-primary">
               Додати товар
             </Link>
             <Link href="/admin/orders" className="admin-btn-secondary">
               Замовлення
             </Link>
-          </>
+          </div>
         }
       />
-      <EcommerceMetrics />
+      <div data-tour="tour-dashboard-stats">
+        <EcommerceMetrics />
+      </div>
       <RecentOrders />
     </div>
   );

@@ -1,4 +1,4 @@
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { normalizeSizeOptions } from "@/lib/catalogProduct";
 import { getPool, query, withTransaction } from "@/lib/db";
 import {
@@ -267,6 +267,11 @@ const PRODUCT_SELECT = `
 function bustProductCache() {
   try {
     revalidateTag("products");
+    revalidatePath("/uk");
+    revalidatePath("/en");
+    revalidatePath("/uk/catalog");
+    revalidatePath("/en/catalog");
+    revalidatePath("/api/products");
   } catch {
     // ignore outside Next request context (scripts / migrate)
   }

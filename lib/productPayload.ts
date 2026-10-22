@@ -7,13 +7,27 @@ function numOrNull(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function cleanAssetUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  try {
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      const u = new URL(trimmed);
+      return `${u.pathname}`;
+    }
+  } catch {
+    /* keep as-is */
+  }
+  return trimmed.split("?")[0].split("#")[0];
+}
+
 function parseMedia(body: Record<string, unknown>, images: string[]): ProductMedia[] {
   if (Array.isArray(body.media)) {
     return body.media
       .map((m) => {
         if (!m || typeof m !== "object") return null;
         const row = m as Record<string, unknown>;
-        const url = String(row.url || "");
+        const url = cleanAssetUrl(String(row.url || ""));
         if (!url) return null;
         return {
           url,
@@ -24,7 +38,10 @@ function parseMedia(body: Record<string, unknown>, images: string[]): ProductMed
       })
       .filter((m): m is ProductMedia => Boolean(m));
   }
-  return images.map((url) => ({ url, type: "image" as const }));
+  return images
+    .map((url) => cleanAssetUrl(url))
+    .filter(Boolean)
+    .map((url) => ({ url, type: "image" as const }));
 }
 
 /** Merge request body into a Product for create/update. */
@@ -44,7 +61,7 @@ export function productFromBody(
   const priceNum =
     numOrNull(body.priceNum) ?? base.priceNum ?? 0;
   const images: string[] = Array.isArray(body.images)
-    ? body.images.map(String).filter(Boolean)
+    ? body.images.map((u) => cleanAssetUrl(String(u))).filter(Boolean)
     : base.images || [];
   const media = parseMedia(body, images);
   const imageUrls =

@@ -70,7 +70,7 @@ export default function FeedsPanel() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-tour="tour-feeds-page">
       <p className="text-sm text-gray-500 dark:text-gray-400">
         XML-фіди оновлюються автоматично з каталогу (кеш ~5 хв). Додайте URL у
         кабінеті Google або Meta як scheduled fetch.

@@ -1084,9 +1084,11 @@
   .home-rail-all:hover{color:var(--ink);}
   .home-rail-track{
     display:flex;
+    justify-content:flex-start;
+    align-items:stretch;
     gap:14px;
     overflow-x:auto;
-    scroll-snap-type:x mandatory;
+    scroll-snap-type:x proximity;
     scroll-padding-inline:var(--page-gutter);
     -webkit-overflow-scrolling:touch;
     overscroll-behavior-x:contain;
@@ -1101,7 +1103,9 @@
   .home-rail-item{
     flex:0 0 min(46vw, 220px);
     scroll-snap-align:start;
+    scroll-snap-stop:normal;
     min-width:0;
+    margin-inline:0;
   }
   @media (min-width:700px){
     .home-rail-track{gap:18px;}

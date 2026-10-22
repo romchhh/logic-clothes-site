@@ -13,6 +13,7 @@ import TextArea from "@/components/admin/form/input/TextArea";
 import Select from "@/components/admin/form/Select";
 import ToggleSwitch from "@/components/admin/form/ToggleSwitch";
 import type { Category } from "@/lib/categories";
+import { CACHE_KEYS, clearCachedData } from "@/lib/cache";
 import { UAH_PER_EUR } from "@/lib/format";
 import type { Product, ProductMedia } from "@/lib/types";
 
@@ -448,6 +449,7 @@ export default function ProductForm({ productId }: Props) {
             : `HTTP ${res.status}`
         );
       }
+      clearCachedData(CACHE_KEYS.PRODUCTS);
       router.push("/admin/products");
       router.refresh();
     } catch (err) {
@@ -492,7 +494,11 @@ export default function ProductForm({ productId }: Props) {
   }
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
+    <form
+      onSubmit={(e) => void handleSubmit(e)}
+      className="space-y-6"
+      data-tour="tour-product-form"
+    >
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
           {error}

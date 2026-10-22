@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import ProductCard from "@/components/catalog/ProductCard";
 import type { Locale } from "@/lib/i18n/config";
 import { useI18n } from "@/lib/i18n/I18nProvider";
@@ -24,6 +24,13 @@ export default function ProductRail({
 }) {
   const { t } = useI18n();
   const trackRef = useRef<HTMLDivElement>(null);
+
+  // Keep cards left-aligned — scroll-snap can center a single item on some browsers.
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollLeft = 0;
+  }, [products.length]);
 
   if (!products.length) return null;
 

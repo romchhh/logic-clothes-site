@@ -4,8 +4,15 @@ import { useSidebar } from "@/lib/SidebarContext";
 import AppSidebar from "@/components/admin/AppSidebar";
 import AppHeader from "@/components/admin/AppHeader";
 import Backdrop from "@/components/admin/Backdrop";
+import { AdminTour } from "@/components/admin/AdminTour";
+import {
+  ADMIN_TOUR_EVENT,
+  completeAdminTour,
+  isAdminTourForced,
+  shouldShowAdminTour,
+} from "@/lib/admin/tour";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 export default function ClientLayoutShell({
   children,
@@ -15,12 +22,36 @@ export default function ClientLayoutShell({
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   const pathname = usePathname();
   const isLoginPage = pathname === "/admin/login";
+  const [tourActive, setTourActive] = useState(false);
 
   const mainContentMargin = isMobileOpen
     ? "ml-0"
     : isExpanded || isHovered
       ? "lg:ml-[248px]"
       : "lg:ml-[72px]";
+
+  useEffect(() => {
+    if (isLoginPage || tourActive) return;
+    if (!shouldShowAdminTour()) return;
+    const force = isAdminTourForced();
+    if (!force && pathname !== "/admin") return;
+    const timer = window.setTimeout(
+      () => setTourActive(true),
+      force ? 120 : 600
+    );
+    return () => window.clearTimeout(timer);
+  }, [pathname, tourActive, isLoginPage]);
+
+  useEffect(() => {
+    const onStartTour = () => setTourActive(true);
+    window.addEventListener(ADMIN_TOUR_EVENT, onStartTour);
+    return () => window.removeEventListener(ADMIN_TOUR_EVENT, onStartTour);
+  }, []);
+
+  const finishTour = () => {
+    completeAdminTour();
+    setTourActive(false);
+  };
 
   if (isLoginPage) {
     return <>{children}</>;
@@ -38,6 +69,10 @@ export default function ClientLayoutShell({
           {children}
         </div>
       </div>
+
+      {tourActive ? (
+        <AdminTour onComplete={finishTour} onSkip={finishTour} />
+      ) : null}
     </div>
   );
 }

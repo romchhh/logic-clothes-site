@@ -188,6 +188,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
                   className="h-full w-full object-cover"
                   muted
                   playsInline
+                  preload="metadata"
                 />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -195,6 +196,19 @@ export default function ProductMediaManager({ media, onChange }: Props) {
                   src={m.url}
                   alt=""
                   className="h-full w-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                  onError={(e) => {
+                    // Retry once after a short delay — file may not be
+                    // visible to the static layer for a tick after upload.
+                    const el = e.currentTarget;
+                    if (el.dataset.retried === "1") return;
+                    el.dataset.retried = "1";
+                    const base = m.url.split("?")[0];
+                    window.setTimeout(() => {
+                      el.src = `${base}?t=${Date.now()}`;
+                    }, 400);
+                  }}
                 />
               )}
               {idx === 0 && (

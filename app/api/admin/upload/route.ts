@@ -3,6 +3,10 @@ import { promises as fs } from "fs";
 import path from "path";
 import sharp from "sharp";
 import { requireAdmin } from "@/lib/adminAuth";
+import {
+  productMediaDir,
+  productMediaPublicUrl,
+} from "@/lib/productMediaStorage";
 
 export const runtime = "nodejs";
 
@@ -53,7 +57,7 @@ export async function POST(request: NextRequest) {
     const crop = parseCrop(form.get("crop"));
     const fitIg = form.get("fit") === "instagram" || Boolean(crop);
 
-    const dir = path.join(process.cwd(), "public", "assets", "products");
+    const dir = productMediaDir();
     await fs.mkdir(dir, { recursive: true });
 
     const items: Array<{
@@ -77,7 +81,7 @@ export async function POST(request: NextRequest) {
         const filename = `${base}.${ext}`;
         await fs.writeFile(path.join(dir, filename), buf);
         items.push({
-          url: `/assets/products/${filename}`,
+          url: productMediaPublicUrl(filename),
           type: "video",
         });
         continue;
@@ -111,17 +115,20 @@ export async function POST(request: NextRequest) {
       const outPath = path.join(dir, filename);
       const info = await pipeline.webp({ quality: 84 }).toFile(outPath);
       items.push({
-        url: `/assets/products/${filename}`,
+        url: productMediaPublicUrl(filename),
         type: "image",
         width: info.width,
         height: info.height,
       });
     }
 
-    return NextResponse.json({
+    // Avoid CDN/browser caching a 404 from before the file existed.
+    const res = NextResponse.json({
       urls: items.map((i) => i.url),
       items,
     });
+    res.headers.set("Cache-Control", "no-store");
+    return res;
   } catch (error) {
     console.error("[POST /api/admin/upload]", error);
     return NextResponse.json({ error: "upload_failed" }, { status: 500 });

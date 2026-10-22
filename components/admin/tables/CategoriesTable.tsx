@@ -247,7 +247,7 @@ export default function CategoriesTable() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-tour="tour-categories-page">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {loading ? "…" : categories.length} у каталозі ·{" "}

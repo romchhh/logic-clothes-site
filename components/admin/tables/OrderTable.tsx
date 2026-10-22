@@ -137,7 +137,7 @@ export default function OrdersTable() {
   );
 
   return (
-    <div className="admin-panel">
+    <div className="admin-panel" data-tour="tour-orders-page">
       <div className="admin-panel-head">
         <div>
           <h2 className="admin-panel-title">

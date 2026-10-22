@@ -150,6 +150,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
+      data-tour="tour-sidebar"
       className={`fixed top-0 left-0 z-50 mt-16 flex h-screen flex-col border-r border-gray-200/80 bg-white px-3 text-gray-900 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] dark:border-gray-800 dark:bg-[#141414] lg:mt-0
         ${
           isExpanded || isMobileOpen

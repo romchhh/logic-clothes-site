@@ -19,6 +19,17 @@ function isAdminAuthenticated(request: NextRequest): boolean {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Product uploads written at runtime are not always picked up by Next static
+  // serving until restart — always stream them via the disk-backed API route.
+  if (pathname.startsWith("/assets/products/")) {
+    const filename = pathname.slice("/assets/products/".length);
+    if (filename && !filename.includes("/") && !filename.includes("..")) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/api/product-media/${encodeURIComponent(filename)}`;
+      return NextResponse.rewrite(url);
+    }
+  }
+
   if (pathname.startsWith("/admin")) {
     const authed = isAdminAuthenticated(request);
     const isLogin = pathname === "/admin/login";
@@ -45,6 +56,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/admin/:path*",
+    "/assets/products/:path*",
     "/((?!api|_next/static|_next/image|favicon.ico|assets/|admin-icons/|feeds/|robots.txt|sitemap.xml|site.webmanifest|sw.js|.*\\..*).*)",
   ],
 };
