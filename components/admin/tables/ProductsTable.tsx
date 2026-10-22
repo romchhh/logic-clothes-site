@@ -194,7 +194,7 @@ export default function ProductsTable() {
           <h2 className="admin-panel-title">
             Каталог{" "}
             <span className="font-normal text-gray-400">
-              ({filtered.length})
+              ({loading ? "…" : filtered.length})
             </span>
           </h2>
         </div>

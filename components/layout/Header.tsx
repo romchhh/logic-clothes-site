@@ -8,8 +8,6 @@ import { useWishlist } from "@/lib/WishlistProvider";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import { SITE_NAME } from "@/lib/siteContact";
-import LangSwitcher from "@/components/layout/LangSwitcher";
-
 export default function Header({ lang }: { lang: Locale }) {
   const { t } = useI18n();
   const {
@@ -84,8 +82,6 @@ export default function Header({ lang }: { lang: Locale }) {
               alt=""
             />
           </button>
-
-          <LangSwitcher lang={lang} variant="icon" />
 
           <Link
             href={`/${lang}/wishlist`}

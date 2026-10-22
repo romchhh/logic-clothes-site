@@ -14,6 +14,7 @@ export type Messages = {
     cta: string;
     eyebrow: string;
     lead: string;
+    since: string;
     categories: string;
     categoriesScrollHint: string;
     featured: string;
@@ -222,6 +223,7 @@ const uk: Messages = {
     cta: "Каталог",
     eyebrow: "Український бренд · з 2015",
     lead: "Простота, логіка, жіночність і натуральні тканини. Обмежені тиражі — кожна річ зшита в Україні з увагою до деталей.",
+    since: "З 2015",
     categories: "Популярні категорії",
     categoriesScrollHint: "Прокрутіть, щоб побачити більше категорій",
     featured: "Популярне",
@@ -444,6 +446,7 @@ const en: Messages = {
     cta: "Shop",
     eyebrow: "Ukrainian brand · since 2015",
     lead: "Simplicity, logic, femininity and natural fabrics. Limited runs — each piece is made in Ukraine with care for detail.",
+    since: "Since 2015",
     categories: "Popular categories",
     categoriesScrollHint: "Scroll to see more categories",
     featured: "Popular",

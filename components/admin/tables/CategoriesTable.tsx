@@ -250,7 +250,8 @@ export default function CategoriesTable() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {categories.length} у каталозі · {productCats.length} для товарів
+          {loading ? "…" : categories.length} у каталозі ·{" "}
+          {loading ? "…" : productCats.length} для товарів
         </p>
         <button
           type="button"

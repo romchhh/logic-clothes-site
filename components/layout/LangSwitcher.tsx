@@ -7,14 +7,17 @@ import type { Locale } from "@/lib/i18n/config";
 import { switchLocalePath } from "@/lib/i18n/path";
 import { getMessages } from "@/lib/i18n/messages";
 
-type Variant = "icon" | "region";
+type Variant = "icon" | "region" | "menu";
 
 export default function LangSwitcher({
   lang,
   variant = "icon",
+  onNavigate,
 }: {
   lang: Locale;
   variant?: Variant;
+  /** Called after picking a locale (e.g. close mobile menu). */
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -56,6 +59,30 @@ export default function LangSwitcher({
 
   const ariaLabel =
     lang === "uk" ? "Перемкнути мову" : "Switch language";
+
+  if (variant === "menu") {
+    return (
+      <div className="mobile-menu-lang" aria-label={ariaLabel}>
+        <span className="mobile-menu-lang-label">
+          {lang === "uk" ? "Мова" : "Language"}
+        </span>
+        <div className="mobile-menu-lang-opts">
+          {options.map((opt) => (
+            <Link
+              key={opt.locale}
+              href={opt.href}
+              className={`mobile-menu-lang-opt${
+                lang === opt.locale ? " is-active" : ""
+              }`}
+              onClick={() => onNavigate?.()}
+            >
+              {opt.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

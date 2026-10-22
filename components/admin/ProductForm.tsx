@@ -188,13 +188,36 @@ export default function ProductForm({ productId }: Props) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(
-          `/api/admin/products/${encodeURIComponent(productId)}`,
-          { credentials: "include", cache: "no-store" }
-        );
+        const [res, productsRes] = await Promise.all([
+          fetch(`/api/admin/products/${encodeURIComponent(productId)}`, {
+            credentials: "include",
+            cache: "no-store",
+          }),
+          fetch("/api/admin/products", {
+            credentials: "include",
+            cache: "no-store",
+          }),
+        ]);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const p = (await res.json()) as Product;
         if (cancelled) return;
+        let allProducts: Product[] = [];
+        if (productsRes.ok) {
+          const list = (await productsRes.json()) as Product[];
+          if (Array.isArray(list)) allProducts = list;
+        }
+        if (!cancelled && allProducts.length) setCatalog(allProducts);
+        if (p.colorGroup) {
+          setColorVariantIds(
+            allProducts
+              .filter(
+                (x) => x.colorGroup === p.colorGroup && x.id !== productId
+              )
+              .map((x) => x.id)
+          );
+        } else {
+          setColorVariantIds([]);
+        }
         const media: ProductMedia[] =
           p.media?.length
             ? p.media
@@ -250,17 +273,6 @@ export default function ProductForm({ productId }: Props) {
       cancelled = true;
     };
   }, [productId]);
-
-  useEffect(() => {
-    if (!productId || !catalog.length) return;
-    const me = catalog.find((p) => p.id === productId);
-    if (!me?.colorGroup) return;
-    setColorVariantIds(
-      catalog
-        .filter((p) => p.colorGroup === me.colorGroup && p.id !== productId)
-        .map((p) => p.id)
-    );
-  }, [catalog, productId]);
 
   // Auto EUR from UAH unless manually overridden
   useEffect(() => {

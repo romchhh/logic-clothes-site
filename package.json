@@ -16,6 +16,7 @@
     "db:seed": "node scripts/seed-from-json.mjs",
     "db:import-catalog": "node scripts/import-catalog.mjs",
     "db:enrich": "node scripts/enrich-catalog.mjs",
+    "db:fix-images": "node scripts/fix-product-images.mjs",
     "db:export": "node scripts/db-export.mjs",
     "db:import": "node scripts/db-import.mjs",
     "db:push": "node scripts/db-push.mjs",

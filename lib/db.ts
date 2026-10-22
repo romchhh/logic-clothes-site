@@ -8,9 +8,10 @@ declare global {
 export function isDbUnavailableError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const code = "code" in err ? String((err as { code?: string }).code) : "";
-  // 42P01 undefined_table, 3D000 invalid_catalog_name, ECONNREFUSED, etc.
+  // 42P01 undefined_table, 42703 undefined_column, 3D000, connection errors
   return (
     code === "42P01" ||
+    code === "42703" ||
     code === "3D000" ||
     code === "ECONNREFUSED" ||
     code === "ENOTFOUND" ||

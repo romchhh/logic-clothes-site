@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import About from "@/components/main-page/About";
-import CategoriesCarousel from "@/components/main-page/CategoriesCarousel";
 import FeaturedServer from "@/components/main-page/FeaturedServer";
 import Hero from "@/components/main-page/Hero";
 import PageShell from "@/components/shared/PageShell";
@@ -38,8 +37,7 @@ export default async function HomePage({
   return (
     <PageShell kind="home">
       <div className="home-shell">
-        <Hero lang={lang} />
-        <CategoriesCarousel lang={lang} categories={categories} />
+        <Hero lang={lang} categories={categories} />
         <Suspense fallback={<div className="home-section" />}>
           <FeaturedServer lang={lang} />
         </Suspense>

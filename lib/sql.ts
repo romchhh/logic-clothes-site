@@ -1,6 +1,10 @@
 import { revalidateTag } from "next/cache";
 import { normalizeSizeOptions } from "@/lib/catalogProduct";
 import { getPool, query, withTransaction } from "@/lib/db";
+import {
+  resolveProductAssetUrl,
+  resolveProductImages,
+} from "@/lib/productImageResolve";
 import type {
   CheckoutPayload,
   DeliveryMethod,
@@ -88,14 +92,26 @@ function mapProduct(row: ProductRow): Product {
         }))
     : [];
 
-  const imageUrls = media.filter((m) => m.type === "image").map((m) => m.url);
-  const images =
-    imageUrls.length > 0 ? imageUrls : media.map((m) => m.url);
+  const slug = row.slug;
+  const imageUrls = media
+    .filter((m) => m.type === "image")
+    .map((m) => resolveProductAssetUrl(m.url, slug));
+  const images = resolveProductImages(
+    imageUrls.length > 0 ? imageUrls : media.map((m) => m.url),
+    slug
+  );
+  const mediaResolved: ProductMedia[] = media.map((m) => ({
+    ...m,
+    url: resolveProductAssetUrl(m.url, slug),
+  }));
   const fallbackImg = images[0] || "";
 
   const swatches: ProductSwatch[] = Array.isArray(row.swatches)
     ? row.swatches.map((s) => ({
-        img: s.img && !s.img.includes("undefined") ? s.img : fallbackImg,
+        img: resolveProductAssetUrl(
+          s.img && !s.img.includes("undefined") ? s.img : fallbackImg,
+          slug
+        ),
         label: s.label,
         ...(s.hex ? { hex: s.hex } : {}),
       }))
@@ -140,7 +156,7 @@ function mapProduct(row: ProductRow): Product {
     ...(row.photo_size ? { photoSize: row.photo_size } : {}),
     ...(row.model_params ? { modelParams: row.model_params } : {}),
     images,
-    media,
+    media: mediaResolved,
     swatches,
     inStock: Boolean(row.in_stock),
     sku: row.sku,
@@ -447,21 +463,20 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
 
     await replaceProductChildren(client, product);
 
-    if (product.lookProductIds) {
+    await client.query(
+      `DELETE FROM product_look_items WHERE product_slug = $1`,
+      [product.id]
+    );
+    const lookIds = product.lookProductIds ?? [];
+    for (let i = 0; i < lookIds.length; i++) {
+      const related = lookIds[i];
+      if (!related || related === product.id) continue;
       await client.query(
-        `DELETE FROM product_look_items WHERE product_slug = $1`,
-        [product.id]
+        `INSERT INTO product_look_items (product_slug, related_slug, sort_order)
+         VALUES ($1, $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [product.id, related, i]
       );
-      for (let i = 0; i < product.lookProductIds.length; i++) {
-        const related = product.lookProductIds[i];
-        if (!related || related === product.id) continue;
-        await client.query(
-          `INSERT INTO product_look_items (product_slug, related_slug, sort_order)
-           VALUES ($1, $2, $3)
-           ON CONFLICT DO NOTHING`,
-          [product.id, related, i]
-        );
-      }
     }
   });
 

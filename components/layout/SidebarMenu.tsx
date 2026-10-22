@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAppContext } from "@/lib/GeneralProvider";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
+import LangSwitcher from "@/components/layout/LangSwitcher";
 import { SITE_PHONE, SITE_PHONE_DISPLAY } from "@/lib/siteContact";
 
 export default function SidebarMenu({ lang }: { lang: Locale }) {
@@ -46,6 +47,7 @@ export default function SidebarMenu({ lang }: { lang: Locale }) {
             </Link>
           ))}
         </nav>
+        <LangSwitcher lang={lang} variant="menu" onNavigate={closePanels} />
         <div className="mobile-menu-foot">
           <a href={`tel:${SITE_PHONE}`}>{SITE_PHONE_DISPLAY}</a>
           <Link href={`/${lang}#about`} onClick={closePanels}>

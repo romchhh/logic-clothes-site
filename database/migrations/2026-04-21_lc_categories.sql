@@ -27,7 +27,7 @@ INSERT INTO categories (
 ) VALUES
   (
     'all',
-    '/assets/products/peplum_1.jpg',
+    '/assets/products/meshdress-2_255_1.jpg',
     'Бестселери',
     'Bestsellers',
     'До категорії',
@@ -38,7 +38,7 @@ INSERT INTO categories (
   ),
   (
     'new',
-    '/assets/products/meshdress_1.jpg',
+    '/assets/products/coat_257_1.jpg',
     'Новинки',
     'New in',
     'До категорії',
@@ -49,7 +49,7 @@ INSERT INTO categories (
   ),
   (
     'dresses',
-    '/assets/products/mesh-dress_1.jpg',
+    '/assets/products/slip-dress-black_247_1.jpg',
     'Сукні',
     'Dresses',
     'До категорії',
@@ -60,7 +60,7 @@ INSERT INTO categories (
   ),
   (
     'bottoms',
-    '/assets/products/mini-skirt_1.jpg',
+    '/assets/products/jeans-style-culottes_260_1.jpg',
     'Спідниці та штани',
     'Skirts & trousers',
     'До категорії',
@@ -71,7 +71,7 @@ INSERT INTO categories (
   ),
   (
     'outerwear',
-    '/assets/products/jacket_1.jpg',
+    '/assets/products/trench-eco_242_1.jpg',
     'Верхній одяг',
     'Outerwear',
     'До категорії',
@@ -82,7 +82,7 @@ INSERT INTO categories (
   ),
   (
     'tops',
-    '/assets/products/duncancupra_1.jpg',
+    '/assets/products/bratop_241_1.jpg',
     'Топи та сорочки',
     'Tops & shirts',
     'До категорії',
@@ -93,7 +93,7 @@ INSERT INTO categories (
   ),
   (
     'accessories',
-    '/assets/products/scarf_1.jpg',
+    '/assets/products/peplum-2_245_1.jpg',
     'Аксесуари',
     'Accessories',
     'До категорії',
