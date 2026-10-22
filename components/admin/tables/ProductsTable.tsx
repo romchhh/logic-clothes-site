@@ -1,28 +1,56 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Pagination from "./Pagination";
+import {
+  ADMIN_PRODUCTS_LIST_DEFAULT,
+  adminProductsListHasParams,
+  parseAdminProductsListState,
+  readAdminProductsListState,
+  serializeAdminProductsListState,
+  writeAdminProductsListState,
+  type AdminProductsListState,
+  type StockFilter,
+  type VisibilityFilter,
+} from "@/lib/adminProductsListState";
 import { getProductImageSrc } from "@/lib/getFirstProductImage";
 import type { Category } from "@/lib/categories";
 import type { Product } from "@/lib/types";
 
 const PER_PAGE = 20;
 
-type StockFilter = "all" | "in" | "out";
-type VisibilityFilter = "all" | "visible" | "hidden";
+function resolveInitialState(
+  searchParams: URLSearchParams
+): AdminProductsListState {
+  if (adminProductsListHasParams(searchParams)) {
+    return parseAdminProductsListState(searchParams);
+  }
+  return readAdminProductsListState() ?? ADMIN_PRODUCTS_LIST_DEFAULT;
+}
 
 export default function ProductsTable() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialRef = useRef<AdminProductsListState | null>(null);
+  if (!initialRef.current) {
+    initialRef.current = resolveInitialState(searchParams);
+  }
+  const initial = initialRef.current;
+
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [stockFilter, setStockFilter] = useState<StockFilter>("all");
-  const [visibilityFilter, setVisibilityFilter] =
-    useState<VisibilityFilter>("all");
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState(initial.q);
+  const [categoryId, setCategoryId] = useState(initial.cat);
+  const [stockFilter, setStockFilter] = useState<StockFilter>(initial.stock);
+  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>(
+    initial.vis
+  );
+  const [page, setPage] = useState(initial.page);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
@@ -137,6 +165,34 @@ export default function ProductsTable() {
     () => filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE),
     [filtered, currentPage]
   );
+
+  const listState = useMemo<AdminProductsListState>(
+    () => ({
+      q: search,
+      cat: categoryId,
+      stock: stockFilter,
+      vis: visibilityFilter,
+      page: currentPage,
+    }),
+    [search, categoryId, stockFilter, visibilityFilter, currentPage]
+  );
+
+  useEffect(() => {
+    if (page !== currentPage) setPage(currentPage);
+  }, [page, currentPage]);
+
+  // Persist filters + page (sessionStorage + URL) so edit → back keeps them.
+  useEffect(() => {
+    writeAdminProductsListState(listState);
+    const nextQs = serializeAdminProductsListState(listState);
+    const currentQs = serializeAdminProductsListState(
+      parseAdminProductsListState(searchParams)
+    );
+    if (nextQs === currentQs) return;
+    router.replace(nextQs ? `${pathname}?${nextQs}` : pathname, {
+      scroll: false,
+    });
+  }, [listState, pathname, router, searchParams]);
 
   const productCategories = useMemo(
     () =>

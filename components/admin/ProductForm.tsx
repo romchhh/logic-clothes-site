@@ -12,6 +12,7 @@ import Input from "@/components/admin/form/input/InputField";
 import TextArea from "@/components/admin/form/input/TextArea";
 import Select from "@/components/admin/form/Select";
 import ToggleSwitch from "@/components/admin/form/ToggleSwitch";
+import { getAdminProductsListHref } from "@/lib/adminProductsListState";
 import type { Category } from "@/lib/categories";
 import { CACHE_KEYS, clearCachedData } from "@/lib/cache";
 import { UAH_PER_EUR } from "@/lib/format";
@@ -454,7 +455,7 @@ export default function ProductForm({ productId }: Props) {
         );
       }
       clearCachedData(CACHE_KEYS.PRODUCTS);
-      router.push("/admin/products");
+      router.push(getAdminProductsListHref());
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -956,7 +957,10 @@ export default function ProductForm({ productId }: Props) {
           {isEdit ? "Зміни збережуться одразу після підтвердження" : "Новий товар з’явиться в каталозі після створення"}
         </p>
         <div className="ml-auto flex flex-wrap items-center gap-2.5">
-          <Link href="/admin/products" className="admin-btn-secondary">
+          <Link
+            href={getAdminProductsListHref()}
+            className="admin-btn-secondary"
+          >
             Скасувати
           </Link>
           <button type="submit" disabled={saving} className="admin-btn-primary">

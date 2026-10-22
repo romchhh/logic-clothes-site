@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ProductForm from "@/components/admin/ProductForm";
+import { getAdminProductsListHref } from "@/lib/adminProductsListState";
 
 export default function EditProductPage() {
   const params = useParams<{ id: string }>();
@@ -13,7 +14,7 @@ export default function EditProductPage() {
       <AdminPageHeader
         title="Редагувати товар"
         crumbs={[
-          { label: "Товари", href: "/admin/products" },
+          { label: "Товари", href: getAdminProductsListHref() },
           { label: id || "…" },
         ]}
       />
