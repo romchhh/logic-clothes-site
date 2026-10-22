@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import type { ProductMedia } from "@/lib/types";
 
 /** Instagram post portrait 4:5 */
@@ -31,6 +32,8 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       if (pending?.objectUrl) URL.revokeObjectURL(pending.objectUrl);
     };
   }, [pending]);
+
+  useScrollLock(Boolean(pending));
 
   const uploadProcessed = useCallback(
     async (file: File, crop?: { x: number; y: number; w: number; h: number }) => {
@@ -264,7 +267,12 @@ export default function ProductMediaManager({ media, onChange }: Props) {
 
       {pending && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl dark:bg-gray-900">
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl dark:bg-gray-900"
+            role="dialog"
+            aria-modal="true"
+            data-scroll-lock-allow
+          >
             <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
               Кадр Instagram 4:5
             </h4>

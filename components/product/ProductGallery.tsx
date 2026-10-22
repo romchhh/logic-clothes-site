@@ -8,6 +8,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 export default function ProductGallery({
   images,
@@ -92,14 +93,7 @@ export default function ProductGallery({
     };
   }, [images, syncControls]);
 
-  useEffect(() => {
-    if (!lightboxOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [lightboxOpen]);
+  useScrollLock(lightboxOpen);
 
   useEffect(() => {
     if (!lightboxOpen) return;

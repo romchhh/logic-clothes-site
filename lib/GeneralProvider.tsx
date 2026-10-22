@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface ContextType {
   isMenuOpen: boolean;
@@ -38,42 +39,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const isOverlayOpen =
     isMenuOpen || isBasketOpen || isWishOpen || isSearchOpen;
 
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const body = document.body;
-    if (!isOverlayOpen) {
-      if (body.dataset.appOverlayLock === "1") {
-        body.style.overflow = body.dataset.appOverlayPrevOverflow || "";
-        body.style.paddingRight = body.dataset.appOverlayPrevPadding || "";
-        delete body.dataset.appOverlayLock;
-        delete body.dataset.appOverlayPrevOverflow;
-        delete body.dataset.appOverlayPrevPadding;
-      }
-      return;
-    }
-
-    if (body.dataset.appOverlayLock !== "1") {
-      body.dataset.appOverlayPrevOverflow = body.style.overflow;
-      body.dataset.appOverlayPrevPadding = body.style.paddingRight;
-      body.dataset.appOverlayLock = "1";
-      const scrollbarWidth =
-        window.innerWidth - document.documentElement.clientWidth;
-      body.style.overflow = "hidden";
-      if (scrollbarWidth > 0) {
-        body.style.paddingRight = `${scrollbarWidth}px`;
-      }
-    }
-
-    return () => {
-      if (body.dataset.appOverlayLock === "1") {
-        body.style.overflow = body.dataset.appOverlayPrevOverflow || "";
-        body.style.paddingRight = body.dataset.appOverlayPrevPadding || "";
-        delete body.dataset.appOverlayLock;
-        delete body.dataset.appOverlayPrevOverflow;
-        delete body.dataset.appOverlayPrevPadding;
-      }
-    };
-  }, [isOverlayOpen]);
+  useScrollLock(isOverlayOpen);
 
   useEffect(() => {
     document.body.classList.toggle("menu-open", isMenuOpen);

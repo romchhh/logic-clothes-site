@@ -18,6 +18,7 @@ import {
   loadCatalogState,
   saveCatalogState,
 } from "@/lib/catalogState";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import type { Product } from "@/lib/types";
@@ -225,14 +226,7 @@ export default function CatalogClient({
     visibleCount,
   ]);
 
-  useEffect(() => {
-    if (!isFilterOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [isFilterOpen]);
+  useScrollLock(isFilterOpen);
 
   const visibleProducts = sortedProducts.slice(0, visibleCount);
   const hasMore = visibleCount < sortedProducts.length;

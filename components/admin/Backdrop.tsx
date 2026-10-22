@@ -1,8 +1,10 @@
 import { useSidebar } from "@/lib/SidebarContext";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import React from "react";
 
 const Backdrop: React.FC = () => {
   const { isMobileOpen, toggleMobileSidebar } = useSidebar();
+  useScrollLock(isMobileOpen);
 
   if (!isMobileOpen) return null;
 

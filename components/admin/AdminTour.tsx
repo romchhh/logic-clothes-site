@@ -8,6 +8,7 @@ import {
   type AdminTourStep,
   type TourPlacement,
 } from "@/lib/admin/tour-steps";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const SPOTLIGHT_PADDING = 10;
 const TOOLTIP_GAP = 14;
@@ -199,13 +200,7 @@ export function AdminTour({ onComplete, onSkip }: Props) {
     };
   }, [refreshGeometry, stepReady, stepIndex]);
 
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
+  useScrollLock(true);
 
   const goNext = useCallback(() => {
     if (isLast) onComplete();
@@ -270,6 +265,9 @@ export function AdminTour({ onComplete, onSkip }: Props) {
 
       <div
         id="admin-tour-tooltip"
+        role="dialog"
+        aria-modal="true"
+        data-scroll-lock-allow
         className={`absolute flex max-h-[min(85vh,560px)] w-[min(100vw-24px,420px)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-black/20 transition-opacity duration-200 dark:border-gray-700 dark:bg-gray-900 ${
           !stepReady ? "pointer-events-none opacity-0" : ""
         }`}

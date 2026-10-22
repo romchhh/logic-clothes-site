@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import type { Category } from "@/lib/categories";
 import { slugFromLabels } from "@/lib/slug";
 
@@ -70,6 +71,8 @@ export default function CategoriesTable() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useScrollLock(modalOpen);
 
   const productCats = useMemo(
     () => categories.filter((c) => c.kind === "category"),
@@ -322,6 +325,7 @@ export default function CategoriesTable() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="cat-modal-title"
+            data-scroll-lock-allow
           >
             <h3
               id="cat-modal-title"
