@@ -30,12 +30,15 @@ export default function ProductGallery({
     startX: number;
     startScroll: number;
     moved: boolean;
+    /** Index of the slide under the pointer at down — needed after setPointerCapture. */
+    startIndex: number;
   }>({
     active: false,
     pointerId: null,
     startX: 0,
     startScroll: 0,
     moved: false,
+    startIndex: -1,
   });
 
   const [canPrev, setCanPrev] = useState(false);
@@ -171,12 +174,18 @@ export default function ProductGallery({
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const el = trackRef.current;
     if (!el) return;
+    const item = (e.target as HTMLElement | null)?.closest(
+      ".pdp-gallery-item"
+    );
+    const items = Array.from(el.querySelectorAll(".pdp-gallery-item"));
+    const startIndex = item ? items.indexOf(item as Element) : -1;
     dragRef.current = {
       active: true,
       pointerId: e.pointerId,
       startX: e.clientX,
       startScroll: el.scrollLeft,
       moved: false,
+      startIndex,
     };
     el.classList.add("is-dragging");
     el.setPointerCapture(e.pointerId);
@@ -187,8 +196,11 @@ export default function ProductGallery({
     const el = trackRef.current;
     if (!drag.active || !el || drag.pointerId !== e.pointerId) return;
     const dx = e.clientX - drag.startX;
-    if (Math.abs(dx) > 4) drag.moved = true;
-    el.scrollLeft = drag.startScroll - dx;
+    // Ignore tiny jitter so a tap still opens the lightbox
+    if (Math.abs(dx) > 10) drag.moved = true;
+    if (drag.moved) {
+      el.scrollLeft = drag.startScroll - dx;
+    }
   }
 
   function endDrag(e: ReactPointerEvent<HTMLDivElement>) {
@@ -204,29 +216,29 @@ export default function ProductGallery({
 
     const dx = e.clientX - drag.startX;
     const wasMoved = drag.moved;
+    const tapIndex = drag.startIndex;
     drag.active = false;
     drag.pointerId = null;
+    drag.startIndex = -1;
 
-    if (Math.abs(dx) > 40) {
+    if (wasMoved && Math.abs(dx) > 40) {
       scrollByDir(dx < 0 ? 1 : -1);
       return;
     }
 
-    const step = getStep();
-    if (step > 0) {
-      const nearest = Math.round(el.scrollLeft / step);
-      el.scrollTo({ left: nearest * step, behavior: "smooth" });
+    if (wasMoved) {
+      const step = getStep();
+      if (step > 0) {
+        const nearest = Math.round(el.scrollLeft / step);
+        el.scrollTo({ left: nearest * step, behavior: "smooth" });
+      }
+      return;
     }
 
-    if (!wasMoved) {
-      const target = (e.target as HTMLElement | null)?.closest(
-        ".pdp-gallery-item"
-      );
-      if (target && el.contains(target)) {
-        const items = Array.from(el.querySelectorAll(".pdp-gallery-item"));
-        const index = items.indexOf(target);
-        if (index >= 0) openLightbox(index);
-      }
+    // Tap / click — open lightbox (index captured on pointerdown;
+    // after setPointerCapture, e.target is the track, not the slide).
+    if (tapIndex >= 0) {
+      openLightbox(tapIndex);
     }
   }
 
@@ -246,7 +258,19 @@ export default function ProductGallery({
           onPointerCancel={endDrag}
         >
           {images.map((src, i) => (
-            <figure className="pdp-gallery-item" key={`${src}-${i}`}>
+            <figure
+              className="pdp-gallery-item"
+              key={`${src}-${i}`}
+              role="button"
+              tabIndex={0}
+              aria-label={`${alt} — ${i + 1}`}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openLightbox(i);
+                }
+              }}
+            >
               <Image
                 src={src}
                 alt={`${alt} — ${i + 1}`}

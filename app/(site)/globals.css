@@ -1764,7 +1764,6 @@
     .pdp-gallery.is-single{
       justify-content:center;
       overflow:hidden;
-      cursor:default;
     }
     .pdp-gallery.is-single .pdp-gallery-item{
       flex:0 0 min(520px, 52%);
