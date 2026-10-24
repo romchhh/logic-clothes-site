@@ -49,8 +49,14 @@ export default function Hero({
 
         <div className="home-ua-mark">
           <span className="home-ua-flag" aria-hidden="true">
-            <span className="home-ua-brush home-ua-brush--blue" />
-            <span className="home-ua-brush home-ua-brush--yellow" />
+            <Image
+              src="/assets/ua-flag-brush.png"
+              alt=""
+              fill
+              sizes="(max-width: 1100px) 72px, 88px"
+              quality={85}
+              style={{ objectFit: "contain", objectPosition: "left center" }}
+            />
           </span>
           <span className="home-ua-since">{copy.since}</span>
         </div>

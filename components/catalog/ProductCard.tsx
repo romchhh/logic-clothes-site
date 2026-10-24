@@ -28,15 +28,18 @@ export default function ProductCard({
       product.compareAtPriceNum > product.priceNum);
 
   return (
-    <article className="product">
-      <Link href={`/${lang}/product/${product.id}`} className="product-link">
+    <article className="product" data-product-id={product.id}>
+      <Link
+        href={`/${lang}/product/${encodeURIComponent(product.id)}`}
+        className="product-link"
+      >
         <div className="product-img">
           <Image
             src={src}
             alt={title}
             fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1100px) 33vw, 25vw"
-            quality={80}
+            sizes="(max-width: 899px) 50vw, (max-width: 1399px) 33vw, 25vw"
+            quality={85}
             priority={priority}
             style={{ objectFit: "cover", objectPosition: "center" }}
           />

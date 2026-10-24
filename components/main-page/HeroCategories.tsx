@@ -172,7 +172,7 @@ export default function HeroCategories({
                 src={cat.image || "/assets/hero.png"}
                 alt={cat.label[lang]}
                 fill
-                sizes="(max-width: 768px) 36vw, 230px"
+                sizes="(max-width: 768px) 28vw, 160px"
                 quality={70}
                 loading={isCenter ? "eager" : "lazy"}
                 style={{ objectFit: "cover" }}

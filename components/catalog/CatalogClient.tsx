@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -16,6 +17,7 @@ import type { Category, CategoryId } from "@/lib/categories";
 import {
   clearCatalogState,
   loadCatalogState,
+  rememberCatalogExit,
   saveCatalogState,
 } from "@/lib/catalogState";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -23,7 +25,7 @@ import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import type { Product } from "@/lib/types";
 
-const PAGE_STEP = 12;
+const PAGE_STEP = 16;
 
 export default function CatalogClient({
   products,
@@ -54,6 +56,8 @@ export default function CatalogClient({
   const [visibleCount, setVisibleCount] = useState(PAGE_STEP);
   const [ready, setReady] = useState(false);
   const pendingScrollY = useRef(0);
+  const pendingProductId = useRef<string | null>(null);
+  const restoreDoneRef = useRef(false);
   const filterKeyRef = useRef<string | null>(null);
   const persistRef = useRef({
     sortOrder,
@@ -62,6 +66,7 @@ export default function CatalogClient({
     minPrice,
     maxPrice,
     visibleCount,
+    lastProductId: null as string | null,
   });
 
   persistRef.current = {
@@ -71,6 +76,7 @@ export default function CatalogClient({
     minPrice,
     maxPrice,
     visibleCount,
+    lastProductId: persistRef.current.lastProductId,
   };
 
   const activeLabel =
@@ -134,6 +140,7 @@ export default function CatalogClient({
 
   // Restore filters + scroll after back-navigation from a product page.
   useLayoutEffect(() => {
+    restoreDoneRef.current = false;
     const saved = loadCatalogState(lang, category);
     if (saved) {
       setSortOrder(saved.sortOrder);
@@ -143,8 +150,12 @@ export default function CatalogClient({
       setMaxPrice(saved.maxPrice);
       setVisibleCount(saved.visibleCount);
       pendingScrollY.current = saved.scrollY;
+      pendingProductId.current = saved.lastProductId;
+      persistRef.current.lastProductId = saved.lastProductId;
     } else {
       pendingScrollY.current = 0;
+      pendingProductId.current = null;
+      persistRef.current.lastProductId = null;
     }
     filterKeyRef.current = null;
     setReady(true);
@@ -169,14 +180,69 @@ export default function CatalogClient({
   }, [lang, category]);
 
   useLayoutEffect(() => {
-    if (!ready) return;
+    if (!ready || restoreDoneRef.current) return;
     const y = pendingScrollY.current;
-    if (y <= 0) return;
-    pendingScrollY.current = 0;
-    const id = window.requestAnimationFrame(() => {
-      window.scrollTo(0, y);
-    });
-    return () => window.cancelAnimationFrame(id);
+    const productId = pendingProductId.current;
+    if (y <= 0 && !productId) {
+      restoreDoneRef.current = true;
+      return;
+    }
+
+    const apply = () => {
+      const html = document.documentElement;
+      const prev = html.style.scrollBehavior;
+      html.style.scrollBehavior = "auto";
+
+      if (productId) {
+        const el = document.querySelector<HTMLElement>(
+          `[data-product-id="${CSS.escape(productId)}"]`
+        );
+        if (el) {
+          el.scrollIntoView({ block: "center", behavior: "instant" });
+          html.style.scrollBehavior = prev;
+          return true;
+        }
+      }
+
+      if (y > 0) {
+        window.scrollTo({ top: y, left: 0, behavior: "instant" });
+        if (Math.abs((window.scrollY || 0) - y) > 2) {
+          window.scrollTo(0, y);
+        }
+      }
+      html.style.scrollBehavior = prev;
+      return y <= 0 || !productId;
+    };
+
+    // Prefer product node once the restored batch is in the DOM.
+    const applied = apply();
+    if (applied && (!productId || document.querySelector(`[data-product-id="${CSS.escape(productId)}"]`))) {
+      restoreDoneRef.current = true;
+      pendingScrollY.current = 0;
+      pendingProductId.current = null;
+    }
+
+    const timers = [
+      window.setTimeout(() => {
+        if (apply()) {
+          restoreDoneRef.current = true;
+          pendingScrollY.current = 0;
+          pendingProductId.current = null;
+        }
+      }, 50),
+      window.setTimeout(() => {
+        apply();
+        restoreDoneRef.current = true;
+        pendingScrollY.current = 0;
+        pendingProductId.current = null;
+      }, 250),
+    ];
+    const raf = window.requestAnimationFrame(() => apply());
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      timers.forEach((id) => window.clearTimeout(id));
+    };
   }, [ready, sortedProducts.length, visibleCount]);
 
   useEffect(() => {
@@ -187,7 +253,11 @@ export default function CatalogClient({
     }
     if (filterKeyRef.current !== filterKey) {
       filterKeyRef.current = filterKey;
+      // User changed filters — don't wipe restore mid-flight.
+      if (!restoreDoneRef.current && pendingScrollY.current > 0) return;
       setVisibleCount(PAGE_STEP);
+      pendingProductId.current = null;
+      persistRef.current.lastProductId = null;
     }
   }, [filterKey, ready]);
 
@@ -203,6 +273,7 @@ export default function CatalogClient({
         maxPrice: cur.maxPrice,
         visibleCount: cur.visibleCount,
         scrollY: window.scrollY || 0,
+        lastProductId: cur.lastProductId,
       });
     };
     persist();
@@ -226,17 +297,50 @@ export default function CatalogClient({
     visibleCount,
   ]);
 
+  function rememberProductExit(productId: string) {
+    persistRef.current.lastProductId = productId;
+    rememberCatalogExit(lang, category, {
+      ...persistRef.current,
+      lastProductId: productId,
+      scrollY: window.scrollY || 0,
+    });
+  }
+
   useScrollLock(isFilterOpen);
 
   const visibleProducts = sortedProducts.slice(0, visibleCount);
   const hasMore = visibleCount < sortedProducts.length;
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  const loadMore = useCallback(() => {
+    setVisibleCount((n) => {
+      if (n >= sortedProducts.length) return n;
+      return Math.min(n + PAGE_STEP, sortedProducts.length);
+    });
+  }, [sortedProducts.length]);
+
+  // Infinite scroll: load next batch when the sentinel enters the viewport.
+  useEffect(() => {
+    if (!ready || !hasMore) return;
+    const node = loadMoreRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) loadMore();
+      },
+      { root: null, rootMargin: "480px 0px", threshold: 0 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [ready, hasMore, loadMore, visibleCount]);
+
   const activeFilters =
     (category !== "all" ? 1 : 0) +
     selectedSizes.length +
     selectedColors.length +
     (minPrice != null ? 1 : 0) +
-    (maxPrice != null ? 1 : 0) +
-    (sortOrder !== "newest" ? 1 : 0);
+    (maxPrice != null ? 1 : 0);
 
   function resetFilters() {
     setSortOrder("newest");
@@ -260,23 +364,47 @@ export default function CatalogClient({
             {t.catalog.count(sortedProducts.length)}
           </p>
         </div>
-        <button
-          type="button"
-          className={`cat-filter-btn${activeFilters > 0 ? " has-active" : ""}`}
-          onClick={() => setIsFilterOpen(true)}
-        >
-          {t.catalog.filters}
-          {activeFilters > 0 && (
-            <span className="cat-filter-badge">{activeFilters}</span>
-          )}
-        </button>
+        <div className="cat-toolbar-actions">
+          <label className="cat-sort">
+            <span className="cat-sort-prefix">{t.catalog.sort}</span>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            >
+              <option value="newest">{t.catalog.sortNewest}</option>
+              <option value="asc">{t.catalog.sortAsc}</option>
+              <option value="desc">{t.catalog.sortDesc}</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            className={`cat-filter-btn${activeFilters > 0 ? " has-active" : ""}`}
+            onClick={() => setIsFilterOpen(true)}
+          >
+            {t.catalog.filters}
+            {activeFilters > 0 && (
+              <span className="cat-filter-badge">{activeFilters}</span>
+            )}
+          </button>
+        </div>
       </div>
 
       {sortedProducts.length === 0 ? (
         <p className="cat-empty">{t.catalog.empty}</p>
       ) : (
         <>
-          <div className="products">
+          <div
+            className="products"
+            onClickCapture={(e) => {
+              const target = e.target as HTMLElement | null;
+              const card = target?.closest<HTMLElement>("[data-product-id]");
+              const id = card?.dataset.productId;
+              if (!id) return;
+              // Ignore wishlist button inside the card.
+              if (target?.closest("button.wish")) return;
+              rememberProductExit(id);
+            }}
+          >
             {visibleProducts.map((p, index) => (
               <ProductCard
                 key={p.id}
@@ -286,17 +414,13 @@ export default function CatalogClient({
               />
             ))}
           </div>
-          {hasMore && (
-            <div className="cat-more">
-              <button
-                type="button"
-                className="cat-more-btn"
-                onClick={() => setVisibleCount((n) => n + PAGE_STEP)}
-              >
-                {t.catalog.showMore}
-              </button>
-            </div>
-          )}
+          {hasMore ? (
+            <div
+              ref={loadMoreRef}
+              className="cat-more-sentinel"
+              aria-hidden="true"
+            />
+          ) : null}
         </>
       )}
 
@@ -305,8 +429,6 @@ export default function CatalogClient({
         onClose={() => setIsFilterOpen(false)}
         openAccordion={openAccordion}
         setOpenAccordion={setOpenAccordion}
-        sortOrder={sortOrder}
-        setSortOrder={setSortOrder}
         selectedSizes={selectedSizes}
         setSelectedSizes={setSelectedSizes}
         selectedColors={selectedColors}

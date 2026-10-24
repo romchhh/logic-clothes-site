@@ -114,11 +114,11 @@ export default function Header({ lang }: { lang: Locale }) {
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path
                 className="cart-icon-handle"
-                d="M7.5 9V7.2C7.5 4.85 9.35 3 11.7 3h.6C14.65 3 16.5 4.85 16.5 7.2V9"
+                d="M8 9.5V7.25C8 5.18 9.79 3.5 12 3.5s4 1.68 4 3.75V9.5"
               />
               <path
                 className="cart-icon-body"
-                d="M5.2 9.2h13.6c.88 0 1.55.78 1.43 1.65l-1.1 8.1A2.2 2.2 0 0 1 17 20.8H7a2.2 2.2 0 0 1-2.13-1.85l-1.1-8.1A1.45 1.45 0 0 1 5.2 9.2Z"
+                d="M5.5 9.5h13v10.5H5.5z"
               />
             </svg>
             {cartCount > 0 && <span className="icon-badge">{cartCount}</span>}

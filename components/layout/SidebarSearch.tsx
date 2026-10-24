@@ -58,10 +58,9 @@ export default function SidebarSearch({ lang }: { lang: Locale }) {
         {results.map((p) => (
           <Link
             key={p.id}
-            href={`/${lang}/product/${p.id}`}
-            className="panel-item"
+            href={`/${lang}/product/${encodeURIComponent(p.id)}`}
+            className="panel-item panel-item--search"
             onClick={closePanels}
-            style={{ display: "flex", textDecoration: "none", color: "inherit" }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={p.images[0]} alt="" width={56} height={70} />

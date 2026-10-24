@@ -37,7 +37,11 @@ export default function ProductRail({
   function scrollBy(dir: -1 | 1) {
     const el = trackRef.current;
     if (!el) return;
-    const amount = Math.min(el.clientWidth * 0.85, 420);
+    const card = el.querySelector<HTMLElement>(".home-rail-item");
+    const gap = Number.parseFloat(getComputedStyle(el).columnGap || "0") || 0;
+    const amount = card
+      ? card.getBoundingClientRect().width + gap
+      : el.clientWidth * 0.85;
     el.scrollBy({ left: dir * amount, behavior: "smooth" });
   }
 

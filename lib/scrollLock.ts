@@ -13,7 +13,9 @@ let savedBodyLeft = "";
 let savedBodyRight = "";
 let savedBodyWidth = "";
 let savedHtmlOverflow = "";
+let savedHtmlScrollBehavior = "";
 let touchBlockerAttached = false;
+let restoreRaf = 0;
 
 const SCROLLABLE_SEL =
   ".side-panel, .side-panel-body, .mobile-menu, .mobile-menu-panel, .pdp-lightbox, .pdp-lightbox-track, [data-scroll-lock-allow], [role='dialog'], .filter-body";
@@ -49,10 +51,26 @@ function detachTouchBlocker() {
   touchBlockerAttached = false;
 }
 
+function scrollToY(y: number) {
+  const top = Math.max(0, y);
+  // Avoid CSS `scroll-behavior: smooth` animating from 0 → y (looks like
+  // a jump to the header, then back to the previous spot).
+  window.scrollTo({ top, left: 0, behavior: "instant" });
+  // Fallback for older engines without `instant`
+  if (Math.abs((window.scrollY || 0) - top) > 1) {
+    window.scrollTo(0, top);
+  }
+}
+
 function applyLock() {
   if (typeof document === "undefined") return;
   const body = document.body;
   const html = document.documentElement;
+
+  if (restoreRaf) {
+    cancelAnimationFrame(restoreRaf);
+    restoreRaf = 0;
+  }
 
   savedScrollY = window.scrollY || window.pageYOffset || 0;
   savedBodyOverflow = body.style.overflow;
@@ -63,10 +81,12 @@ function applyLock() {
   savedBodyRight = body.style.right;
   savedBodyWidth = body.style.width;
   savedHtmlOverflow = html.style.overflow;
+  savedHtmlScrollBehavior = html.style.scrollBehavior;
 
   const scrollbarWidth = window.innerWidth - html.clientWidth;
 
   html.style.overflow = "hidden";
+  html.style.scrollBehavior = "auto";
   body.style.overflow = "hidden";
   body.style.position = "fixed";
   body.style.top = `-${savedScrollY}px`;
@@ -84,8 +104,10 @@ function releaseLock() {
   if (typeof document === "undefined") return;
   const body = document.body;
   const html = document.documentElement;
+  const y = savedScrollY;
 
   html.style.overflow = savedHtmlOverflow;
+  html.style.scrollBehavior = "auto";
   body.style.overflow = savedBodyOverflow;
   body.style.paddingRight = savedBodyPaddingRight;
   body.style.position = savedBodyPosition;
@@ -96,7 +118,19 @@ function releaseLock() {
   delete body.dataset.scrollLock;
 
   detachTouchBlocker();
-  window.scrollTo(0, savedScrollY);
+  scrollToY(y);
+
+  // Focus returning to a header control can scrollIntoView after unlock —
+  // re-assert position for a couple of frames, then restore smooth scroll.
+  if (restoreRaf) cancelAnimationFrame(restoreRaf);
+  restoreRaf = requestAnimationFrame(() => {
+    scrollToY(y);
+    restoreRaf = requestAnimationFrame(() => {
+      scrollToY(y);
+      html.style.scrollBehavior = savedHtmlScrollBehavior;
+      restoreRaf = 0;
+    });
+  });
 }
 
 /** Acquire a scroll lock. Call the returned function (or releaseScrollLock) to unlock. */

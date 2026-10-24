@@ -39,23 +39,31 @@ export default function SidebarBasket() {
                 className="panel-item panel-item--cart"
                 key={`${item.id}-${item.size}`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.image} alt="" width={76} height={96} />
-                <div className="panel-item-body">
-                  <p className="panel-item-name">{item.name}</p>
-                  <VariantMeta
-                    item={item}
-                    labels={{
-                      size: t.basket.size,
-                      length: t.product.length,
-                      material: t.product.materialVariant,
-                      color: t.product.color,
-                    }}
-                    className="panel-item-meta variant-meta"
-                  />
-                  <p className="panel-item-price">
-                    {formatMoney(item.priceNum * item.quantity)}
-                  </p>
+                <Link
+                  href={`/${lang}/product/${encodeURIComponent(item.id)}`}
+                  className="panel-item-link"
+                  onClick={closePanels}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.image} alt="" width={76} height={96} />
+                  <div className="panel-item-body">
+                    <p className="panel-item-name">{item.name}</p>
+                    <VariantMeta
+                      item={item}
+                      labels={{
+                        size: t.basket.size,
+                        length: t.product.length,
+                        material: t.product.materialVariant,
+                        color: t.product.color,
+                      }}
+                      className="panel-item-meta variant-meta"
+                    />
+                    <p className="panel-item-price">
+                      {formatMoney(item.priceNum * item.quantity)}
+                    </p>
+                  </div>
+                </Link>
+                <div className="panel-item-controls">
                   <div className="panel-qty">
                     <button
                       type="button"
@@ -77,15 +85,15 @@ export default function SidebarBasket() {
                       +
                     </button>
                   </div>
+                  <button
+                    type="button"
+                    className="panel-remove"
+                    aria-label={t.basket.remove}
+                    onClick={() => removeItem(item.id, item.size)}
+                  >
+                    ×
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="panel-remove"
-                  aria-label={t.basket.remove}
-                  onClick={() => removeItem(item.id, item.size)}
-                >
-                  ×
-                </button>
               </div>
             ))
           )}

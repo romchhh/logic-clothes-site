@@ -13,8 +13,6 @@ interface SidebarFilterProps {
   onClose: () => void;
   openAccordion: number | null;
   setOpenAccordion: (index: number | null) => void;
-  sortOrder: SortOrder;
-  setSortOrder: (order: SortOrder) => void;
   selectedSizes: string[];
   setSelectedSizes: (sizes: string[] | ((prev: string[]) => string[])) => void;
   selectedColors: string[];
@@ -38,8 +36,6 @@ export default function SidebarFilter({
   onClose,
   openAccordion,
   setOpenAccordion,
-  sortOrder,
-  setSortOrder,
   selectedSizes,
   setSelectedSizes,
   selectedColors,
@@ -125,50 +121,18 @@ export default function SidebarFilter({
             )}
           </div>
 
-          <div className="filter-acc">
-            <button
-              type="button"
-              className="filter-acc-head"
-              aria-expanded={openAccordion === 1}
-              onClick={() => toggleAccordion(1)}
-            >
-              <span>{t.catalog.sort}</span>
-              <span aria-hidden="true">{openAccordion === 1 ? "−" : "+"}</span>
-            </button>
-            {openAccordion === 1 && (
-              <div className="filter-acc-body">
-                {(
-                  [
-                    ["newest", t.catalog.sortNewest],
-                    ["asc", t.catalog.sortAsc],
-                    ["desc", t.catalog.sortDesc],
-                  ] as const
-                ).map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`filter-option${sortOrder === value ? " is-active" : ""}`}
-                    onClick={() => setSortOrder(value)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           {sizes.length > 0 && (
             <div className="filter-acc">
               <button
                 type="button"
                 className="filter-acc-head"
-                aria-expanded={openAccordion === 2}
-                onClick={() => toggleAccordion(2)}
+                aria-expanded={openAccordion === 1}
+                onClick={() => toggleAccordion(1)}
               >
                 <span>{t.catalog.size}</span>
-                <span aria-hidden="true">{openAccordion === 2 ? "−" : "+"}</span>
+                <span aria-hidden="true">{openAccordion === 1 ? "−" : "+"}</span>
               </button>
-              {openAccordion === 2 && (
+              {openAccordion === 1 && (
                 <div className="filter-acc-body filter-checks">
                   {sizes.map((size) => (
                     <label key={size} className="filter-check">
@@ -190,13 +154,13 @@ export default function SidebarFilter({
               <button
                 type="button"
                 className="filter-acc-head"
-                aria-expanded={openAccordion === 3}
-                onClick={() => toggleAccordion(3)}
+                aria-expanded={openAccordion === 2}
+                onClick={() => toggleAccordion(2)}
               >
                 <span>{t.catalog.color}</span>
-                <span aria-hidden="true">{openAccordion === 3 ? "−" : "+"}</span>
+                <span aria-hidden="true">{openAccordion === 2 ? "−" : "+"}</span>
               </button>
-              {openAccordion === 3 && (
+              {openAccordion === 2 && (
                 <div className="filter-acc-body filter-checks">
                   {colors.map((color) => (
                     <label key={color} className="filter-check">
@@ -217,13 +181,13 @@ export default function SidebarFilter({
             <button
               type="button"
               className="filter-acc-head"
-              aria-expanded={openAccordion === 4}
-              onClick={() => toggleAccordion(4)}
+              aria-expanded={openAccordion === 3}
+              onClick={() => toggleAccordion(3)}
             >
               <span>{t.catalog.price}</span>
-              <span aria-hidden="true">{openAccordion === 4 ? "−" : "+"}</span>
+              <span aria-hidden="true">{openAccordion === 3 ? "−" : "+"}</span>
             </button>
-            {openAccordion === 4 && (
+            {openAccordion === 3 && (
               <div className="filter-acc-body filter-price">
                 <PriceRangeFilter
                   bounds={priceHint}

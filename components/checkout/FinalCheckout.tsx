@@ -70,6 +70,7 @@ type CompletedOrder = {
   address: string;
   comment?: string;
   items: {
+    productId?: string;
     name: string;
     size: string;
     sizeLabel?: string;
@@ -104,13 +105,15 @@ function AlsoLike({
   if (!products.length) return null;
   return (
     <section className="checkout-also" aria-labelledby="checkout-also-title">
-      <div className="section-head">
-        <h2 id="checkout-also-title">{title}</h2>
-      </div>
-      <div className="home-products-grid">
-        {products.map((p) => (
-          <ProductCard key={p.id} product={p} lang={lang} />
-        ))}
+      <div className="checkout-also-inner">
+        <div className="section-head">
+          <h2 id="checkout-also-title">{title}</h2>
+        </div>
+        <div className="products">
+          {products.map((p) => (
+            <ProductCard key={p.id} product={p} lang={lang} />
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -144,7 +147,7 @@ export default function FinalCheckout({
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
-  const [bagOpen, setBagOpen] = useState(false);
+  const [bagOpen, setBagOpen] = useState(true);
   const [completedOrder, setCompletedOrder] = useState<CompletedOrder | null>(
     null
   );
@@ -349,6 +352,7 @@ export default function FinalCheckout({
         address: address.trim(),
         comment: comment.trim() || undefined,
         items: items.map((item) => ({
+          productId: item.id,
           name: item.name,
           size: item.size,
           sizeLabel: item.sizeLabel,
@@ -460,24 +464,40 @@ export default function FinalCheckout({
             </dl>
 
             <ul className="checkout-receipt-items">
-              {completedOrder.items.map((item) => (
-                <li key={`${item.name}-${item.size}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.image} alt="" width={72} height={90} />
-                  <div className="checkout-item-body">
-                    <p className="checkout-item-name">{item.name}</p>
-                    <VariantMeta
-                      item={item}
-                      labels={variantLabels}
-                      className="checkout-item-meta variant-meta"
-                    />
-                    <p className="checkout-item-meta">×{item.quantity}</p>
-                  </div>
-                  <p className="checkout-item-price">
-                    {formatMoney(item.priceNum * item.quantity)}
-                  </p>
-                </li>
-              ))}
+              {completedOrder.items.map((item) => {
+                const href = item.productId
+                  ? `/${lang}/product/${encodeURIComponent(item.productId)}`
+                  : null;
+                const media = (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.image} alt="" width={72} height={90} />
+                    <div className="checkout-item-body">
+                      <p className="checkout-item-name">{item.name}</p>
+                      <VariantMeta
+                        item={item}
+                        labels={variantLabels}
+                        className="checkout-item-meta variant-meta"
+                      />
+                      <p className="checkout-item-meta">×{item.quantity}</p>
+                    </div>
+                  </>
+                );
+                return (
+                  <li key={`${item.productId || item.name}-${item.size}`}>
+                    {href ? (
+                      <Link href={href} className="checkout-item-link">
+                        {media}
+                      </Link>
+                    ) : (
+                      media
+                    )}
+                    <p className="checkout-item-price">
+                      {formatMoney(item.priceNum * item.quantity)}
+                    </p>
+                  </li>
+                );
+              })}
             </ul>
             <div className="checkout-total checkout-total--receipt">
               <span>{t.basket.total}</span>
@@ -497,9 +517,13 @@ export default function FinalCheckout({
 
   if (!items.length) {
     return (
-      <section className="checkout-page">
+      <section className="checkout-page checkout-page--empty">
         <div className="checkout-empty">
+          <p className="checkout-eyebrow">Logic Clothes</p>
           <h1 className="checkout-title">{t.checkout.emptyTitle}</h1>
+          <p className="checkout-lead checkout-lead--center">
+            {t.checkout.subtitle}
+          </p>
           <Link href={`/${lang}/catalog`} className="btn-brand checkout-cta">
             {t.checkout.emptyCta}
           </Link>
@@ -528,15 +552,25 @@ export default function FinalCheckout({
       <ul className="checkout-items">
         {items.map((item) => (
           <li key={`${item.id}-${item.size}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.image} alt="" width={64} height={80} />
-            <div className="checkout-item-body">
-              <p className="checkout-item-name">{item.name}</p>
-              <VariantMeta
-                item={item}
-                labels={variantLabels}
-                className="checkout-item-meta variant-meta"
-              />
+            <Link
+              href={`/${lang}/product/${encodeURIComponent(item.id)}`}
+              className="checkout-item-link"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={item.image} alt="" width={72} height={90} />
+              <div className="checkout-item-body">
+                <p className="checkout-item-name">{item.name}</p>
+                <VariantMeta
+                  item={item}
+                  labels={variantLabels}
+                  className="checkout-item-meta variant-meta"
+                />
+              </div>
+            </Link>
+            <div className="checkout-item-side">
+              <p className="checkout-item-price">
+                {formatMoney(item.priceNum * item.quantity)}
+              </p>
               <div className="checkout-qty">
                 <button
                   type="button"
@@ -558,11 +592,6 @@ export default function FinalCheckout({
                   +
                 </button>
               </div>
-            </div>
-            <div className="checkout-item-side">
-              <p className="checkout-item-price">
-                {formatMoney(item.priceNum * item.quantity)}
-              </p>
               <button
                 type="button"
                 className="checkout-item-remove"
@@ -596,6 +625,20 @@ export default function FinalCheckout({
         <p className="checkout-eyebrow">Logic Clothes</p>
         <h1 className="checkout-title">{t.checkout.title}</h1>
         <p className="checkout-lead">{t.checkout.subtitle}</p>
+        <ol className="checkout-progress" aria-label={t.checkout.title}>
+          <li className="is-active">
+            <span>1</span>
+            {t.checkout.contact}
+          </li>
+          <li>
+            <span>2</span>
+            {t.checkout.delivery}
+          </li>
+          <li>
+            <span>3</span>
+            {t.checkout.payment}
+          </li>
+        </ol>
       </header>
 
       <div className="checkout-layout">
@@ -629,6 +672,12 @@ export default function FinalCheckout({
                 </p>
               </div>
               {summaryBody}
+              {amountDueNow > 0 && amountDueNow !== total ? (
+                <p className="checkout-due-note">
+                  {t.checkout.amountDue}:{" "}
+                  <strong>{formatMoney(amountDueNow)}</strong>
+                </p>
+              ) : null}
               {fieldError && (
                 <p className="checkout-error checkout-error--summary">
                   {fieldError}
@@ -656,10 +705,10 @@ export default function FinalCheckout({
           onSubmit={onSubmit}
           noValidate
         >
-          <fieldset className="checkout-panel">
+          <fieldset className="checkout-panel" id="checkout-step-contact">
             <legend className="checkout-panel-title">
               <span className="checkout-step" aria-hidden="true">
-                01
+                1
               </span>
               {t.checkout.contact}
             </legend>
@@ -707,10 +756,10 @@ export default function FinalCheckout({
             </div>
           </fieldset>
 
-          <fieldset className="checkout-panel">
+          <fieldset className="checkout-panel" id="checkout-step-delivery">
             <legend className="checkout-panel-title">
               <span className="checkout-step" aria-hidden="true">
-                02
+                2
               </span>
               {t.checkout.delivery}
             </legend>
@@ -895,10 +944,10 @@ export default function FinalCheckout({
             </div>
           </fieldset>
 
-          <fieldset className="checkout-panel">
+          <fieldset className="checkout-panel" id="checkout-step-payment">
             <legend className="checkout-panel-title">
               <span className="checkout-step" aria-hidden="true">
-                03
+                3
               </span>
               {t.checkout.payment}
             </legend>

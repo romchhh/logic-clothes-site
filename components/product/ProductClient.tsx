@@ -472,13 +472,15 @@ export default function ProductClient({
 
           {related.length > 0 && (
             <section className="pdp-related" aria-label={t.product.lookTitle}>
-              <div className="pdp-related-head">
-                <h2 className="pdp-section-title">{t.product.lookTitle}</h2>
-              </div>
-              <div className="pdp-related-grid">
-                {related.map((p) => (
-                  <ProductCard key={p.id} product={p} lang={lang} />
-                ))}
+              <div className="pdp-related-inner">
+                <div className="pdp-related-head">
+                  <h2 className="pdp-section-title">{t.product.lookTitle}</h2>
+                </div>
+                <div className="pdp-related-grid">
+                  {related.map((p) => (
+                    <ProductCard key={p.id} product={p} lang={lang} />
+                  ))}
+                </div>
               </div>
             </section>
           )}

@@ -42,7 +42,6 @@ export type Messages = {
     minPrice: string;
     maxPrice: string;
     reset: string;
-    showMore: string;
   };
   product: {
     home: string;
@@ -279,7 +278,6 @@ const uk: Messages = {
     minPrice: "Від",
     maxPrice: "До",
     reset: "Скинути",
-    showMore: "Показати ще",
   },
   product: {
     home: "Головна",
@@ -530,7 +528,6 @@ const en: Messages = {
     minPrice: "From",
     maxPrice: "To",
     reset: "Reset",
-    showMore: "Show more",
   },
   product: {
     home: "Home",
