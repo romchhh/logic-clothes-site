@@ -3,6 +3,7 @@ import { readProducts } from "@/lib/adminStore";
 import { isCatalogProduct } from "@/lib/catalogProduct";
 import { resolvePaletteId } from "@/lib/colorPalette";
 import { isDbUnavailableError } from "@/lib/db";
+import { getProductsEpoch } from "@/lib/productCache";
 import type { Product, ProductColorVariant } from "@/lib/types";
 
 function toColorVariant(p: Product): ProductColorVariant {
@@ -41,9 +42,8 @@ function enrichColorVariants(products: Product[]): Product[] {
   });
 }
 
-/** Server product cache — 5 min, matches ISR + public API. */
-export const getProducts = unstable_cache(
-  async (): Promise<Product[]> => {
+const loadProductsCached = unstable_cache(
+  async (_epoch: number): Promise<Product[]> => {
     try {
       const products = await readProducts();
       return enrichColorVariants(products);
@@ -59,8 +59,13 @@ export const getProducts = unstable_cache(
     }
   },
   ["logic-clothes-products"],
-  { revalidate: 300, tags: ["products"] }
+  { revalidate: 60, tags: ["products"] }
 );
+
+/** Server product cache — epoch-busted on admin writes + tag revalidation. */
+export async function getProducts(): Promise<Product[]> {
+  return loadProductsCached(getProductsEpoch());
+}
 
 export async function getProductById(id: string): Promise<Product | null> {
   const products = await getProducts();

@@ -224,6 +224,9 @@ export default function ProductsTable() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const fresh = (await res.json()) as Product;
       setProducts((list) => list.map((p) => (p.id === id ? fresh : p)));
+      // Drop storefront client product list so search/wishlist refetch.
+      const { CACHE_KEYS, clearCachedData } = await import("@/lib/cache");
+      clearCachedData(CACHE_KEYS.PRODUCTS);
     } catch (e) {
       console.error(e);
       setProducts(prev);

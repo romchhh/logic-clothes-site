@@ -1,6 +1,6 @@
-import { revalidatePath, revalidateTag } from "next/cache";
 import { normalizeSizeOptions } from "@/lib/catalogProduct";
 import { ensureDbReady, query, withTransaction } from "@/lib/db";
+import { bustProductCache } from "@/lib/productCache";
 import {
   resolveProductAssetUrl,
   resolveProductImages,
@@ -271,19 +271,6 @@ const PRODUCT_SELECT = `
     ) AS swatches
   FROM products p
 `;
-
-function bustProductCache() {
-  try {
-    revalidateTag("products");
-    revalidatePath("/uk");
-    revalidatePath("/en");
-    revalidatePath("/uk/catalog");
-    revalidatePath("/en/catalog");
-    revalidatePath("/api/products");
-  } catch {
-    // ignore outside Next request context (scripts / migrate)
-  }
-}
 
 export async function sqlGetAllProducts(): Promise<Product[]> {
   const rows = await query<ProductRow>(

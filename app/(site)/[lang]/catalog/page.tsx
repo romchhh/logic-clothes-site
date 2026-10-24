@@ -17,7 +17,8 @@ import {
 } from "@/lib/seo";
 import { productName } from "@/lib/types";
 
-export const revalidate = 300;
+/** Catalog must reflect admin visibility toggles quickly. */
+export const revalidate = 60;
 
 export async function generateMetadata({
   params,

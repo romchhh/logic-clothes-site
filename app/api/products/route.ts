@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isCatalogProduct } from "@/lib/catalogProduct";
 import { getProducts } from "@/lib/products";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 /** Slim payload for search / wishlist — avoids shipping full catalog JSON. */
 export async function GET() {
@@ -17,6 +17,7 @@ export async function GET() {
     images: p.images.slice(0, 1),
     sku: p.sku,
     inStock: p.inStock,
+    isVisible: p.isVisible !== false,
     sizeOptions: p.sizeOptions,
     category: p.category,
     isNew: p.isNew,
@@ -25,7 +26,7 @@ export async function GET() {
   }));
   return NextResponse.json(slim, {
     headers: {
-      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      "Cache-Control": "private, no-store",
       "Content-Type": "application/json",
     },
   });
