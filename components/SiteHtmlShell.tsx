@@ -26,8 +26,7 @@ const jost = Jost({
   preload: true,
   variable: "--font-jost",
   adjustFontFallback: true,
-  // Jost’s Ukrainian «і/ї» glyphs are incomplete; system UI fills those codepoints.
-  fallback: ["Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+  fallback: ["Helvetica Neue", "Arial", "sans-serif"],
 });
 
 export default function SiteHtmlShell({

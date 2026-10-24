@@ -69,8 +69,20 @@
     overflow-x:hidden;
     max-width:100%;
   }
+  /*
+   * Jost’s Ukrainian і/ї/є/ґ glyphs are optically heavier than the rest.
+   * Manrope ExtraLight covers only those codepoints so stem weight matches.
+   */
+  @font-face{
+    font-family:"UA Soft Letters";
+    font-style:normal;
+    font-weight:200 500;
+    font-display:swap;
+    src:url("/fonts/manrope-ua.woff2") format("woff2");
+    unicode-range:U+0404,U+0406,U+0407,U+0454,U+0456,U+0457,U+0490,U+0491;
+  }
   body{
-    font-family:var(--font-jost),'Jost',Helvetica,Arial,sans-serif;
+    font-family:"UA Soft Letters",var(--font-jost),'Jost',Helvetica,Arial,sans-serif;
     font-size:var(--text-body);
     font-weight:var(--weight-regular);
     letter-spacing:.015em;
@@ -907,15 +919,8 @@
     line-height:var(--leading-title);
     color:var(--ink);
   }
-  /* Ukrainian і/ї only — Jost’s glyphs for these look off */
-  @font-face{
-    font-family:"UA Soft I";
-    src:local("Segoe UI"),local("Helvetica Neue"),local("Arial");
-    unicode-range:U+0406,U+0456,U+0407,U+0457;
-  }
   .home-cats-title{
     letter-spacing:.01em;
-    font-family:"UA Soft I",var(--font-jost),'Jost',sans-serif;
   }
   .cat-nav{display:flex;gap:10px;}
   .cat-nav button{
