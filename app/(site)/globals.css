@@ -1085,28 +1085,23 @@
     white-space:nowrap;
   }
   .home-rail-all:hover{color:var(--ink);}
-  /* Same card width as catalog grid (2 / 3 / 4 cols), hairline gutters */
+  /* Same card width as catalog grid (2 / 3 / 4 cols), hairline gutters.
+     Keep calc() literal — var()*px can invalidate grid-auto-columns (→ auto → 0 width). */
   .home-rail-track{
-    --rail-gap:0.5px;
-    --rail-side:0;
-    --rail-cols:2;
     display:grid;
     grid-auto-flow:column;
-    grid-auto-columns:calc(
-      (100% - var(--rail-side) * 2 - var(--rail-gap) * (var(--rail-cols) - 1))
-      / var(--rail-cols)
-    );
+    grid-auto-columns:calc((100% - 0.5px) / 2);
     justify-content:start;
     justify-items:stretch;
     align-content:start;
-    gap:var(--rail-gap);
+    gap:0.5px;
     overflow-x:auto;
     overflow-y:hidden;
     scroll-snap-type:none;
     -webkit-overflow-scrolling:touch;
     overscroll-behavior-x:contain;
     scrollbar-width:none;
-    padding:0 var(--rail-side) 8px;
+    padding:0 0 8px;
     margin:0;
     width:100%;
     max-width:100%;
@@ -1124,10 +1119,14 @@
     width:100%;
   }
   @media (min-width:900px){
-    .home-rail-track{--rail-cols:3;}
+    .home-rail-track{
+      grid-auto-columns:calc((100% - 1px) / 3);
+    }
   }
   @media (min-width:1400px){
-    .home-rail-track{--rail-cols:4;}
+    .home-rail-track{
+      grid-auto-columns:calc((100% - 1.5px) / 4);
+    }
   }
   .home-about{
     text-align:center;
@@ -1564,7 +1563,6 @@
     .home-products-grid,
     .pdp-related-grid{
       grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:0.5px;
     }
   }
   @media (min-width:1400px){
@@ -1572,7 +1570,6 @@
     .home-products-grid,
     .pdp-related-grid{
       grid-template-columns:repeat(4,minmax(0,1fr));
-      gap:0.5px;
     }
   }
 
