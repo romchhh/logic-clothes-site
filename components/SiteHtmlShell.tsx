@@ -20,7 +20,7 @@ import {
 
 const jost = Jost({
   subsets: ["latin", "latin-ext", "cyrillic"],
-  weight: ["200", "300", "400", "500"],
+  weight: ["200", "300"],
   style: ["normal", "italic"],
   display: "swap",
   preload: true,
