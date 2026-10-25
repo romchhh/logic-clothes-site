@@ -1277,9 +1277,7 @@
   .cat-sort{
     display:inline-flex;
     align-items:center;
-    gap:6px;
-    position:relative;
-    max-width:min(100%, 240px);
+    gap:4px;
   }
   .cat-sort-prefix{
     font-size:11px;
@@ -1288,32 +1286,35 @@
     text-transform:uppercase;
     color:var(--muted);
     white-space:nowrap;
+    margin-right:2px;
   }
-  .cat-sort select{
-    appearance:none;
-    -webkit-appearance:none;
-    margin:0;
-    padding:6px 18px 6px 2px;
+  .cat-sort-arrow{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:22px;
+    height:22px;
+    flex-shrink:0;
+    padding:0;
     border:none;
-    border-bottom:1px solid var(--ink);
     border-radius:0;
-    background:
-      transparent
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23111111' stroke-width='1.6'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
-      no-repeat right 0 center;
-    font:inherit;
-    font-size:11px;
-    font-weight:var(--weight-medium);
-    letter-spacing:.02em;
+    background:transparent;
     color:var(--ink);
-    cursor:pointer;
-    min-width:0;
-    max-width:100%;
+    opacity:.4;
+    transition:opacity .2s;
   }
-  .cat-sort select:hover{opacity:.55;}
-  .cat-sort select:focus-visible{
+  .cat-sort-arrow:hover{opacity:.85;}
+  .cat-sort-arrow.is-active{opacity:1;}
+  .cat-sort-arrow:focus-visible{
     outline:2px solid var(--ink);
-    outline-offset:3px;
+    outline-offset:2px;
+  }
+  .cat-sort-arrow svg{
+    width:14px;
+    height:14px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:1.5;
   }
   .cat-filter-btn{
     display:inline-flex;

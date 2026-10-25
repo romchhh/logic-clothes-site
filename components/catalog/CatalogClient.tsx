@@ -360,22 +360,33 @@ export default function CatalogClient({
       <div className="cat-toolbar">
         <div>
           <h1 className="cat-title">{activeLabel}</h1>
-          <p className="cat-count is-visible">
-            {t.catalog.count(sortedProducts.length)}
-          </p>
         </div>
         <div className="cat-toolbar-actions">
-          <label className="cat-sort">
-            <span className="cat-sort-prefix">{t.catalog.sort}</span>
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+          <div className="cat-sort" role="group" aria-label={t.catalog.price}>
+            <span className="cat-sort-prefix">{t.catalog.price}</span>
+            <button
+              type="button"
+              className={`cat-sort-arrow${sortOrder === "asc" ? " is-active" : ""}`}
+              aria-label={t.catalog.sortAsc}
+              aria-pressed={sortOrder === "asc"}
+              onClick={() => setSortOrder("asc")}
             >
-              <option value="newest">{t.catalog.sortNewest}</option>
-              <option value="asc">{t.catalog.sortAsc}</option>
-              <option value="desc">{t.catalog.sortDesc}</option>
-            </select>
-          </label>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 15l6-6 6 6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={`cat-sort-arrow${sortOrder === "desc" ? " is-active" : ""}`}
+              aria-label={t.catalog.sortDesc}
+              aria-pressed={sortOrder === "desc"}
+              onClick={() => setSortOrder("desc")}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          </div>
           <button
             type="button"
             className={`cat-filter-btn${activeFilters > 0 ? " has-active" : ""}`}
