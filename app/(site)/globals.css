@@ -1087,8 +1087,8 @@
   .home-rail-all:hover{color:var(--ink);}
   /* Same card width as catalog grid (2 / 3 / 4 cols), hairline gutters */
   .home-rail-track{
-    --rail-gap:1px;
-    --rail-side:1px;
+    --rail-gap:0.5px;
+    --rail-side:0;
     --rail-cols:2;
     display:grid;
     grid-auto-flow:column;
@@ -1553,9 +1553,9 @@
   .pdp-related-grid{
     display:grid;
     grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:1px;
+    gap:0.5px;
     margin:0;
-    padding:0 1px;
+    padding:0;
     background:var(--white);
     border:none;
   }
@@ -1564,7 +1564,7 @@
     .home-products-grid,
     .pdp-related-grid{
       grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:1px;
+      gap:0.5px;
     }
   }
   @media (min-width:1400px){
@@ -1572,7 +1572,7 @@
     .home-products-grid,
     .pdp-related-grid{
       grid-template-columns:repeat(4,minmax(0,1fr));
-      gap:1px;
+      gap:0.5px;
     }
   }
 
@@ -1589,7 +1589,7 @@
   }
   .product-img{
     position:relative;
-    aspect-ratio:2 / 3;
+    aspect-ratio:3 / 5;
     overflow:hidden;
     border-radius:0;
     background:var(--white);
@@ -1690,7 +1690,7 @@
     right:0;
     bottom:0;
     z-index:2;
-    padding:28px 8px 8px;
+    padding:22px 7px 6px;
     display:flex;
     flex-direction:row;
     align-items:flex-end;
