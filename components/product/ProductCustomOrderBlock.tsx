@@ -15,9 +15,12 @@ import type { Product } from "@/lib/types";
 export default function ProductCustomOrderBlock({
   product,
   lang,
+  embedded = false,
 }: {
   product: Product;
   lang: Locale;
+  /** Inside PDP «Колір» block — no duplicate page section */
+  embedded?: boolean;
 }) {
   const { t } = useI18n();
   const productPaletteId = resolvePaletteId({
@@ -56,15 +59,31 @@ export default function ProductCustomOrderBlock({
     setSelectedId(color.id);
   }
 
+  const Wrapper = embedded ? "div" : "section";
+  const titleId = embedded ? "pdp-color-custom-title" : "pdp-custom-order-title";
+  const headClass = embedded
+    ? "pdp-color-custom-head"
+    : "pdp-custom-order-head";
+  const titleClass = embedded
+    ? "pdp-color-custom-title"
+    : "pdp-custom-order-title";
+  const rootClass = embedded ? "pdp-color-custom" : "pdp-custom-order";
+
   return (
-    <section
-      className="pdp-custom-order"
-      aria-labelledby="pdp-custom-order-title"
+    <Wrapper
+      className={rootClass}
+      aria-labelledby={titleId}
     >
-      <header className="pdp-custom-order-head">
-        <h2 id="pdp-custom-order-title" className="pdp-custom-order-title">
-          {t.product.customOrderTitle}
-        </h2>
+      <header className={headClass}>
+        {embedded ? (
+          <h3 id={titleId} className={titleClass}>
+            {t.product.customOrderTitle}
+          </h3>
+        ) : (
+          <h2 id={titleId} className={titleClass}>
+            {t.product.customOrderTitle}
+          </h2>
+        )}
         <p className="pdp-custom-order-lead">{t.product.customOrderLead}</p>
       </header>
       <GroupedPaletteBoard
@@ -83,6 +102,6 @@ export default function ProductCustomOrderBlock({
       <Link href={contactHref} className="pdp-custom-order-cta">
         {t.product.customOrderCta}
       </Link>
-    </section>
+    </Wrapper>
   );
 }

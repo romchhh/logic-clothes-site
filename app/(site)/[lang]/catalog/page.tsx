@@ -75,10 +75,11 @@ export default async function CatalogPage({
   const baseUrl = getSiteUrl();
 
   const categories = await getCategories();
+  const showCategoryHub = !category;
   const active =
     category && categories.some((c) => c.id === category) ? category : "all";
   const activeCat = categories.find((c) => c.id === active);
-  const products = await getProductsByCategory(active);
+  const products = showCategoryHub ? [] : await getProductsByCategory(active);
   const title = activeCat?.label[lang] || copy.catalogTitle;
   const description = copy.catalogDescription;
 
@@ -112,7 +113,11 @@ export default async function CatalogPage({
         })}
       />
       <JsonLd data={generateBreadcrumbStructuredData(crumbs, baseUrl)} />
-      <CatalogServer lang={lang} category={category} />
+      <CatalogServer
+        lang={lang}
+        category={category}
+        showCategoryHub={showCategoryHub}
+      />
     </PageShell>
   );
 }

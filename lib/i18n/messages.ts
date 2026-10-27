@@ -70,6 +70,8 @@ export type Messages = {
     pickSize: string;
     inStockSizesLabel: string;
     madeToOrderSizesLabel: string;
+    sizeTooltipInStock: string;
+    sizeTooltipMadeToOrder: string;
     customOrderTitle: string;
     customOrderLead: string;
     customOrderCta: string;
@@ -312,6 +314,8 @@ const uk: Messages = {
     pickSize: "Оберіть розмір",
     inStockSizesLabel: "В наявності:",
     madeToOrderSizesLabel: "За 14 днів зшиємо",
+    sizeTooltipInStock: "В наявності",
+    sizeTooltipMadeToOrder: "Зшиємо за 14 днів",
     customOrderTitle: "Конструктор власного замовлення",
     customOrderLead:
       "Будь-який колір палітри — по мірках або з нашої сітки. Напишіть, який відтінок і розмір вам потрібні.",
@@ -569,6 +573,8 @@ const en: Messages = {
     pickSize: "Please select a size",
     inStockSizesLabel: "In stock:",
     madeToOrderSizesLabel: "Made in 14 days",
+    sizeTooltipInStock: "In stock",
+    sizeTooltipMadeToOrder: "Made to order in 14 days",
     customOrderTitle: "Build your custom order",
     customOrderLead:
       "Any palette colour — standard sizes or made to measure. Tell us the shade and fit you need.",

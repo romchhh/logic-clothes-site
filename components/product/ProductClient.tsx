@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import ProductCard from "@/components/catalog/ProductCard";
-import ProductCustomOrderBlock from "@/components/product/ProductCustomOrderBlock";
 import ProductImmersiveGallery from "@/components/product/ProductImmersiveGallery";
 import { useAppContext } from "@/lib/GeneralProvider";
 import { useBasket } from "@/lib/BasketProvider";
@@ -291,16 +290,8 @@ export default function ProductClient({
                     {t.product.sizeGuide}
                   </a>
                 </div>
-                {inStockSizeSet.size > 0 && (
-                  <p className="pdp-size-group-label">
-                    {t.product.inStockSizesLabel}
-                  </p>
-                )}
-                <p className="pdp-size-group-label pdp-size-group-label--mto">
-                  {t.product.madeToOrderSizesLabel}
-                </p>
                 <div
-                  className="pdp-sizes"
+                  className="pdp-sizes pdp-sizes--all"
                   role="listbox"
                   aria-label={t.product.size}
                   aria-invalid={sizeHint}
@@ -314,6 +305,11 @@ export default function ProductClient({
                       type="button"
                       role="option"
                       aria-selected={selectedSize === sz}
+                      title={
+                        inStockSizeSet.has(sz)
+                          ? t.product.sizeTooltipInStock
+                          : t.product.sizeTooltipMadeToOrder
+                      }
                       onClick={() => selectSize(sz)}
                     >
                       {sz}
@@ -324,6 +320,7 @@ export default function ProductClient({
                     type="button"
                     role="option"
                     aria-selected={selectedSize === CUSTOM_SIZE_VALUE}
+                    title={t.product.sizeTooltipMadeToOrder}
                     onClick={() => selectSize(CUSTOM_SIZE_VALUE)}
                   >
                     {t.product.sizeCustom}
@@ -396,8 +393,6 @@ export default function ProductClient({
       </div>
 
       <div className="pdp-immersive-tail">
-      <ProductCustomOrderBlock product={product} lang={lang} />
-
       <div className="pdp-below pdp-below--immersive">
           <section
             className="pdp-size-chart"

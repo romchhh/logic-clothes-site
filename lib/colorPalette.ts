@@ -442,9 +442,7 @@ export function buildPaletteSlots(
   });
 }
 
-/**
- * PDP: only colors that exist in this model’s family — with photo in the circle.
- */
+/** PDP: colors on this model (family + extra swatches on one SKU). */
 export function buildFamilyPaletteSlots(
   current: {
     id: string;

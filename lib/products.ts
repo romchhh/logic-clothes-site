@@ -4,6 +4,10 @@ import { isCatalogProduct } from "@/lib/catalogProduct";
 import { resolvePaletteId } from "@/lib/colorPalette";
 import { isDbUnavailableError } from "@/lib/db";
 import { getProductsEpoch } from "@/lib/productCache";
+import {
+  productInNewSection,
+  productOnSale,
+} from "@/lib/productCatalogSections";
 import type { Product, ProductColorVariant } from "@/lib/types";
 
 function toColorVariant(p: Product): ProductColorVariant {
@@ -148,7 +152,7 @@ export async function getProductsByCategory(
 ): Promise<Product[]> {
   const products = (await getProducts()).filter(isCatalogProduct);
   if (!category || category === "all") return products;
-  if (category === "new") return products.filter((p) => p.isNew);
-  if (category === "sale") return products.filter((p) => p.isSale);
+  if (category === "new") return products.filter(productInNewSection);
+  if (category === "sale") return products.filter(productOnSale);
   return products.filter((p) => p.category === category);
 }

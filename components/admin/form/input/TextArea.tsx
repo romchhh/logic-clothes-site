@@ -41,6 +41,9 @@ const TextArea: React.FC<TextareaProps> = ({
         value={value}
         onChange={handleChange}
         disabled={disabled}
+        spellCheck={false}
+        autoCorrect="off"
+        autoCapitalize="off"
         className={textareaClasses}
       />
       {hint && (

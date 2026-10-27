@@ -23,9 +23,8 @@ export default function ProductImmersiveGallery({
   nextLabel: string;
   closeLabel?: string;
 }) {
-  const trackRef = useRef<HTMLDivElement>(null);
   const lightboxTrackRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef({
+  const heroDragRef = useRef({
     active: false,
     pointerId: null as number | null,
     startX: 0,
@@ -41,35 +40,13 @@ export default function ProductImmersiveGallery({
     (i: number) => {
       const next = Math.max(0, Math.min(images.length - 1, i));
       setIndex(next);
-      const el = trackRef.current;
-      if (!el || el.offsetParent === null) return;
-      const slide = el.children[next] as HTMLElement | undefined;
-      if (slide) {
-        el.scrollTo({ left: slide.offsetLeft, behavior: "smooth" });
-      }
     },
     [images.length]
   );
 
   useEffect(() => {
     setIndex(0);
-    const el = trackRef.current;
-    if (el) el.scrollTo({ left: 0, behavior: "auto" });
   }, [images]);
-
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el || images.length < 2) return;
-
-    function onScroll() {
-      const w = el!.clientWidth || 1;
-      const i = Math.round(el!.scrollLeft / w);
-      if (i >= 0 && i < images.length && i !== index) setIndex(i);
-    }
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [images.length, index]);
 
   useScrollLock(lightboxOpen);
 
@@ -103,45 +80,42 @@ export default function ProductImmersiveGallery({
     setLightboxOpen(true);
   }
 
-  function onTrackPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+  function onHeroPointerDown(e: ReactPointerEvent<HTMLElement>) {
+    if (!multi) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    const el = trackRef.current;
-    if (!el) return;
-    dragRef.current = {
+    heroDragRef.current = {
       active: true,
       pointerId: e.pointerId,
       startX: e.clientX,
-      startScroll: el.scrollLeft,
+      startScroll: 0,
       moved: false,
     };
-    el.classList.add("is-dragging");
-    el.setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
-  function onTrackPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current;
-    const el = trackRef.current;
-    if (!drag.active || !el || drag.pointerId !== e.pointerId) return;
+  function onHeroPointerMove(e: ReactPointerEvent<HTMLElement>) {
+    const drag = heroDragRef.current;
+    if (!drag.active || drag.pointerId !== e.pointerId) return;
     const dx = e.clientX - drag.startX;
-    if (Math.abs(dx) > 8) drag.moved = true;
-    if (drag.moved) el.scrollLeft = drag.startScroll - dx;
+    if (Math.abs(dx) > 10) drag.moved = true;
   }
 
-  function endTrackDrag(e: ReactPointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current;
-    const el = trackRef.current;
-    if (!drag.active || !el || drag.pointerId !== e.pointerId) return;
-    el.classList.remove("is-dragging");
+  function endHeroDrag(e: ReactPointerEvent<HTMLElement>) {
+    const drag = heroDragRef.current;
+    if (!drag.active || drag.pointerId !== e.pointerId) return;
     try {
-      el.releasePointerCapture(e.pointerId);
+      e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {
       /* ignore */
     }
-    const w = el.clientWidth || 1;
-    const nearest = Math.round(el.scrollLeft / w);
-    el.scrollTo({ left: nearest * w, behavior: "smooth" });
+    const dx = e.clientX - drag.startX;
+    if (drag.moved) {
+      if (dx < -48) goTo(index + 1);
+      else if (dx > 48) goTo(index - 1);
+    }
     drag.active = false;
     drag.pointerId = null;
+    drag.moved = false;
   }
 
   if (!images.length) return null;
@@ -150,11 +124,24 @@ export default function ProductImmersiveGallery({
 
   return (
     <div className="pdp-immerse-root">
-      <section className="pdp-immerse-hero" aria-label={alt}>
+      <section
+        className="pdp-immerse-hero"
+        aria-label={alt}
+        onPointerDown={onHeroPointerDown}
+        onPointerMove={onHeroPointerMove}
+        onPointerUp={endHeroDrag}
+        onPointerCancel={endHeroDrag}
+      >
         <button
           type="button"
           className="pdp-immerse-hero-hit"
-          onClick={() => openLightbox(index)}
+          onClick={(e) => {
+            if (heroDragRef.current.moved) {
+              e.preventDefault();
+              return;
+            }
+            openLightbox(index);
+          }}
           aria-label={`${alt} — ${index + 1}`}
         >
           <Image
@@ -218,35 +205,6 @@ export default function ProductImmersiveGallery({
                   style={{ objectFit: "cover" }}
                 />
               </button>
-            ))}
-          </div>
-          <div
-            className="pdp-immerse-track"
-            ref={trackRef}
-            onPointerDown={onTrackPointerDown}
-            onPointerMove={onTrackPointerMove}
-            onPointerUp={endTrackDrag}
-            onPointerCancel={endTrackDrag}
-          >
-            {images.map((src, i) => (
-              <figure key={`${src}-slide-${i}`} className="pdp-immerse-slide">
-                <button
-                  type="button"
-                  className="pdp-immerse-slide-hit"
-                  onClick={() => openLightbox(i)}
-                  aria-label={`${alt} — ${i + 1}`}
-                >
-                  <Image
-                    src={src}
-                    alt={`${alt} — ${i + 1}`}
-                    fill
-                    sizes="100vw"
-                    quality={85}
-                    draggable={false}
-                    style={{ objectFit: "cover", objectPosition: "center" }}
-                  />
-                </button>
-              </figure>
             ))}
           </div>
         </section>

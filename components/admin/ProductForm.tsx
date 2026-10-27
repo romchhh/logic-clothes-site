@@ -874,7 +874,22 @@ export default function ProductForm({ productId }: Props) {
               ])
             )}
             selected={form.materialOptions}
-            onToggle={(value) => toggleOption("materialOptions", value)}
+            chipMode="add"
+            onToggle={(value) => {
+              setForm((prev) => {
+                const has = prev.materialOptions.includes(value);
+                const next = has
+                  ? prev.materialOptions
+                  : [...prev.materialOptions, value];
+                return {
+                  ...prev,
+                  materialOptions: [
+                    value,
+                    ...next.filter((x) => x !== value),
+                  ],
+                };
+              });
+            }}
             onBulkAdd={(values) => {
               const next = rememberFabricNames(values);
               setFabricSuggestions(next);

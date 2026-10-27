@@ -75,6 +75,7 @@ type ProductRow = {
     height?: number | null;
   }> | null;
   swatches: Array<{ img: string; label: string; hex?: string | null }> | null;
+  created_at?: Date | string | null;
 };
 
 function num(value: string | number | null | undefined): number {
@@ -177,6 +178,14 @@ function mapProduct(row: ProductRow): Product {
     sortOrder: Number(row.sort_order) || 0,
     colorGroup: row.color_group || null,
     ...(lookProductIds.length ? { lookProductIds } : {}),
+    ...(row.created_at
+      ? {
+          createdAt:
+            row.created_at instanceof Date
+              ? row.created_at.toISOString()
+              : new Date(row.created_at).toISOString(),
+        }
+      : {}),
   };
 }
 
@@ -209,6 +218,7 @@ const PRODUCT_SELECT = `
     p.is_popular,
     p.is_sale,
     p.sort_order,
+    p.created_at,
     p.color_group,
     COALESCE(
       (

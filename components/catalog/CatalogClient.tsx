@@ -109,6 +109,9 @@ export default function CatalogClient({
     const list = [...filteredProducts];
     if (sortOrder === "newest") {
       return list.sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (ta !== tb) return tb - ta;
         if (Boolean(a.isNew) !== Boolean(b.isNew)) {
           return a.isNew ? -1 : 1;
         }

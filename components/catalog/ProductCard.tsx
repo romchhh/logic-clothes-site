@@ -6,6 +6,7 @@ import type { Locale } from "@/lib/i18n/config";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { formatCardPrice } from "@/lib/format";
 import { useWishlist } from "@/lib/WishlistProvider";
+import { productOnSale } from "@/lib/productCatalogSections";
 import { productName, type Product } from "@/lib/types";
 
 export default function ProductCard({
@@ -22,10 +23,7 @@ export default function ProductCard({
   const wished = isWished(product.id);
   const src = product.images[0] || "/assets/hero.png";
   const title = productName(product, lang);
-  const onSale =
-    product.isSale ||
-    (product.compareAtPriceNum != null &&
-      product.compareAtPriceNum > product.priceNum);
+  const onSale = productOnSale(product);
 
   return (
     <article className="product" data-product-id={product.id}>
@@ -53,10 +51,12 @@ export default function ProductCard({
                   {t.product.outOfStock}
                 </span>
               )}
-              {product.isNew && <span className="product-badge">New</span>}
+              {product.isNew && (
+                <span className="product-badge is-new">New</span>
+              )}
               {onSale && <span className="product-badge is-sale">Sale</span>}
               {product.isPopular && (
-                <span className="product-badge">Popular</span>
+                <span className="product-badge is-new">Popular</span>
               )}
             </div>
           )}

@@ -16,6 +16,8 @@ type Props = {
   singleSelect?: boolean;
   activeValue?: string;
   onSingleSelect?: (value: string) => void;
+  /** add: chip click only adds to selection, never removes */
+  chipMode?: "toggle" | "add";
 };
 
 export default function AdminChipField({
@@ -30,6 +32,7 @@ export default function AdminChipField({
   singleSelect = false,
   activeValue = "",
   onSingleSelect,
+  chipMode = "toggle",
 }: Props) {
   const [custom, setCustom] = useState("");
   const [bulk, setBulk] = useState("");
@@ -78,6 +81,10 @@ export default function AdminChipField({
               onClick={() => {
                 if (singleSelect && onSingleSelect) {
                   onSingleSelect(value);
+                  return;
+                }
+                if (chipMode === "add") {
+                  if (!selected.includes(value)) onToggle(value);
                   return;
                 }
                 onToggle(value);

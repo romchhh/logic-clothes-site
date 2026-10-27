@@ -73,6 +73,8 @@ export interface Product {
   colorGroup?: string | null;
   colorVariants?: ProductColorVariant[];
   lookProductIds?: string[];
+  /** ISO timestamp from DB — used for «новинки» without manual New flag. */
+  createdAt?: string;
 }
 
 export function productName(p: Product, lang: Locale): string {

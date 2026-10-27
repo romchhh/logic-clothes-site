@@ -8,6 +8,7 @@ import {
 } from "@/lib/colorPalette";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
+import ProductCustomOrderBlock from "@/components/product/ProductCustomOrderBlock";
 import type { Product, ProductColorVariant } from "@/lib/types";
 
 function isLightHex(hex: string): boolean {
@@ -66,50 +67,42 @@ export default function ProductColorPalette({
     ]
   );
 
-  if (!slots.length) return null;
-
   const currentSlot = slots.find((s) => s.isCurrent) ?? slots[0];
-  const activeLabel =
-    lang === "en"
+  const activeLabel = currentSlot
+    ? lang === "en"
       ? currentSlot.palette.labelEn
-      : currentSlot.palette.label;
+      : currentSlot.palette.label
+    : product.color?.trim() || "";
 
-  const showRow = slots.length > 1 || Boolean(product.color || product.colorHex);
-
-  if (!showRow) return null;
+  const showSwatches =
+    slots.length > 0 &&
+    (slots.length > 1 || Boolean(product.color || product.colorHex));
 
   return (
-    <div className="pdp-option pdp-option--color">
-      <div className="pdp-option-top">
-        <p className="pdp-label">{t.product.color}</p>
-        {activeLabel && <p className="pdp-option-value">{activeLabel}</p>}
-      </div>
-      <div
-        className="pdp-swatches pdp-swatches--palette"
-        role="listbox"
-        aria-label={t.product.color}
-      >
-        {slots.map(({ palette, variant, isCurrent }) => {
+    <div className="pdp-option pdp-option--color pdp-option--color-unified">
+      {showSwatches ? (
+        <>
+          <div className="pdp-option-top">
+            <p className="pdp-label">{t.product.color}</p>
+            {activeLabel ? (
+              <p className="pdp-option-value">{activeLabel}</p>
+            ) : null}
+          </div>
+          <div
+            className="pdp-swatches pdp-swatches--palette"
+            role="listbox"
+            aria-label={t.product.color}
+          >
+            {slots.map(({ palette, variant, isCurrent }) => {
           const label = lang === "en" ? palette.labelEn : palette.label;
-          const thumb = variant?.image?.trim() || "";
-          const hasPhoto = Boolean(thumb);
           const className = [
             "pdp-swatch",
-            hasPhoto ? "pdp-swatch--photo" : "",
             isCurrent ? "is-active" : "",
           ]
             .filter(Boolean)
             .join(" ");
 
-          const face = hasPhoto ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              className="pdp-swatch-face"
-              src={thumb}
-              alt=""
-              draggable={false}
-            />
-          ) : (
+          const face = (
             <span className="pdp-swatch-face" style={swatchStyle(palette)} />
           );
 
@@ -141,8 +134,16 @@ export default function ProductColorPalette({
               {face}
             </span>
           );
-        })}
-      </div>
+            })}
+          </div>
+        </>
+      ) : (
+        <div className="pdp-option-top">
+          <p className="pdp-label">{t.product.color}</p>
+        </div>
+      )}
+
+      <ProductCustomOrderBlock product={product} lang={lang} embedded />
     </div>
   );
 }
