@@ -72,6 +72,8 @@ export function productFromBody(
     : base.lookProductIds;
 
   const priceEur = numOrNull(body.priceEur);
+  const priceUsd =
+    body.priceUsd !== undefined ? numOrNull(body.priceUsd) : undefined;
   const compareAtPriceNum = numOrNull(body.compareAtPriceNum);
 
   return {
@@ -89,6 +91,12 @@ export function productFromBody(
     priceNum,
     price: formatPriceLabel(priceNum),
     priceEur: priceEur != null && priceEur > 0 ? priceEur : null,
+    priceUsd:
+      priceUsd !== undefined
+        ? priceUsd != null && priceUsd > 0
+          ? priceUsd
+          : null
+        : base.priceUsd ?? null,
     compareAtPriceNum:
       compareAtPriceNum != null && compareAtPriceNum > 0
         ? compareAtPriceNum

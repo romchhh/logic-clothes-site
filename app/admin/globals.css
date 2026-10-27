@@ -1,4 +1,9 @@
 @import 'tailwindcss';
+@import "../../styles/grouped-palette.css";
+
+.admin-panel .palette-group-grid{
+  --palette-dot:24px;
+}
 
 @custom-variant dark (&:is(.dark *));
 

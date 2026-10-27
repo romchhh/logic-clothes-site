@@ -16,9 +16,17 @@ export default function ProductsPage() {
         description="Каталог магазину — пошук, наявність і швидке редагування."
         crumbs={[{ label: "Товари" }]}
         actions={
-          <Link href="/admin/products/add" className="admin-btn-primary">
-            Додати товар
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/admin/products/prices"
+              className="admin-btn-secondary"
+            >
+              Редагувати всі ціни
+            </Link>
+            <Link href="/admin/products/add" className="admin-btn-primary">
+              Додати товар
+            </Link>
+          </div>
         }
       />
       <Suspense

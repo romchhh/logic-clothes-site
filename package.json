@@ -21,7 +21,8 @@
     "db:import": "node scripts/db-import.mjs",
     "db:push": "node scripts/db-push.mjs",
     "db:init": "node scripts/db-init.mjs",
-    "db:setup": "npm run migrate && npm run db:seed"
+    "db:setup": "npm run migrate && npm run db:seed",
+    "test:admin-prices": "node scripts/test-admin-prices.mjs"
   },
   "dependencies": {
     "next": "15.5.28",

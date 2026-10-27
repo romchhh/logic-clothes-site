@@ -7,6 +7,8 @@ import ComponentCard from "@/components/admin/ComponentCard";
 import ColorPalettePicker from "@/components/admin/ColorPalettePicker";
 import ProductMediaManager from "@/components/admin/ProductMediaManager";
 import ProductRelationPicker from "@/components/admin/ProductRelationPicker";
+import AdminChipField from "@/components/admin/AdminChipField";
+import ModelPresetPicker from "@/components/admin/ModelPresetPicker";
 import Label from "@/components/admin/form/Label";
 import Input from "@/components/admin/form/input/InputField";
 import TextArea from "@/components/admin/form/input/TextArea";
@@ -16,11 +18,19 @@ import { getAdminProductsListHref } from "@/lib/adminProductsListState";
 import type { Category } from "@/lib/categories";
 import { CACHE_KEYS, clearCachedData } from "@/lib/cache";
 import { UAH_PER_EUR } from "@/lib/format";
+import {
+  loadCompositionSuggestions,
+  loadFabricNameSuggestions,
+  rememberCompositions,
+  rememberFabricNames,
+  rememberFromCatalog,
+  rememberFromProduct,
+} from "@/lib/adminProductPresets";
+import { ADMIN_SIZE_PRESETS } from "@/lib/productSizes";
 import type { Product, ProductMedia } from "@/lib/types";
 
-const PRESET_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "ONESIZE"];
 const PRESET_LENGTHS = ["Mini", "Midi", "Maxi", "Crop", "Long"];
-const PRESET_MATERIALS = [
+const PRESET_FABRIC_NAMES = [
   "Шовк",
   "Бавовна",
   "Льон",
@@ -40,6 +50,7 @@ type FormState = {
   id: string;
   priceUah: string;
   priceEur: string;
+  priceUsd: string;
   compareAtUah: string;
   category: string;
   color: string;
@@ -67,6 +78,7 @@ const EMPTY: FormState = {
   id: "",
   priceUah: "",
   priceEur: "",
+  priceUsd: "",
   compareAtUah: "",
   category: "",
   color: "",
@@ -128,9 +140,11 @@ export default function ProductForm({ productId }: Props) {
   const isEdit = Boolean(productId);
 
   const [form, setForm] = useState<FormState>(EMPTY);
-  const [customSize, setCustomSize] = useState("");
   const [customLength, setCustomLength] = useState("");
-  const [customMaterialOpt, setCustomMaterialOpt] = useState("");
+  const [fabricSuggestions, setFabricSuggestions] = useState<string[]>([]);
+  const [compositionSuggestions, setCompositionSuggestions] = useState<
+    string[]
+  >([]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
@@ -188,6 +202,18 @@ export default function ProductForm({ productId }: Props) {
   }, []);
 
   useEffect(() => {
+    setFabricSuggestions(loadFabricNameSuggestions());
+    setCompositionSuggestions(loadCompositionSuggestions());
+  }, []);
+
+  useEffect(() => {
+    if (!catalog.length) return;
+    rememberFromCatalog(catalog);
+    setFabricSuggestions(loadFabricNameSuggestions());
+    setCompositionSuggestions(loadCompositionSuggestions());
+  }, [catalog]);
+
+  useEffect(() => {
     if (!productId) return;
     let cancelled = false;
     (async () => {
@@ -237,6 +263,8 @@ export default function ProductForm({ productId }: Props) {
               : p.priceNum
                 ? String(Math.max(1, Math.round(p.priceNum / UAH_PER_EUR)))
                 : "",
+          priceUsd:
+            p.priceUsd != null && p.priceUsd > 0 ? String(p.priceUsd) : "",
           compareAtUah:
             p.compareAtPriceNum != null ? String(p.compareAtPriceNum) : "",
           category: p.category ?? "",
@@ -338,7 +366,7 @@ export default function ProductForm({ productId }: Props) {
     clear: () => void
   ) => {
     const parts = raw
-      .split(/[,]+/)
+      .split(/[\n,;]+/)
       .map((s) => s.trim())
       .filter(Boolean);
     if (!parts.length) return;
@@ -363,6 +391,7 @@ export default function ProductForm({ productId }: Props) {
       return;
     }
     const priceEur = Number(form.priceEur);
+    const priceUsd = form.priceUsd.trim() ? Number(form.priceUsd) : null;
     const compareAt = form.compareAtUah.trim()
       ? Number(form.compareAtUah)
       : null;
@@ -381,6 +410,11 @@ export default function ProductForm({ productId }: Props) {
       /* keep empty EN */
     }
 
+    rememberFabricNames(form.materialOptions);
+    if (form.material.trim()) {
+      rememberCompositions([form.material.trim()]);
+    }
+
     const descriptionUk = form.descriptionUk.trim();
     const images = form.media
       .filter((m) => m.type === "image")
@@ -390,6 +424,10 @@ export default function ProductForm({ productId }: Props) {
       nameEn,
       priceNum,
       priceEur: Number.isFinite(priceEur) && priceEur > 0 ? priceEur : null,
+      priceUsd:
+        priceUsd != null && Number.isFinite(priceUsd) && priceUsd > 0
+          ? priceUsd
+          : null,
       compareAtPriceNum:
         compareAt != null && Number.isFinite(compareAt) && compareAt > 0
           ? compareAt
@@ -454,6 +492,14 @@ export default function ProductForm({ productId }: Props) {
             : `HTTP ${res.status}`
         );
       }
+      rememberFromProduct({
+        material: form.material.trim(),
+        materialOptions: form.materialOptions,
+        photoSize: form.photoSize.trim(),
+        modelParams: form.modelParams.trim(),
+      });
+      setFabricSuggestions(loadFabricNameSuggestions());
+      setCompositionSuggestions(loadCompositionSuggestions());
       clearCachedData(CACHE_KEYS.PRODUCTS);
       router.push(getAdminProductsListHref());
       router.refresh();
@@ -582,7 +628,7 @@ export default function ProductForm({ productId }: Props) {
 
       {/* Price */}
       <ComponentCard title="Ціна">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Label htmlFor="priceUah">Ціна, ₴ *</Label>
             <Input
@@ -612,6 +658,18 @@ export default function ProductForm({ productId }: Props) {
                 ? "Вказано вручну"
                 : `Авто з курсу ~${UAH_PER_EUR} ₴/€`}
             </p>
+          </div>
+          <div>
+            <Label htmlFor="priceUsd">Ціна, $</Label>
+            <Input
+              id="priceUsd"
+              type="number"
+              min="0"
+              step={1}
+              value={form.priceUsd}
+              onChange={(e) => set("priceUsd", e.target.value)}
+              placeholder="Необовʼязково"
+            />
           </div>
           <div>
             <Label htmlFor="compareAt">Стара ціна, ₴ (знижка)</Label>
@@ -712,40 +770,27 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Sizes */}
-      <ComponentCard title="Розміри">
-        <div className="flex flex-wrap gap-2">
-          {Array.from(new Set([...PRESET_SIZES, ...form.sizeOptions])).map(
-            (size) => {
-              const active = form.sizeOptions.includes(size);
-              return (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => toggleOption("sizeOptions", size)}
-                  className={`admin-chip ${active ? "admin-chip-active" : ""}`}
-                >
-                  {size}
-                </button>
-              );
-            }
+      <ComponentCard
+        title="Розміри в наявності"
+        desc="Які розміри є зараз. На сайті вони підсвітяться в блоці «В наявності», якщо увімкнено «В наявності»."
+      >
+        <AdminChipField
+          label="Розміри"
+          hint="Можна вставити список одразу (кома або новий рядок). Нові назви запамʼятовуються для інших товарів."
+          placeholderChip="Свій розмір, напр. 42"
+          bulkPlaceholder="XXS, XS, S, M, L, XL, A, B, C, D"
+          suggestions={Array.from(
+            new Set([...ADMIN_SIZE_PRESETS, ...form.sizeOptions])
           )}
-        </div>
-        <div className="mt-3 flex max-w-md items-center gap-2">
-          <Input
-            value={customSize}
-            onChange={(e) => setCustomSize(e.target.value)}
-            placeholder="Свій розмір, напр. 42"
-          />
-          <button
-            type="button"
-            onClick={() =>
-              addCustomParts("sizeOptions", customSize, () => setCustomSize(""))
-            }
-            className="admin-btn-secondary shrink-0"
-          >
-            Додати
-          </button>
-        </div>
+          selected={form.sizeOptions}
+          onToggle={(value) => toggleOption("sizeOptions", value)}
+          onBulkAdd={(values) => {
+            setForm((prev) => ({
+              ...prev,
+              sizeOptions: Array.from(new Set([...prev.sizeOptions, ...values])),
+            }));
+          }}
+        />
       </ComponentCard>
 
       {/* Length + material variants */}
@@ -793,77 +838,79 @@ export default function ProductForm({ productId }: Props) {
             </div>
           </div>
 
-          <div>
-            <Label>Матеріал (варіанти)</Label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {Array.from(
-                new Set([...PRESET_MATERIALS, ...form.materialOptions])
-              ).map((value) => {
-                const active = form.materialOptions.includes(value);
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => toggleOption("materialOptions", value)}
-                    className={`admin-chip ${active ? "admin-chip-active" : ""}`}
-                  >
-                    {value}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-3 flex max-w-md items-center gap-2">
-              <Input
-                value={customMaterialOpt}
-                onChange={(e) => setCustomMaterialOpt(e.target.value)}
-                placeholder="Свій матеріал"
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  addCustomParts("materialOptions", customMaterialOpt, () =>
-                    setCustomMaterialOpt("")
-                  )
-                }
-                className="admin-btn-secondary shrink-0"
-              >
-                Додати
-              </button>
-            </div>
-          </div>
+          <AdminChipField
+            label="Назви тканин (варіанти на сайті)"
+            hint="Клієнт обирає одну з назв. Список можна розширити масово — значення запамʼятовуються в браузері та підтягуються з каталогу."
+            placeholderChip="Нова назва тканини"
+            bulkPlaceholder="Шовк, Креп, Трикотаж, Віскоза"
+            suggestions={Array.from(
+              new Set([
+                ...PRESET_FABRIC_NAMES,
+                ...fabricSuggestions,
+                ...form.materialOptions,
+              ])
+            )}
+            selected={form.materialOptions}
+            onToggle={(value) => toggleOption("materialOptions", value)}
+            onBulkAdd={(values) => {
+              const next = rememberFabricNames(values);
+              setFabricSuggestions(next);
+              setForm((prev) => ({
+                ...prev,
+                materialOptions: Array.from(
+                  new Set([...prev.materialOptions, ...values])
+                ),
+              }));
+            }}
+          />
         </div>
       </ComponentCard>
 
       {/* Composition + model */}
       <ComponentCard title="Склад і модель">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="md:col-span-2">
-            <Label htmlFor="material">Склад (текстовий опис)</Label>
-            <Input
-              id="material"
-              value={form.material}
-              onChange={(e) => set("material", e.target.value)}
-              placeholder="100% поліестер / 95% cotton, 5% elastane"
+        <div className="space-y-8">
+          <div className="space-y-3">
+            <AdminChipField
+              label="Склад — збережені варіанти"
+              hint="Клік по чіпу підставляє текст у поле нижче. Нові склади запамʼятовуються після збереження товару або масового додавання."
+              placeholderChip="Новий склад одним рядком"
+              bulkPlaceholder={"95% бавовна, 5% еластан\n100% шовк"}
+              suggestions={Array.from(
+                new Set([
+                  ...compositionSuggestions,
+                  ...(form.material.trim() ? [form.material.trim()] : []),
+                ])
+              )}
+              selected={[]}
+              singleSelect
+              activeValue={form.material.trim()}
+              onToggle={() => {}}
+              onSingleSelect={(value) => set("material", value)}
+              onBulkAdd={(values) => {
+                const next = rememberCompositions(values);
+                setCompositionSuggestions(next);
+                if (!form.material.trim() && values[0]) {
+                  set("material", values[0]);
+                }
+              }}
             />
+            <div>
+              <Label htmlFor="material">Склад (текст на сайті)</Label>
+              <Input
+                id="material"
+                value={form.material}
+                onChange={(e) => set("material", e.target.value)}
+                placeholder="100% поліестер / 95% cotton, 5% elastane"
+              />
+            </div>
           </div>
-          <div>
-            <Label htmlFor="photoSize">На фото розмір</Label>
-            <Input
-              id="photoSize"
-              value={form.photoSize}
-              onChange={(e) => set("photoSize", e.target.value)}
-              placeholder="S / M"
-            />
-          </div>
-          <div>
-            <Label htmlFor="modelParams">Параметри моделі</Label>
-            <Input
-              id="modelParams"
-              value={form.modelParams}
-              onChange={(e) => set("modelParams", e.target.value)}
-              placeholder="Зріст 175 см, параметри 86-64-90"
-            />
-          </div>
+          <ModelPresetPicker
+            photoSize={form.photoSize}
+            modelParams={form.modelParams}
+            onChange={({ photoSize, modelParams }) =>
+              setForm((prev) => ({ ...prev, photoSize, modelParams }))
+            }
+          />
         </div>
       </ComponentCard>
 

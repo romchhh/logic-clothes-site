@@ -43,6 +43,7 @@ type ProductRow = {
   price_num: string | number;
   price_label: string;
   price_eur: string | number | null;
+  price_usd: string | number | null;
   compare_at_price_num: string | number | null;
   color: string;
   color_hex: string | null;
@@ -128,6 +129,7 @@ function mapProduct(row: ProductRow): Product {
     : [];
 
   const priceEur = row.price_eur != null ? num(row.price_eur) : null;
+  const priceUsd = row.price_usd != null ? num(row.price_usd) : null;
   const compareAt =
     row.compare_at_price_num != null ? num(row.compare_at_price_num) : null;
 
@@ -146,6 +148,7 @@ function mapProduct(row: ProductRow): Product {
     price: row.price_label,
     priceNum: num(row.price_num),
     ...(priceEur != null && priceEur > 0 ? { priceEur } : {}),
+    ...(priceUsd != null && priceUsd > 0 ? { priceUsd } : {}),
     ...(compareAt != null && compareAt > 0 ? { compareAtPriceNum: compareAt } : {}),
     color: row.color || "",
     ...(row.color_hex ? { colorHex: row.color_hex } : {}),
@@ -186,6 +189,7 @@ const PRODUCT_SELECT = `
     p.price_num,
     p.price_label,
     p.price_eur,
+    p.price_usd,
     p.compare_at_price_num,
     p.color,
     p.color_hex,
@@ -388,7 +392,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
       `
       INSERT INTO products (
         slug, name, name_en, sizes_display, price_num, price_label,
-        price_eur, compare_at_price_num,
+        price_eur, price_usd, compare_at_price_num,
         color, color_hex, material,
         description, description_en, long_description, long_description_en,
         short_description, photo_size, model_params,
@@ -396,12 +400,12 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         sort_order, updated_at
       ) VALUES (
         $1,$2,$3,$4,$5,$6,
-        $7,$8,
-        $9,$10,$11,
-        $12,$13,$14,$15,
-        $16,$17,$18,
-        $19,$20,$21,$22,$23,$24,$25,$26,
-        $27, NOW()
+        $7,$8,$9,
+        $10,$11,$12,
+        $13,$14,$15,$16,
+        $17,$18,$19,
+        $20,$21,$22,$23,$24,$25,$26,$27,
+        $28, NOW()
       )
       ON CONFLICT (slug) DO UPDATE SET
         name = EXCLUDED.name,
@@ -410,6 +414,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         price_num = EXCLUDED.price_num,
         price_label = EXCLUDED.price_label,
         price_eur = EXCLUDED.price_eur,
+        price_usd = EXCLUDED.price_usd,
         compare_at_price_num = EXCLUDED.compare_at_price_num,
         color = EXCLUDED.color,
         color_hex = EXCLUDED.color_hex,
@@ -440,6 +445,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         product.priceNum,
         product.price,
         product.priceEur ?? null,
+        product.priceUsd ?? null,
         product.compareAtPriceNum ?? null,
         product.color || "",
         product.colorHex || "",

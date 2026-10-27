@@ -68,6 +68,12 @@ export type Messages = {
     related: string;
     lookTitle: string;
     pickSize: string;
+    inStockSizesLabel: string;
+    madeToOrderSizesLabel: string;
+    customOrderTitle: string;
+    customOrderLead: string;
+    customOrderCta: string;
+    customOrderSelected: string;
     model: string;
     modelOnPhoto: string;
     sizeChartTitle: string;
@@ -304,6 +310,13 @@ const uk: Messages = {
     related: "Ще з колекції",
     lookTitle: "Також у цьому луці",
     pickSize: "Оберіть розмір",
+    inStockSizesLabel: "В наявності:",
+    madeToOrderSizesLabel: "За 14 днів зшиємо",
+    customOrderTitle: "Конструктор власного замовлення",
+    customOrderLead:
+      "Будь-який колір палітри — по мірках або з нашої сітки. Напишіть, який відтінок і розмір вам потрібні.",
+    customOrderCta: "Обговорити замовлення",
+    customOrderSelected: "Обраний відтінок",
     model: "Модель:",
     modelOnPhoto:
       "На фото розмір S–M. Параметри моделі: зріст 175 см, груди 86, талія 64, стегна 92.",
@@ -554,6 +567,13 @@ const en: Messages = {
     related: "More from the collection",
     lookTitle: "Also in this look",
     pickSize: "Please select a size",
+    inStockSizesLabel: "In stock:",
+    madeToOrderSizesLabel: "Made in 14 days",
+    customOrderTitle: "Build your custom order",
+    customOrderLead:
+      "Any palette colour — standard sizes or made to measure. Tell us the shade and fit you need.",
+    customOrderCta: "Discuss your order",
+    customOrderSelected: "Selected shade",
     model: "Style:",
     modelOnPhoto:
       "Size on photo: S–M. Model specs: height 175 cm, bust 86, waist 64, hips 92.",

@@ -7,6 +7,11 @@ export function formatMoney(n: number): string {
   return n.toLocaleString("uk-UA") + " ₴";
 }
 
+/** Stored product.price string (matches DB / admin). */
+export function formatPriceLabel(priceNum: number): string {
+  return `${priceNum.toLocaleString("uk-UA")} ₴`;
+}
+
 export function formatCardPrice(p: Pick<Product, "priceNum" | "price">): string {
   if (typeof p.priceNum === "number") {
     return p.priceNum.toLocaleString("uk-UA") + " грн";

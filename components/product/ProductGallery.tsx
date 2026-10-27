@@ -268,16 +268,14 @@ export default function ProductGallery({
               <Image
                 src={src}
                 alt={`${alt} — ${i + 1}`}
-                width={900}
-                height={1200}
+                fill
                 sizes="(max-width: 959px) 100vw, 50vw"
                 quality={85}
                 priority={i === 0}
                 draggable={false}
                 style={{
-                  width: "100%",
-                  height: "auto",
-                  objectFit: "contain",
+                  objectFit: "cover",
+                  objectPosition: "center",
                   pointerEvents: "none",
                 }}
               />

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import {
-  buildPaletteSlots,
+  buildFamilyPaletteSlots,
   type PaletteColor,
 } from "@/lib/colorPalette";
 import { useI18n } from "@/lib/i18n/I18nProvider";
@@ -44,7 +44,7 @@ export default function ProductColorPalette({
   const { t } = useI18n();
   const slots = useMemo(
     () =>
-      buildPaletteSlots(
+      buildFamilyPaletteSlots(
         {
           id: product.id,
           name: product.name,
@@ -64,24 +64,17 @@ export default function ProductColorPalette({
     ]
   );
 
-  const currentSlot = slots.find((s) => s.isCurrent);
-  const [focusId, setFocusId] = useState<string | null>(null);
+  if (!slots.length) return null;
 
-  const focusSlot = focusId
-    ? slots.find((s) => s.palette.id === focusId)
-    : null;
-  const showSew =
-    focusSlot != null && !focusSlot.variant && !focusSlot.isCurrent;
+  const currentSlot = slots.find((s) => s.isCurrent) ?? slots[0];
+  const activeLabel =
+    lang === "en"
+      ? currentSlot.palette.labelEn
+      : currentSlot.palette.label;
 
-  const activeLabel = showSew
-    ? lang === "en"
-      ? focusSlot!.palette.labelEn
-      : focusSlot!.palette.label
-    : currentSlot
-      ? lang === "en"
-        ? currentSlot.palette.labelEn
-        : currentSlot.palette.label
-      : product.color || null;
+  const showRow = slots.length > 1 || Boolean(product.color || product.colorHex);
+
+  if (!showRow) return null;
 
   return (
     <div className="pdp-option pdp-option--color">
@@ -94,68 +87,60 @@ export default function ProductColorPalette({
         role="listbox"
         aria-label={t.product.color}
       >
-          {slots.map(({ palette, variant, isCurrent }) => {
-            const label = lang === "en" ? palette.labelEn : palette.label;
-            const focused = focusId === palette.id;
-            const className = [
-              "pdp-swatch",
-              isCurrent ? "is-active" : "",
-              focused && !isCurrent ? "is-focus" : "",
-              !variant && !isCurrent ? "is-made-to-order" : "",
-            ]
-              .filter(Boolean)
-              .join(" ");
+        {slots.map(({ palette, variant, isCurrent }) => {
+          const label = lang === "en" ? palette.labelEn : palette.label;
+          const thumb = variant?.image?.trim() || "";
+          const hasPhoto = Boolean(thumb);
+          const className = [
+            "pdp-swatch",
+            hasPhoto ? "pdp-swatch--photo" : "",
+            isCurrent ? "is-active" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
 
-            const face = (
-              <span className="pdp-swatch-face" style={swatchStyle(palette)} />
-            );
+          const face = hasPhoto ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              className="pdp-swatch-face"
+              src={thumb}
+              alt=""
+              draggable={false}
+            />
+          ) : (
+            <span className="pdp-swatch-face" style={swatchStyle(palette)} />
+          );
 
-            if (variant && !isCurrent) {
-              return (
-                <Link
-                  key={palette.id}
-                  href={`/${lang}/product/${encodeURIComponent(variant.id)}`}
-                  className={className}
-                  role="option"
-                  aria-label={label}
-                  aria-selected={false}
-                  title={label}
-                  onClick={() => setFocusId(null)}
-                >
-                  {face}
-                </Link>
-              );
-            }
-
+          if (variant && !isCurrent) {
             return (
-              <button
+              <Link
                 key={palette.id}
-                type="button"
+                href={`/${lang}/product/${encodeURIComponent(variant.id)}`}
                 className={className}
                 role="option"
                 aria-label={label}
-                aria-selected={isCurrent || focused}
-                title={
-                  isCurrent ? label : `${label} — ${t.product.sewForYou}`
-                }
-                onClick={() => {
-                  if (isCurrent) {
-                    setFocusId(null);
-                    return;
-                  }
-                  setFocusId(palette.id);
-                }}
+                aria-selected={false}
+                title={label}
               >
                 {face}
-              </button>
+              </Link>
             );
-          })}
+          }
+
+          return (
+            <span
+              key={palette.id}
+              className={className}
+              role="option"
+              aria-label={label}
+              aria-selected={isCurrent}
+              title={label}
+            >
+              {face}
+            </span>
+          );
+        })}
       </div>
-      {showSew && (
-        <p className="pdp-option-note" role="status">
-          {t.product.sewForYou}
-        </p>
-      )}
     </div>
   );
 }

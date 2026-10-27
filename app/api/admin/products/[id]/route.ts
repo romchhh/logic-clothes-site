@@ -6,6 +6,7 @@ import {
   syncColorVariants,
   upsertProduct,
 } from "@/lib/adminStore";
+import { applyPricePatch } from "@/lib/adminProductPrices";
 import { productFromBody } from "@/lib/productPayload";
 
 export const runtime = "nodejs";
@@ -75,9 +76,52 @@ export async function PATCH(
 
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    const next = { ...current };
+    let next = { ...current };
     if (typeof body.inStock === "boolean") next.inStock = body.inStock;
     if (typeof body.isVisible === "boolean") next.isVisible = body.isVisible;
+
+    const pricePatch: {
+      priceNum?: number;
+      priceEur?: number | null;
+      priceUsd?: number | null;
+      compareAtPriceNum?: number | null;
+    } = {};
+    if (body.priceNum !== undefined) {
+      const n = Number(body.priceNum);
+      if (!Number.isFinite(n) || n < 0) {
+        return NextResponse.json({ error: "invalid_price" }, { status: 400 });
+      }
+      pricePatch.priceNum = n;
+    }
+    if (body.priceEur !== undefined) {
+      if (body.priceEur === null || body.priceEur === "") {
+        pricePatch.priceEur = null;
+      } else {
+        const e = Number(body.priceEur);
+        pricePatch.priceEur = Number.isFinite(e) && e > 0 ? e : null;
+      }
+    }
+    if (body.priceUsd !== undefined) {
+      if (body.priceUsd === null || body.priceUsd === "") {
+        pricePatch.priceUsd = null;
+      } else {
+        const u = Number(body.priceUsd);
+        pricePatch.priceUsd = Number.isFinite(u) && u > 0 ? u : null;
+      }
+    }
+    if (body.compareAtPriceNum !== undefined) {
+      if (body.compareAtPriceNum === null || body.compareAtPriceNum === "") {
+        pricePatch.compareAtPriceNum = null;
+      } else {
+        const c = Number(body.compareAtPriceNum);
+        pricePatch.compareAtPriceNum =
+          Number.isFinite(c) && c > 0 ? c : null;
+      }
+    }
+    if (Object.keys(pricePatch).length) {
+      next = applyPricePatch(next, pricePatch);
+    }
+
     await upsertProduct(next);
     const fresh = await getProductById(id);
     return NextResponse.json(fresh ?? next);

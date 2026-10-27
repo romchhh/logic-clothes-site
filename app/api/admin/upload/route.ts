@@ -4,15 +4,15 @@ import path from "path";
 import sharp from "sharp";
 import { requireAdmin } from "@/lib/adminAuth";
 import {
+  PRODUCT_CARD_EXPORT_H,
+  PRODUCT_CARD_EXPORT_W,
+} from "@/lib/productCardImage";
+import {
   productMediaDir,
   productMediaPublicUrl,
 } from "@/lib/productMediaStorage";
 
 export const runtime = "nodejs";
-
-/** Instagram portrait post ratio 4:5 */
-const IG_W = 1080;
-const IG_H = 1350;
 
 type CropPayload = {
   x: number; // 0–1 relative to source
@@ -56,7 +56,10 @@ export async function POST(request: NextRequest) {
 
     const crop = parseCrop(form.get("crop"));
     const fitMode = String(form.get("fit") || "");
-    const fitIg = fitMode === "instagram" || Boolean(crop);
+    const fitCard =
+      fitMode === "catalog" ||
+      fitMode === "instagram" ||
+      Boolean(crop);
     const fitHero = fitMode === "hero";
 
     const dir = productMediaDir();
@@ -91,8 +94,8 @@ export async function POST(request: NextRequest) {
 
       let pipeline = sharp(buf).rotate();
       const meta = await pipeline.metadata();
-      const srcW = meta.width || IG_W;
-      const srcH = meta.height || IG_H;
+      const srcW = meta.width || PRODUCT_CARD_EXPORT_W;
+      const srcH = meta.height || PRODUCT_CARD_EXPORT_H;
 
       if (crop) {
         const left = Math.max(0, Math.round(crop.x * srcW));
@@ -102,11 +105,16 @@ export async function POST(request: NextRequest) {
         pipeline = sharp(buf)
           .rotate()
           .extract({ left, top, width: Math.max(1, width), height: Math.max(1, height) })
-          .resize(IG_W, IG_H, { fit: "fill" });
-      } else if (fitIg) {
+          .resize(PRODUCT_CARD_EXPORT_W, PRODUCT_CARD_EXPORT_H, {
+            fit: "fill",
+          });
+      } else if (fitCard) {
         pipeline = sharp(buf)
           .rotate()
-          .resize(IG_W, IG_H, { fit: "cover", position: "centre" });
+          .resize(PRODUCT_CARD_EXPORT_W, PRODUCT_CARD_EXPORT_H, {
+            fit: "cover",
+            position: "centre",
+          });
       } else if (fitHero) {
         pipeline = sharp(buf)
           .rotate()

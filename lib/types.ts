@@ -41,6 +41,8 @@ export interface Product {
   priceNum: number;
   /** Explicit EUR price; if omitted, derived from UAH. */
   priceEur?: number | null;
+  /** Explicit USD price (optional). */
+  priceUsd?: number | null;
   /** Old/compare-at price in UAH (for sale strikethrough). */
   compareAtPriceNum?: number | null;
   color: string;

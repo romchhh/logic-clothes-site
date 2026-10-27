@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import ProductCard from "@/components/catalog/ProductCard";
-import ProductGallery from "@/components/product/ProductGallery";
+import ProductCustomOrderBlock from "@/components/product/ProductCustomOrderBlock";
+import ProductImmersiveGallery from "@/components/product/ProductImmersiveGallery";
 import { useAppContext } from "@/lib/GeneralProvider";
 import { useBasket } from "@/lib/BasketProvider";
 import { useWishlist } from "@/lib/WishlistProvider";
@@ -15,6 +16,7 @@ import {
   normalizeSizeOptions,
 } from "@/lib/catalogProduct";
 import { formatDualPrice } from "@/lib/format";
+import { MADE_TO_ORDER_SIZE_GRID } from "@/lib/productSizes";
 import { CUSTOM_SIZE_VALUE, SIZE_CHART_ROWS } from "@/lib/sizeChart";
 import {
   productDescription,
@@ -34,13 +36,7 @@ export default function ProductClient({
   const { t } = useI18n();
   const { addItem } = useBasket();
   const { isWished, toggleWish } = useWishlist();
-  const {
-    setIsBasketOpen,
-    isBasketOpen,
-    isWishOpen,
-    isSearchOpen,
-    isMenuOpen,
-  } = useAppContext();
+  const { setIsBasketOpen } = useAppContext();
   const lengthOptions = product.lengthOptions?.filter(Boolean) ?? [];
   const materialOptions = product.materialOptions?.filter(Boolean) ?? [];
 
@@ -54,21 +50,22 @@ export default function ProductClient({
   const [sizeHint, setSizeHint] = useState(false);
   const [lengthHint, setLengthHint] = useState(false);
   const [materialHint, setMaterialHint] = useState(false);
-  const [footerInView, setFooterInView] = useState(false);
   const sizeBlockRef = useRef<HTMLDivElement>(null);
   const lengthBlockRef = useRef<HTMLDivElement>(null);
   const materialBlockRef = useRef<HTMLDivElement>(null);
-
-  const panelsOpen =
-    isBasketOpen || isWishOpen || isSearchOpen || isMenuOpen;
-  const hideMobileBar = panelsOpen || footerInView;
 
   const wished = isWished(product.id);
   const displayName = productName(product, lang);
   const displayDesc = productDescription(product, lang);
   const images = product.images;
   const galleryImages = images;
-  const sizeOptions = normalizeSizeOptions(product.sizeOptions);
+  const stockSizes = normalizeSizeOptions(product.sizeOptions);
+  const inStockSizeSet = new Set(
+    product.inStock && stockSizes.length > 0 ? stockSizes : []
+  );
+  const displaySizes = Array.from(
+    new Set([...MADE_TO_ORDER_SIZE_GRID, ...stockSizes])
+  );
   const canBuy = isSellableProduct(product);
   const onSale =
     product.isSale ||
@@ -103,19 +100,6 @@ export default function ProductClient({
     const id = window.setTimeout(() => setMaterialHint(false), 4000);
     return () => window.clearTimeout(id);
   }, [materialHint]);
-
-  useEffect(() => {
-    const footer = document.querySelector(".site-foot");
-    if (!footer) return;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        setFooterInView(entry.isIntersecting);
-      },
-      { root: null, threshold: 0, rootMargin: "0px 0px -12% 0px" }
-    );
-    io.observe(footer);
-    return () => io.disconnect();
-  }, []);
 
   function selectSize(sz: string) {
     setSelectedSize(sz);
@@ -171,41 +155,36 @@ export default function ProductClient({
   }
 
   return (
-    <>
-      <div className="pdp">
-        <nav className="pdp-breadcrumb" aria-label="Breadcrumb">
-          <Link href={`/${lang}`}>{t.product.home}</Link>
-          <span aria-hidden="true">›</span>
-          <Link href={`/${lang}/catalog`}>{t.product.catalog}</Link>
-          <span aria-hidden="true">›</span>
-          <span>{displayName}</span>
-        </nav>
+    <div className="pdp pdp--immersive">
+      <div className="pdp-immersive-shell">
+        <div className="pdp-immersive-media">
+          <ProductImmersiveGallery
+            images={galleryImages}
+            alt={displayName}
+            prevLabel={t.a11y.prevPhoto}
+            nextLabel={t.a11y.nextPhoto}
+            closeLabel={t.a11y.close}
+          />
+        </div>
 
-        <div className="pdp-layout">
-          <div className="pdp-media">
-            <ProductGallery
-              images={galleryImages}
-              alt={displayName}
-              prevLabel={t.a11y.prevPhoto}
-              nextLabel={t.a11y.nextPhoto}
-              closeLabel={t.a11y.close}
-            />
+        <div className="pdp-detail">
+        <Link href={`/${lang}/catalog`} className="pdp-back">
+          {t.product.catalog}
+        </Link>
+
+        <header className="pdp-intro pdp-intro--immersive">
+          <h1 className="pdp-title">{displayName}</h1>
+          <div className="pdp-price">
+            {onSale && product.compareAtPriceNum != null && (
+              <span className="pdp-price-old">
+                {product.compareAtPriceNum.toLocaleString("uk-UA")} грн
+              </span>
+            )}
+            <span>{formatDualPrice(product)}</span>
           </div>
+        </header>
 
-          <div className="pdp-info">
-            <header className="pdp-intro">
-              <h1 className="pdp-title">{displayName}</h1>
-              <div className="pdp-price">
-                {onSale && product.compareAtPriceNum != null && (
-                  <span className="pdp-price-old">
-                    {product.compareAtPriceNum.toLocaleString("uk-UA")} грн
-                  </span>
-                )}
-                <span>{formatDualPrice(product)}</span>
-              </div>
-            </header>
-
-            <div className="pdp-block pdp-buy-opts">
+        <div className="pdp-block pdp-buy-opts">
               <ProductColorPalette product={product} lang={lang} />
 
               {lengthOptions.length > 0 && (
@@ -312,16 +291,26 @@ export default function ProductClient({
                     {t.product.sizeGuide}
                   </a>
                 </div>
+                {inStockSizeSet.size > 0 && (
+                  <p className="pdp-size-group-label">
+                    {t.product.inStockSizesLabel}
+                  </p>
+                )}
+                <p className="pdp-size-group-label pdp-size-group-label--mto">
+                  {t.product.madeToOrderSizesLabel}
+                </p>
                 <div
                   className="pdp-sizes"
                   role="listbox"
                   aria-label={t.product.size}
                   aria-invalid={sizeHint}
                 >
-                  {sizeOptions.map((sz) => (
+                  {displaySizes.map((sz) => (
                     <button
                       key={sz}
-                      className={`pdp-size${selectedSize === sz ? " is-active" : ""}`}
+                      className={`pdp-size${
+                        selectedSize === sz ? " is-active" : ""
+                      }${inStockSizeSet.has(sz) ? " is-in-stock" : ""}`}
                       type="button"
                       role="option"
                       aria-selected={selectedSize === sz}
@@ -346,72 +335,70 @@ export default function ProductClient({
                   </p>
                 )}
               </div>
-            </div>
-
-            <div className="pdp-actions">
-              {!canBuy && (
-                <p className="pdp-stock-note" role="status">
-                  {t.product.outOfStock}
-                </p>
-              )}
-              <button
-                className="pdp-cart pdp-cart--desktop"
-                type="button"
-                onClick={addToCart}
-                disabled={!canBuy}
-              >
-                {canBuy ? t.product.addToCart : t.product.outOfStock}
-              </button>
-              <button
-                className={`pdp-wishlist-link${wished ? " is-on" : ""}`}
-                type="button"
-                aria-pressed={wished}
-                onClick={() =>
-                  toggleWish({
-                    id: product.id,
-                    name: displayName,
-                    price: product.price,
-                    priceNum: product.priceNum,
-                    image: images[0],
-                  })
-                }
-              >
-                {wished ? t.product.inWish : t.product.addWish}
-              </button>
-            </div>
-
-            {displayDesc && (
-              <div className="pdp-block pdp-desc-block">
-                <p className="pdp-label">{t.product.description}</p>
-                <p className="pdp-desc">{displayDesc}</p>
-              </div>
-            )}
-
-            {product.material && (
-              <div className="pdp-block pdp-fabric">
-                <p className="pdp-label">{t.product.fabric}</p>
-                <p>{product.material}</p>
-              </div>
-            )}
-
-            {(product.photoSize || product.modelParams) && (
-              <div className="pdp-block">
-                <p className="pdp-label">
-                  {lang === "uk" ? "Модель" : "Model"}
-                </p>
-                {product.photoSize && (
-                  <p>
-                    {lang === "uk" ? "На фото розмір" : "Size on photo"}:{" "}
-                    {product.photoSize}
-                  </p>
-                )}
-                {product.modelParams && <p>{product.modelParams}</p>}
-              </div>
-            )}
-          </div>
         </div>
 
-        <div className="pdp-below">
+        {displayDesc && (
+          <div className="pdp-block pdp-desc-block pdp-desc-block--immersive">
+            <p className="pdp-desc">{displayDesc}</p>
+          </div>
+        )}
+
+        {product.material && (
+          <div className="pdp-block pdp-fabric pdp-fabric--immersive">
+            <p className="pdp-label">{t.product.fabric}</p>
+            <p>{product.material}</p>
+          </div>
+        )}
+
+        {(product.photoSize || product.modelParams) && (
+          <div className="pdp-block pdp-model--immersive">
+            {product.photoSize && (
+              <p>
+                {lang === "uk" ? "На фото" : "On photo"}: {product.photoSize}
+              </p>
+            )}
+            {product.modelParams && <p>{product.modelParams}</p>}
+          </div>
+        )}
+
+        <div className="pdp-actions pdp-actions--immersive">
+          {!canBuy && (
+            <p className="pdp-stock-note" role="status">
+              {t.product.outOfStock}
+            </p>
+          )}
+          <button
+            className="pdp-cart pdp-cart--compact"
+            type="button"
+            onClick={addToCart}
+            disabled={!canBuy}
+          >
+            {canBuy ? t.product.addToCart : t.product.outOfStock}
+          </button>
+          <button
+            className={`pdp-wishlist-link${wished ? " is-on" : ""}`}
+            type="button"
+            aria-pressed={wished}
+            onClick={() =>
+              toggleWish({
+                id: product.id,
+                name: displayName,
+                price: product.price,
+                priceNum: product.priceNum,
+                image: images[0],
+              })
+            }
+          >
+            {wished ? t.product.inWish : t.product.addWish}
+          </button>
+        </div>
+        </div>
+      </div>
+
+      <div className="pdp-immersive-tail">
+      <ProductCustomOrderBlock product={product} lang={lang} />
+
+      <div className="pdp-below pdp-below--immersive">
           <section
             className="pdp-size-chart"
             id="pdp-size-chart"
@@ -517,21 +504,6 @@ export default function ProductClient({
           </div>
         </div>
       </div>
-
-      <div
-        className={`pdp-mobile-bar${hideMobileBar ? " is-hidden" : ""}`}
-        aria-hidden={hideMobileBar}
-      >
-        <button
-          className="pdp-cart"
-          type="button"
-          onClick={addToCart}
-          disabled={!canBuy}
-          tabIndex={hideMobileBar ? -1 : undefined}
-        >
-          {canBuy ? t.product.addToCart : t.product.outOfStock}
-        </button>
-      </div>
-    </>
+    </div>
   );
 }

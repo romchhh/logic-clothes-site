@@ -12,38 +12,148 @@ export type PaletteColor = {
   hex: string;
 };
 
-export const COLOR_PALETTE: PaletteColor[] = [
-  { id: "black", label: "Чорний", labelEn: "Black", hex: "#111111" },
-  { id: "white", label: "Білий", labelEn: "White", hex: "#F5F5F5" },
-  { id: "ivory", label: "Слонова кістка", labelEn: "Ivory", hex: "#F2EDE4" },
-  { id: "beige", label: "Беж", labelEn: "Beige", hex: "#D4C4A8" },
-  { id: "cream", label: "Кремовий", labelEn: "Cream", hex: "#E8DCC8" },
-  { id: "sand", label: "Пісок", labelEn: "Sand", hex: "#C2A878" },
-  { id: "camel", label: "Кемел", labelEn: "Camel", hex: "#A67B5B" },
-  { id: "brown", label: "Коричневий", labelEn: "Brown", hex: "#5C4033" },
-  { id: "chocolate", label: "Шоколад", labelEn: "Chocolate", hex: "#3D2314" },
-  { id: "grey", label: "Сірий", labelEn: "Grey", hex: "#8A8A8A" },
-  { id: "graphite", label: "Графіт", labelEn: "Graphite", hex: "#4A4A4A" },
-  { id: "silver", label: "Срібло", labelEn: "Silver", hex: "#C0C0C0" },
-  { id: "red", label: "Червоний", labelEn: "Red", hex: "#B91C1C" },
-  { id: "burgundy", label: "Бордо", labelEn: "Burgundy", hex: "#6B1E2A" },
-  { id: "pink", label: "Рожевий", labelEn: "Pink", hex: "#E8A0BF" },
-  { id: "powder", label: "Пудра", labelEn: "Powder", hex: "#F2C4C4" },
-  { id: "coral", label: "Корал", labelEn: "Coral", hex: "#E07A5F" },
-  { id: "orange", label: "Помаранчевий", labelEn: "Orange", hex: "#E07B39" },
-  { id: "mustard", label: "Гірчичний", labelEn: "Mustard", hex: "#C4A035" },
-  { id: "olive", label: "Оливковий", labelEn: "Olive", hex: "#6B7F3B" },
-  { id: "khaki", label: "Хакі", labelEn: "Khaki", hex: "#8A7E5A" },
-  { id: "green", label: "Зелений", labelEn: "Green", hex: "#2F6B4F" },
-  { id: "mint", label: "Мʼятний", labelEn: "Mint", hex: "#B7E1DF" },
-  { id: "blue", label: "Блакитний", labelEn: "Sky", hex: "#7EB6D9" },
-  { id: "navy-blue", label: "Синій", labelEn: "Blue", hex: "#1E3A5F" },
-  { id: "navy", label: "Navy", labelEn: "Navy", hex: "#0F1C2E" },
-  { id: "purple", label: "Фіолетовий", labelEn: "Purple", hex: "#5B3A6E" },
-  { id: "lavender", label: "Лаванда", labelEn: "Lavender", hex: "#C5B4D6" },
-  { id: "gold", label: "Золото", labelEn: "Gold", hex: "#C9A227" },
-  { id: "multi", label: "Мульти", labelEn: "Multi", hex: "#FFFFFF" },
+export type PaletteGroup = {
+  id: string;
+  label: string;
+  labelEn: string;
+  shades: PaletteColor[];
+};
+
+/** 8 families × 9 shades — layout like brand reference board (3×3 per group). */
+export const PALETTE_GROUPS: PaletteGroup[] = [
+  {
+    id: "greens",
+    label: "Зелені",
+    labelEn: "Greens",
+    shades: [
+      { id: "green-deep", label: "Темно-зелений", labelEn: "Deep green", hex: "#1B4332" },
+      { id: "green", label: "Зелений", labelEn: "Green", hex: "#2F6B4F" },
+      { id: "olive", label: "Оливковий", labelEn: "Olive", hex: "#6B7F3B" },
+      { id: "khaki", label: "Хакі", labelEn: "Khaki", hex: "#8A7E5A" },
+      { id: "green-forest", label: "Ліс", labelEn: "Forest", hex: "#234E3A" },
+      { id: "green-sage", label: "Шалфей", labelEn: "Sage", hex: "#8FA88B" },
+      { id: "mint", label: "Мʼятний", labelEn: "Mint", hex: "#B7E1DF" },
+      { id: "mint-light", label: "Світла мʼята", labelEn: "Light mint", hex: "#D4EDE9" },
+      { id: "green-pale", label: "Пастель зелений", labelEn: "Pale green", hex: "#E8F2EE" },
+    ],
+  },
+  {
+    id: "reds",
+    label: "Червоні",
+    labelEn: "Reds",
+    shades: [
+      { id: "burgundy", label: "Бордо", labelEn: "Burgundy", hex: "#6B1E2A" },
+      { id: "red-deep", label: "Темно-червоний", labelEn: "Deep red", hex: "#8B1A1A" },
+      { id: "red", label: "Червоний", labelEn: "Red", hex: "#B91C1C" },
+      { id: "red-brick", label: "Цегла", labelEn: "Brick", hex: "#A63D3D" },
+      { id: "coral", label: "Корал", labelEn: "Coral", hex: "#E07A5F" },
+      { id: "red-rose", label: "Троянда", labelEn: "Rose", hex: "#D46A7A" },
+      { id: "powder", label: "Пудра", labelEn: "Powder", hex: "#F2C4C4" },
+      { id: "red-blush", label: "Румʼянець", labelEn: "Blush", hex: "#F5D0D8" },
+      { id: "red-pale", label: "Ніжно-рожевий", labelEn: "Pale rose", hex: "#FAE8EC" },
+    ],
+  },
+  {
+    id: "yellows",
+    label: "Жовті",
+    labelEn: "Yellows",
+    shades: [
+      { id: "chocolate", label: "Шоколад", labelEn: "Chocolate", hex: "#3D2314" },
+      { id: "brown", label: "Коричневий", labelEn: "Brown", hex: "#5C4033" },
+      { id: "camel", label: "Кемел", labelEn: "Camel", hex: "#A67B5B" },
+      { id: "sand", label: "Пісок", labelEn: "Sand", hex: "#C2A878" },
+      { id: "mustard", label: "Гірчичний", labelEn: "Mustard", hex: "#C4A035" },
+      { id: "gold", label: "Золото", labelEn: "Gold", hex: "#C9A227" },
+      { id: "cream", label: "Кремовий", labelEn: "Cream", hex: "#E8DCC8" },
+      { id: "beige", label: "Беж", labelEn: "Beige", hex: "#D4C4A8" },
+      { id: "ivory", label: "Слонова кістка", labelEn: "Ivory", hex: "#F2EDE4" },
+    ],
+  },
+  {
+    id: "oranges",
+    label: "Помаранчеві",
+    labelEn: "Oranges",
+    shades: [
+      { id: "orange-rust", label: "Теракота", labelEn: "Rust", hex: "#8B3A2A" },
+      { id: "orange-deep", label: "Темний помаранч", labelEn: "Deep orange", hex: "#B84E2E" },
+      { id: "orange", label: "Помаранчевий", labelEn: "Orange", hex: "#E07B39" },
+      { id: "orange-coral", label: "Кораловий", labelEn: "Coral orange", hex: "#E8956A" },
+      { id: "multi", label: "Мульти", labelEn: "Multi", hex: "#FFFFFF" },
+      { id: "orange-apricot", label: "Абрикос", labelEn: "Apricot", hex: "#F0A878" },
+      { id: "orange-peach", label: "Персик", labelEn: "Peach", hex: "#F5C4A0" },
+      { id: "orange-salmon", label: "Лосось", labelEn: "Salmon", hex: "#F2B8A2" },
+      { id: "orange-pale", label: "Світлий персик", labelEn: "Pale peach", hex: "#FAD9C8" },
+    ],
+  },
+  {
+    id: "neutrals",
+    label: "Сірі",
+    labelEn: "Neutrals",
+    shades: [
+      { id: "black", label: "Чорний", labelEn: "Black", hex: "#111111" },
+      { id: "graphite", label: "Графіт", labelEn: "Graphite", hex: "#4A4A4A" },
+      { id: "charcoal", label: "Вугілля", labelEn: "Charcoal", hex: "#333333" },
+      { id: "grey", label: "Сірий", labelEn: "Grey", hex: "#8A8A8A" },
+      { id: "silver", label: "Срібло", labelEn: "Silver", hex: "#C0C0C0" },
+      { id: "smoke", label: "Дим", labelEn: "Smoke", hex: "#B5B5B5" },
+      { id: "white", label: "Білий", labelEn: "White", hex: "#F5F5F5" },
+      { id: "off-white", label: "Молочний", labelEn: "Off white", hex: "#FAFAFA" },
+      { id: "light-grey", label: "Світло-сірий", labelEn: "Light grey", hex: "#E5E5E5" },
+    ],
+  },
+  {
+    id: "blues",
+    label: "Сині",
+    labelEn: "Blues",
+    shades: [
+      { id: "navy", label: "Navy", labelEn: "Navy", hex: "#0F1C2E" },
+      { id: "navy-blue", label: "Синій", labelEn: "Blue", hex: "#1E3A5F" },
+      { id: "blue-deep", label: "Глибокий синій", labelEn: "Deep blue", hex: "#2A5080" },
+      { id: "blue", label: "Блакитний", labelEn: "Sky", hex: "#7EB6D9" },
+      { id: "blue-steel", label: "Сталевий", labelEn: "Steel blue", hex: "#6B8FA8" },
+      { id: "blue-sky", label: "Небесний", labelEn: "Sky light", hex: "#A8D4E8" },
+      { id: "blue-ice", label: "Крижаний", labelEn: "Ice", hex: "#D4EAF5" },
+      { id: "blue-pale", label: "Пастель блакитний", labelEn: "Pale blue", hex: "#E8F4FA" },
+      { id: "blue-white", label: "Біло-блакитний", labelEn: "Powder blue", hex: "#F0F8FC" },
+    ],
+  },
+  {
+    id: "purples",
+    label: "Фіолетові",
+    labelEn: "Purples",
+    shades: [
+      { id: "purple-deep", label: "Темно-фіолет", labelEn: "Deep purple", hex: "#3D2454" },
+      { id: "purple", label: "Фіолетовий", labelEn: "Purple", hex: "#5B3A6E" },
+      { id: "purple-plum", label: "Сливовий", labelEn: "Plum", hex: "#6E4578" },
+      { id: "purple-violet", label: "Фіалка", labelEn: "Violet", hex: "#7B5A9E" },
+      { id: "lavender", label: "Лаванда", labelEn: "Lavender", hex: "#C5B4D6" },
+      { id: "purple-lilac", label: "Бузок", labelEn: "Lilac", hex: "#D8C8E8" },
+      { id: "purple-mauve", label: "Мальва", labelEn: "Mauve", hex: "#E0D0E8" },
+      { id: "purple-orchid", label: "Орхідея", labelEn: "Orchid", hex: "#EADCF2" },
+      { id: "purple-pale", label: "Пастель лаванда", labelEn: "Pale lilac", hex: "#F5EEF8" },
+    ],
+  },
+  {
+    id: "pinks",
+    label: "Рожеві",
+    labelEn: "Pinks",
+    shades: [
+      { id: "pink-fuchsia", label: "Фуксія", labelEn: "Fuchsia", hex: "#C2185B" },
+      { id: "pink-hot", label: "Яскраво-рожевий", labelEn: "Hot pink", hex: "#E0408A" },
+      { id: "pink", label: "Рожевий", labelEn: "Pink", hex: "#E8A0BF" },
+      { id: "pink-rose", label: "Рожа", labelEn: "Rose pink", hex: "#EBA8C4" },
+      { id: "pink-ballet", label: "Балет", labelEn: "Ballet", hex: "#F2C0D4" },
+      { id: "pink-candy", label: "Цукерка", labelEn: "Candy pink", hex: "#F8D4E4" },
+      { id: "pink-shell", label: "Перламутр", labelEn: "Shell", hex: "#FCE4EE" },
+      { id: "pink-powder", label: "Пудровий", labelEn: "Powder pink", hex: "#FFF0F5" },
+      { id: "pink-pale", label: "Ніжний", labelEn: "Pale pink", hex: "#FFF8FA" },
+    ],
+  },
 ];
+
+export const COLOR_PALETTE: PaletteColor[] = PALETTE_GROUPS.flatMap(
+  (g) => g.shades
+);
 
 const BY_ID = new Map(COLOR_PALETTE.map((c) => [c.id, c]));
 
@@ -79,8 +189,6 @@ const LABEL_ALIASES: Record<string, string> = {
   burgundy: "burgundy",
   рожевий: "pink",
   pink: "pink",
-  фуксія: "pink",
-  fuchsia: "pink",
   пудра: "powder",
   powder: "powder",
   корал: "coral",
@@ -117,6 +225,13 @@ const LABEL_ALIASES: Record<string, string> = {
   multi: "multi",
   принт: "multi",
   print: "multi",
+  фуксія: "pink-fuchsia",
+  fuchsia: "pink-fuchsia",
+  теракота: "orange-rust",
+  шалфей: "green-sage",
+  sage: "green-sage",
+  вугілля: "charcoal",
+  charcoal: "charcoal",
 };
 
 export function getPaletteColor(id: string): PaletteColor | undefined {
@@ -192,6 +307,10 @@ export function paletteLabel(
   return lang === "en" ? c.labelEn : c.label;
 }
 
+export function getPaletteGroups(): PaletteGroup[] {
+  return PALETTE_GROUPS;
+}
+
 export type PaletteSlotVariant = {
   id: string;
   name: string;
@@ -208,8 +327,7 @@ export type PaletteSlot = {
   isCurrent: boolean;
 };
 
-/** Build the fixed palette row for a PDP. */
-export function buildPaletteSlots(
+function resolveMembers(
   current: {
     id: string;
     color?: string;
@@ -218,7 +336,7 @@ export function buildPaletteSlots(
     name?: string;
   },
   family: PaletteSlotVariant[]
-): PaletteSlot[] {
+): { self: PaletteSlotVariant; byPalette: Map<string, PaletteSlotVariant> } {
   const self: PaletteSlotVariant = {
     id: current.id,
     name: current.name || "",
@@ -240,7 +358,6 @@ export function buildPaletteSlots(
       }))
     : [self];
 
-  // Ensure current is in the map
   if (!members.some((m) => m.id === current.id)) {
     members.push(self);
   }
@@ -248,12 +365,27 @@ export function buildPaletteSlots(
   const byPalette = new Map<string, PaletteSlotVariant>();
   for (const m of members) {
     if (!m.paletteId) continue;
-    // Prefer current product if two claim same slot
     const existing = byPalette.get(m.paletteId);
     if (!existing || m.id === current.id) {
       byPalette.set(m.paletteId, m);
     }
   }
+
+  return { self, byPalette };
+}
+
+/** Full brand palette (admin preview / made-to-order slots). */
+export function buildPaletteSlots(
+  current: {
+    id: string;
+    color?: string;
+    colorHex?: string;
+    images?: string[];
+    name?: string;
+  },
+  family: PaletteSlotVariant[]
+): PaletteSlot[] {
+  const { self, byPalette } = resolveMembers(current, family);
 
   return COLOR_PALETTE.map((palette) => {
     const variant = byPalette.get(palette.id) ?? null;
@@ -263,4 +395,58 @@ export function buildPaletteSlots(
       isCurrent: variant?.id === current.id,
     };
   });
+}
+
+/**
+ * PDP: only colors that exist in this model’s family — with photo in the circle.
+ */
+export function buildFamilyPaletteSlots(
+  current: {
+    id: string;
+    color?: string;
+    colorHex?: string;
+    images?: string[];
+    name?: string;
+  },
+  family: PaletteSlotVariant[]
+): PaletteSlot[] {
+  const { self, byPalette } = resolveMembers(current, family);
+
+  const ordered: PaletteSlot[] = [];
+  for (const palette of COLOR_PALETTE) {
+    const variant = byPalette.get(palette.id);
+    if (!variant) continue;
+    ordered.push({
+      palette,
+      variant,
+      isCurrent: variant.id === current.id,
+    });
+  }
+
+  if (ordered.length > 0) return ordered;
+
+  if (!self.color && !self.hex && !self.image) return [];
+
+  const customHex = normalizeHex(self.hex) || "#CCCCCC";
+  const customPalette: PaletteColor = self.paletteId
+    ? (getPaletteColor(self.paletteId) ?? {
+        id: self.paletteId,
+        label: self.color || self.paletteId,
+        labelEn: self.color || self.paletteId,
+        hex: customHex,
+      })
+    : {
+        id: "custom",
+        label: self.color || "Колір",
+        labelEn: self.color || "Color",
+        hex: customHex,
+      };
+
+  return [
+    {
+      palette: customPalette,
+      variant: self,
+      isCurrent: true,
+    },
+  ];
 }
