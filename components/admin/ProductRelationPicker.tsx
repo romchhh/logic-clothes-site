@@ -4,31 +4,63 @@ import React, { useMemo, useRef, useState } from "react";
 import { getProductImageSrc } from "@/lib/getFirstProductImage";
 import type { Product } from "@/lib/types";
 
+export type RelationPickerKind = "color-siblings" | "look";
+
+const STEPS: Record<RelationPickerKind, string[]> = {
+  "color-siblings": [
+    "Створіть окремий товар на кожен колір (у списку товарів: ⋯ → «Зробити копію», потім змініть колір у блоці «Колір»).",
+    "У полі нижче знайдіть інші кольори цієї ж моделі та натисніть «Додати».",
+    "На сайті під перемикачем кольору з’являться переходи на ці сторінки товарів.",
+  ],
+  look: [
+    "Додайте речі, які носять разом у фото або стилізації (наприклад, сукня + жакет).",
+    "Введіть назву в пошук і натисніть «Додати» біля потрібного товару.",
+    "Кнопками ▲▼ змініть порядок — так вони показуються в блоці «Також у цьому луці» на сторінці товару.",
+  ],
+};
+
 type Props = {
+  kind: RelationPickerKind;
   label: string;
-  description?: string;
-  /** All catalog products to pick from. */
+  /** Short line under the title */
+  summary?: string;
   catalog: Product[];
-  /** Current product id (excluded from results). */
   excludeId?: string;
   selectedIds: string[];
   onChange: (ids: string[]) => void;
+  /** For «інші кольори»: prioritize same product name */
+  currentProductName?: string;
   emptyHint?: string;
 };
 
-const SUGGEST_LIMIT = 8;
+const SEARCH_LIMIT = 10;
+const BROWSE_LIMIT = 24;
+
+function nameSimilarity(productName: string, currentName: string): number {
+  const n = currentName.trim().toLowerCase();
+  const pn = productName.trim().toLowerCase();
+  if (!n || !pn) return 0;
+  if (pn === n) return 100;
+  if (pn.startsWith(n) || n.startsWith(pn)) return 85;
+  const nWords = n.split(/\s+/).filter(Boolean);
+  const match = nWords.filter((w) => w.length > 2 && pn.includes(w)).length;
+  return match * 15;
+}
 
 export default function ProductRelationPicker({
+  kind,
   label,
-  description,
+  summary,
   catalog,
   excludeId,
   selectedIds,
   onChange,
-  emptyHint = "Нічого не вибрано",
+  currentProductName = "",
+  emptyHint = "Поки нічого не додано — скористайтесь пошуком нижче",
 }: Props) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [browseAll, setBrowseAll] = useState(false);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const byId = useMemo(
@@ -52,20 +84,44 @@ export default function ProductRelationPicker({
     [catalog, excludeId, selectedIds]
   );
 
-  const suggestions = useMemo(() => {
+  const rankedAvailable = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return available.slice(0, SUGGEST_LIMIT);
-    return available
-      .filter(
+    let list = available;
+    if (q) {
+      list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
           p.id.toLowerCase().includes(q) ||
           (p.color || "").toLowerCase().includes(q)
-      )
-      .slice(0, SUGGEST_LIMIT);
-  }, [available, query]);
+      );
+    } else if (kind === "color-siblings" && currentProductName.trim()) {
+      list = [...list].sort(
+        (a, b) =>
+          nameSimilarity(b.name, currentProductName) -
+          nameSimilarity(a.name, currentProductName)
+      );
+    } else {
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name, "uk"));
+    }
+    return list;
+  }, [available, query, kind, currentProductName]);
 
-  const showDropdown = open && (suggestions.length > 0 || query.trim().length > 0);
+  const limit = query.trim()
+    ? SEARCH_LIMIT
+    : browseAll
+      ? BROWSE_LIMIT
+      : kind === "color-siblings"
+        ? 12
+        : 8;
+
+  const suggestions = rankedAvailable.slice(0, limit);
+  const hasMore = rankedAvailable.length > suggestions.length;
+
+  const showDropdown =
+    open &&
+    (suggestions.length > 0 ||
+      query.trim().length > 0 ||
+      rankedAvailable.length > 0);
 
   const add = (id: string) => {
     if (selectedIds.includes(id)) return;
@@ -87,82 +143,131 @@ export default function ProductRelationPicker({
     onChange(next);
   };
 
+  const steps = STEPS[kind];
+  const listHint =
+    kind === "color-siblings"
+      ? "Порядок тут не впливає на сайт — головне, щоб усі кольори були в списку."
+      : "Перший у списку з’явиться ліворуч у блоці луку на сайті.";
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
-        <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
-          {label}
-        </h3>
-        {description && (
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            {description}
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+            {label}
+          </h3>
+          {selected.length > 0 ? (
+            <span className="rounded-full bg-[#B7E1DF]/40 px-2 py-0.5 text-[11px] font-semibold text-gray-800 dark:bg-[#B7E1DF]/15 dark:text-[#B7E1DF]">
+              додано: {selected.length}
+            </span>
+          ) : null}
+        </div>
+        {summary ? (
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            {summary}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="admin-help-box" role="note">
+        <p className="admin-help-box-title">Як це працює</p>
+        <ol>
+          {steps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      </div>
+
+      <div>
+        <p className="mb-2 text-[12px] font-medium text-gray-500 dark:text-gray-400">
+          {selected.length > 0 ? "Додані товари" : "Список порожній"}
+        </p>
+        {selected.length > 0 ? (
+          <>
+            <p className="mb-2 text-[11px] text-gray-400">{listHint}</p>
+            <ul className="space-y-2">
+              {selected.map((p, i) => (
+                <li
+                  key={p.id}
+                  className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 dark:border-white/[0.08] dark:bg-white/[0.03]"
+                >
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[11px] font-semibold text-gray-500 dark:bg-white/10"
+                    aria-hidden
+                  >
+                    {i + 1}
+                  </span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={getProductImageSrc(p.images)}
+                    alt=""
+                    className="h-12 w-9 shrink-0 rounded-md object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                      {p.name}
+                    </div>
+                    <div className="truncate text-xs text-gray-400">
+                      {p.color ? `${p.color} · ` : ""}
+                      {p.id}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    {kind === "look" ? (
+                      <>
+                        <button
+                          type="button"
+                          className="admin-btn-ghost !px-1.5 text-xs disabled:opacity-30"
+                          disabled={i === 0}
+                          onClick={() => move(p.id, -1)}
+                          aria-label="Вище в луці"
+                          title="Вище в луці"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-btn-ghost !px-1.5 text-xs disabled:opacity-30"
+                          disabled={i === selected.length - 1}
+                          onClick={() => move(p.id, 1)}
+                          aria-label="Нижче в луці"
+                          title="Нижче в луці"
+                        >
+                          ▼
+                        </button>
+                      </>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="admin-btn-ghost text-red-600 dark:text-red-400"
+                      onClick={() => remove(p.id)}
+                      aria-label="Прибрати зі списку"
+                      title="Прибрати"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="rounded-xl border border-dashed border-gray-200 px-4 py-5 text-center text-sm text-gray-500 dark:border-white/10 dark:text-gray-400">
+            {emptyHint}
           </p>
         )}
       </div>
 
-      {selected.length > 0 ? (
-        <ul className="space-y-2">
-          {selected.map((p, i) => (
-            <li
-              key={p.id}
-              className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 dark:border-white/[0.08] dark:bg-white/[0.03]"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={getProductImageSrc(p.images)}
-                alt=""
-                className="h-12 w-9 shrink-0 rounded-md object-cover"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                  {p.name}
-                </div>
-                <div className="truncate text-xs text-gray-400">
-                  {p.color || p.id}
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-0.5">
-                <button
-                  type="button"
-                  className="admin-btn-ghost !px-1.5 text-xs disabled:opacity-30"
-                  disabled={i === 0}
-                  onClick={() => move(p.id, -1)}
-                  aria-label="Вище"
-                >
-                  ▲
-                </button>
-                <button
-                  type="button"
-                  className="admin-btn-ghost !px-1.5 text-xs disabled:opacity-30"
-                  disabled={i === selected.length - 1}
-                  onClick={() => move(p.id, 1)}
-                  aria-label="Нижче"
-                >
-                  ▼
-                </button>
-                <button
-                  type="button"
-                  className="admin-btn-ghost text-red-600 dark:text-red-400"
-                  onClick={() => remove(p.id)}
-                >
-                  ✕
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="rounded-xl border border-dashed border-gray-200 px-4 py-5 text-center text-sm text-gray-400 dark:border-white/10">
-          {emptyHint}
-        </p>
-      )}
-
       <div className="relative">
+        <label className="mb-1.5 block text-[12px] font-semibold text-gray-700 dark:text-gray-300">
+          Додати товар
+        </label>
         <input
           type="search"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
+            setBrowseAll(false);
             setOpen(true);
           }}
           onFocus={() => {
@@ -170,50 +275,89 @@ export default function ProductRelationPicker({
             setOpen(true);
           }}
           onBlur={() => {
-            blurTimer.current = setTimeout(() => setOpen(false), 150);
+            blurTimer.current = setTimeout(() => setOpen(false), 180);
           }}
-          placeholder="Пошук товару за назвою, кольором або ID…"
+          placeholder={
+            kind === "color-siblings"
+              ? "Пошук: назва моделі, колір або ID…"
+              : "Пошук товару для луку…"
+          }
           className="admin-input"
           autoComplete="off"
         />
         {showDropdown && (
-          <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
-            {suggestions.length === 0 ? (
-              <li className="px-3 py-2 text-sm text-gray-400">
-                Нічого не знайдено
-              </li>
-            ) : (
-              suggestions.map((p) => (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-gray-50 dark:hover:bg-white/5"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => add(p.id)}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={getProductImageSrc(p.images)}
-                      alt=""
-                      className="h-10 w-8 rounded object-cover"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-gray-900 dark:text-white">
-                        {p.name}
-                      </span>
-                      <span className="block truncate text-xs text-gray-400">
-                        {p.color || "—"} · {p.id}
-                      </span>
-                    </span>
-                    <span className="text-xs font-medium text-gray-500">
-                      Додати
-                    </span>
-                  </button>
+          <div
+            className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900"
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            {!query.trim() && kind === "color-siblings" ? (
+              <p className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium text-gray-500 dark:border-white/10">
+                {currentProductName.trim()
+                  ? "Спочатку схожі за назвою — ймовірно той самий виріб"
+                  : "Оберіть товар з каталогу"}
+              </p>
+            ) : null}
+            {!query.trim() && kind === "look" ? (
+              <p className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium text-gray-500 dark:border-white/10">
+                Товари з каталогу — натисніть «Додати»
+              </p>
+            ) : null}
+            <ul className="max-h-72 overflow-auto py-1">
+              {suggestions.length === 0 ? (
+                <li className="px-3 py-3 text-sm text-gray-400">
+                  {available.length === 0
+                    ? "Усі товари вже додані або каталог порожній"
+                    : "Нічого не знайдено — спробуйте іншу назву"}
                 </li>
-              ))
-            )}
-          </ul>
+              ) : (
+                suggestions.map((p) => (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-gray-50 dark:hover:bg-white/5"
+                      onClick={() => add(p.id)}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={getProductImageSrc(p.images)}
+                        alt=""
+                        className="h-10 w-8 rounded object-cover"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-gray-900 dark:text-white">
+                          {p.name}
+                        </span>
+                        <span className="block truncate text-xs text-gray-400">
+                          {p.color || "—"} · {p.id}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-lg bg-gray-900 px-2.5 py-1 text-[11px] font-semibold text-white dark:bg-white dark:text-gray-900">
+                        Додати
+                      </span>
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+            {hasMore && !query.trim() ? (
+              <div className="border-t border-gray-100 px-3 py-2 dark:border-white/10">
+                <button
+                  type="button"
+                  className="admin-btn-ghost w-full !text-xs"
+                  onClick={() => setBrowseAll((v) => !v)}
+                >
+                  {browseAll
+                    ? "Згорнути список"
+                    : `Показати ще (${rankedAvailable.length - suggestions.length})`}
+                </button>
+              </div>
+            ) : null}
+          </div>
         )}
+        <p className="mt-1.5 text-[11px] text-gray-400">
+          Після вибору натисніть «Зберегти зміни» внизу сторінки, щоб звʼязки
+          зʼявились на сайті.
+        </p>
       </div>
     </div>
   );

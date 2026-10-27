@@ -183,7 +183,7 @@ const AppSidebar: React.FC = () => {
     <aside
       data-tour="tour-sidebar"
       data-scroll-lock-allow
-      className={`fixed top-0 left-0 z-50 mt-16 flex h-screen flex-col border-r border-gray-200/80 bg-white px-3 text-gray-900 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] dark:border-gray-800 dark:bg-[#141414] lg:mt-0
+      className={`fixed top-0 left-0 z-50 mt-16 flex h-screen flex-col border-r border-gray-200/80 bg-white/95 px-3 text-gray-900 shadow-[4px_0_24px_-12px_rgba(16,24,40,0.08)] backdrop-blur-md transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] dark:border-gray-800 dark:bg-[#141414]/95 dark:shadow-none lg:mt-0
         ${
           isExpanded || isMobileOpen
             ? "w-[248px]"
@@ -218,7 +218,7 @@ const AppSidebar: React.FC = () => {
         </Link>
       </div>
 
-      <nav className="no-scrollbar flex flex-1 flex-col gap-6 overflow-y-auto pb-8">
+      <nav className="no-scrollbar flex flex-1 flex-col gap-6 overflow-y-auto pb-4">
         {navGroups.map((group) => (
           <div key={group.label}>
             <h2
@@ -265,6 +265,34 @@ const AppSidebar: React.FC = () => {
           </div>
         ))}
       </nav>
+
+      {showLabels ? (
+        <div className="mt-auto border-t border-gray-100 px-1 py-4 dark:border-white/[0.06]">
+          <Link href="/admin/products/add" className="admin-sidebar-cta">
+            <span aria-hidden>+</span>
+            Новий товар
+          </Link>
+          <Link
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 flex w-full items-center justify-center rounded-lg px-2 py-2 text-[12px] font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
+          >
+            Відкрити магазин ↗
+          </Link>
+        </div>
+      ) : (
+        <div className="mt-auto border-t border-gray-100 py-3 dark:border-white/[0.06]">
+          <Link
+            href="/admin/products/add"
+            className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-lg font-semibold text-white dark:bg-[#B7E1DF] dark:text-gray-900"
+            title="Новий товар"
+            aria-label="Новий товар"
+          >
+            +
+          </Link>
+        </div>
+      )}
     </aside>
   );
 };

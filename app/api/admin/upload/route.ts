@@ -3,6 +3,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import sharp from "sharp";
 import { requireAdmin } from "@/lib/adminAuth";
+import { decodeImageToJpegBuffer } from "@/lib/sharpDecodeImage";
 import {
   PRODUCT_CARD_EXPORT_H,
   PRODUCT_CARD_EXPORT_W,
@@ -92,37 +93,61 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      let pipeline = sharp(buf).rotate();
-      const meta = await pipeline.metadata();
+      let decoded: Buffer;
+      try {
+        decoded = await decodeImageToJpegBuffer(buf, base);
+      } catch (decodeErr) {
+        console.error("[upload] decode failed:", decodeErr);
+        return NextResponse.json(
+          {
+            error: "unsupported_image",
+            message:
+              "Формат фото не підтримується. Спробуйте JPEG або PNG, або збережіть HEIC як JPEG у Фото.",
+          },
+          { status: 415 }
+        );
+      }
+
+      const meta = await sharp(decoded).metadata();
       const srcW = meta.width || PRODUCT_CARD_EXPORT_W;
       const srcH = meta.height || PRODUCT_CARD_EXPORT_H;
+
+      let pipeline;
 
       if (crop) {
         const left = Math.max(0, Math.round(crop.x * srcW));
         const top = Math.max(0, Math.round(crop.y * srcH));
         const width = Math.min(srcW - left, Math.round(crop.w * srcW));
         const height = Math.min(srcH - top, Math.round(crop.h * srcH));
-        pipeline = sharp(buf)
-          .rotate()
-          .extract({ left, top, width: Math.max(1, width), height: Math.max(1, height) })
+        pipeline = sharp(decoded)
+          .extract({
+            left,
+            top,
+            width: Math.max(1, width),
+            height: Math.max(1, height),
+          })
           .resize(PRODUCT_CARD_EXPORT_W, PRODUCT_CARD_EXPORT_H, {
             fit: "fill",
           });
       } else if (fitCard) {
-        pipeline = sharp(buf)
-          .rotate()
-          .resize(PRODUCT_CARD_EXPORT_W, PRODUCT_CARD_EXPORT_H, {
+        pipeline = sharp(decoded).resize(
+          PRODUCT_CARD_EXPORT_W,
+          PRODUCT_CARD_EXPORT_H,
+          {
             fit: "cover",
             position: "centre",
-          });
+          }
+        );
       } else if (fitHero) {
-        pipeline = sharp(buf)
-          .rotate()
-          .resize({ width: 2400, withoutEnlargement: true });
+        pipeline = sharp(decoded).resize({
+          width: 2400,
+          withoutEnlargement: true,
+        });
       } else {
-        pipeline = sharp(buf)
-          .rotate()
-          .resize({ width: 1600, withoutEnlargement: true });
+        pipeline = sharp(decoded).resize({
+          width: 1600,
+          withoutEnlargement: true,
+        });
       }
 
       const filename = `${base}.webp`;

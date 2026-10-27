@@ -6,6 +6,8 @@ interface ComponentCardProps {
   className?: string;
   desc?: string;
   actions?: React.ReactNode;
+  /** Anchor for section jump nav */
+  sectionId?: string;
 }
 
 const ComponentCard: React.FC<ComponentCardProps> = ({
@@ -14,9 +16,13 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   className = "",
   desc = "",
   actions,
+  sectionId,
 }) => {
   return (
-    <section className={`admin-panel ${className}`}>
+    <section
+      id={sectionId}
+      className={`admin-panel scroll-mt-32 ${className}`}
+    >
       <div className="admin-panel-head">
         <div className="min-w-0">
           <h3 className="admin-panel-title">{title}</h3>

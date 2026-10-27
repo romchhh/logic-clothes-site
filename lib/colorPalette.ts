@@ -238,6 +238,51 @@ export function getPaletteColor(id: string): PaletteColor | undefined {
   return BY_ID.get(id);
 }
 
+/** Admin / API: palette slots stored on one SKU (primary + extra swatches). */
+export function productPaletteSelection(product: {
+  color?: string;
+  colorHex?: string;
+  swatches?: Array<{ label: string; hex?: string }>;
+}): { ids: string[]; primaryId: string | null } {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  const primaryId =
+    resolvePaletteId({
+      color: product.color,
+      colorHex: product.colorHex,
+    }) ?? null;
+
+  if (primaryId) {
+    ids.push(primaryId);
+    seen.add(primaryId);
+  }
+  for (const sw of product.swatches || []) {
+    const id = resolvePaletteId({
+      color: sw.label,
+      colorHex: sw.hex,
+      hex: sw.hex,
+    });
+    if (id && !seen.has(id)) {
+      ids.push(id);
+      seen.add(id);
+    }
+  }
+  return { ids, primaryId: primaryId ?? ids[0] ?? null };
+}
+
+export function swatchesFromPaletteIds(
+  ids: string[],
+  img: string
+): Array<{ img: string; label: string; hex: string }> {
+  const out: Array<{ img: string; label: string; hex: string }> = [];
+  for (const id of ids) {
+    const c = getPaletteColor(id);
+    if (!c) continue;
+    out.push({ img, label: c.label, hex: c.hex });
+  }
+  return out;
+}
+
 export function normalizeHex(hex: string | null | undefined): string | null {
   if (!hex) return null;
   let h = hex.trim().replace(/^#/, "").toUpperCase();
@@ -407,19 +452,47 @@ export function buildFamilyPaletteSlots(
     colorHex?: string;
     images?: string[];
     name?: string;
+    swatches?: Array<{ label: string; hex?: string }>;
   },
   family: PaletteSlotVariant[]
 ): PaletteSlot[] {
   const { self, byPalette } = resolveMembers(current, family);
 
+  for (const sw of current.swatches || []) {
+    const paletteId = resolvePaletteId({
+      color: sw.label,
+      colorHex: sw.hex,
+      hex: sw.hex,
+    });
+    if (!paletteId || byPalette.has(paletteId)) continue;
+    byPalette.set(paletteId, {
+      id: current.id,
+      name: current.name || "",
+      color: sw.label,
+      image: current.images?.[0] || "",
+      hex: sw.hex,
+      paletteId,
+    });
+  }
+
+  const activePaletteId = resolvePaletteId({
+    color: current.color,
+    colorHex: current.colorHex,
+  });
+
   const ordered: PaletteSlot[] = [];
   for (const palette of COLOR_PALETTE) {
     const variant = byPalette.get(palette.id);
     if (!variant) continue;
+    const sameProduct = variant.id === current.id;
     ordered.push({
       palette,
       variant,
-      isCurrent: variant.id === current.id,
+      isCurrent: sameProduct
+        ? activePaletteId
+          ? palette.id === activePaletteId
+          : ordered.length === 0
+        : variant.id === current.id,
     });
   }
 

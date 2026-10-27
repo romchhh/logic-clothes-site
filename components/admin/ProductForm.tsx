@@ -3,8 +3,16 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import AdminSectionNav from "@/components/admin/AdminSectionNav";
 import ComponentCard from "@/components/admin/ComponentCard";
-import ColorPalettePicker from "@/components/admin/ColorPalettePicker";
+import ColorPalettePicker, {
+  type PaletteSelection,
+} from "@/components/admin/ColorPalettePicker";
+import {
+  getPaletteColor,
+  productPaletteSelection,
+  swatchesFromPaletteIds,
+} from "@/lib/colorPalette";
 import ProductMediaManager from "@/components/admin/ProductMediaManager";
 import ProductRelationPicker from "@/components/admin/ProductRelationPicker";
 import AdminChipField from "@/components/admin/AdminChipField";
@@ -53,8 +61,6 @@ type FormState = {
   priceUsd: string;
   compareAtUah: string;
   category: string;
-  color: string;
-  colorHex: string;
   material: string;
   photoSize: string;
   modelParams: string;
@@ -72,6 +78,19 @@ type FormState = {
   media: ProductMedia[];
 };
 
+const PRODUCT_FORM_SECTIONS = [
+  { id: "section-name", label: "Назва" },
+  { id: "section-price", label: "Ціна" },
+  { id: "section-category", label: "Каталог" },
+  { id: "section-color", label: "Колір" },
+  { id: "section-sizes", label: "Розміри" },
+  { id: "section-variants", label: "Варіації" },
+  { id: "section-material", label: "Склад" },
+  { id: "section-description", label: "Опис" },
+  { id: "section-media", label: "Фото" },
+  { id: "section-links", label: "Звʼязки" },
+] as const;
+
 const EMPTY: FormState = {
   nameUk: "",
   nameEn: "",
@@ -81,8 +100,6 @@ const EMPTY: FormState = {
   priceUsd: "",
   compareAtUah: "",
   category: "",
-  color: "",
-  colorHex: "#111111",
   material: "",
   photoSize: "",
   modelParams: "",
@@ -155,6 +172,10 @@ export default function ProductForm({ productId }: Props) {
   >([]);
   const [catalog, setCatalog] = useState<Product[]>([]);
   const [colorVariantIds, setColorVariantIds] = useState<string[]>([]);
+  const [paletteSelection, setPaletteSelection] = useState<PaletteSelection>({
+    ids: [],
+    primaryId: null,
+  });
   const [lookProductIds, setLookProductIds] = useState<string[]>([]);
   const [eurManual, setEurManual] = useState(false);
 
@@ -268,8 +289,6 @@ export default function ProductForm({ productId }: Props) {
           compareAtUah:
             p.compareAtPriceNum != null ? String(p.compareAtPriceNum) : "",
           category: p.category ?? "",
-          color: p.color ?? "",
-          colorHex: p.colorHex || "#111111",
           material: p.material ?? "",
           photoSize: p.photoSize ?? "",
           modelParams: p.modelParams ?? "",
@@ -292,6 +311,7 @@ export default function ProductForm({ productId }: Props) {
           media,
         });
         setEurManual(p.priceEur != null);
+        setPaletteSelection(productPaletteSelection(p));
         setLookProductIds(
           Array.isArray(p.lookProductIds) ? p.lookProductIds : []
         );
@@ -415,6 +435,16 @@ export default function ProductForm({ productId }: Props) {
       rememberCompositions([form.material.trim()]);
     }
 
+    if (!paletteSelection.ids.length || !paletteSelection.primaryId) {
+      setError("Оберіть хоча б один колір з палітри");
+      return;
+    }
+    const primaryColor = getPaletteColor(paletteSelection.primaryId);
+    if (!primaryColor) {
+      setError("Оберіть коректний колір з палітри");
+      return;
+    }
+
     const descriptionUk = form.descriptionUk.trim();
     const images = form.media
       .filter((m) => m.type === "image")
@@ -433,8 +463,8 @@ export default function ProductForm({ productId }: Props) {
           ? compareAt
           : null,
       category: form.category,
-      color: form.color.trim(),
-      colorHex: form.colorHex.trim(),
+      color: primaryColor.label,
+      colorHex: primaryColor.hex,
       material: form.material.trim(),
       photoSize: form.photoSize.trim(),
       modelParams: form.modelParams.trim(),
@@ -460,15 +490,7 @@ export default function ProductForm({ productId }: Props) {
       media: form.media,
       colorVariantIds,
       lookProductIds,
-      swatches: form.color
-        ? [
-            {
-              img: images[0] || "",
-              label: form.color,
-              hex: form.colorHex || undefined,
-            },
-          ]
-        : [],
+      swatches: swatchesFromPaletteIds(paletteSelection.ids, images[0] || ""),
     };
 
     setSaving(true);
@@ -547,7 +569,7 @@ export default function ProductForm({ productId }: Props) {
   return (
     <form
       onSubmit={(e) => void handleSubmit(e)}
-      className="space-y-6"
+      className="admin-form-stack"
       data-tour="tour-product-form"
     >
       {error && (
@@ -569,8 +591,10 @@ export default function ProductForm({ productId }: Props) {
         </div>
       )}
 
+      <AdminSectionNav sections={[...PRODUCT_FORM_SECTIONS]} />
+
       {/* Name bilingual */}
-      <ComponentCard title="Назва">
+      <ComponentCard title="Назва" sectionId="section-name">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <div className="mb-1.5 flex items-center justify-between">
@@ -627,7 +651,7 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Price */}
-      <ComponentCard title="Ціна">
+      <ComponentCard title="Ціна" sectionId="section-price">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Label htmlFor="priceUah">Ціна, ₴ *</Label>
@@ -690,7 +714,7 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Category + flags */}
-      <ComponentCard title="Категорія та мітки">
+      <ComponentCard title="Категорія та мітки" sectionId="section-category">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-4">
             <div>
@@ -759,19 +783,17 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Color */}
-      <ComponentCard title="Колір">
+      <ComponentCard title="Колір" sectionId="section-color">
         <ColorPalettePicker
-          color={form.color}
-          colorHex={form.colorHex}
-          onChange={({ color, colorHex }) =>
-            setForm((prev) => ({ ...prev, color, colorHex }))
-          }
+          selection={paletteSelection}
+          onChange={setPaletteSelection}
         />
       </ComponentCard>
 
       {/* Sizes */}
       <ComponentCard
         title="Розміри в наявності"
+        sectionId="section-sizes"
         desc="Які розміри є зараз. На сайті вони підсвітяться в блоці «В наявності», якщо увімкнено «В наявності»."
       >
         <AdminChipField
@@ -796,6 +818,7 @@ export default function ProductForm({ productId }: Props) {
       {/* Length + material variants */}
       <ComponentCard
         title="Варіації"
+        sectionId="section-variants"
         desc="Опційно. Якщо нічого не обрати — блок на сторінці товару не з’явиться."
       >
         <div className="space-y-6">
@@ -867,7 +890,7 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Composition + model */}
-      <ComponentCard title="Склад і модель">
+      <ComponentCard title="Склад і модель" sectionId="section-material">
         <div className="space-y-8">
           <div className="space-y-3">
             <AdminChipField
@@ -915,7 +938,7 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Description */}
-      <ComponentCard title="Опис">
+      <ComponentCard title="Опис" sectionId="section-description">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <div className="mb-1.5 flex items-center justify-between">
@@ -967,7 +990,7 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Media */}
-      <ComponentCard title="Медіа">
+      <ComponentCard title="Медіа" sectionId="section-media">
         <ProductMediaManager
           media={form.media}
           onChange={(media) => set("media", media)}
@@ -975,26 +998,44 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Relations */}
-      <ComponentCard title="Звʼязки">
-        <div className="space-y-8">
+      <ComponentCard
+        title="Звʼязки між товарами"
+        sectionId="section-links"
+        desc="Два окремі блоки: інші кольори цієї моделі (окремі сторінки товарів) і речі в одному образі на фото."
+      >
+        <div className="admin-help-box mb-6 !border-gray-200/80 !bg-gray-50/90 dark:!border-white/10 dark:!bg-white/[0.04]">
+          <p className="text-[13px] leading-relaxed text-gray-700 dark:text-gray-300">
+          <strong className="font-semibold text-gray-800 dark:text-white">
+            Не плутати:
+          </strong>{" "}
+          кілька відтінків на{" "}
+          <em>одній</em> сторінці — у блоці «Колір» вище; перехід на{" "}
+          <em>інший товар</em> того ж виробу — у «Повʼязані товари» нижче.
+          </p>
+        </div>
+        <div className="space-y-10">
           <ProductRelationPicker
+            kind="color-siblings"
             label="Повʼязані товари (інші кольори)"
-            description="Той самий виріб в інших кольорах палітри. На PDP: клік по слоту → перехід на той SKU; якщо кольору немає — «Зшиємо для вас»."
+            summary="Окремі товари в каталозі: на сайті клієнт перемикає колір і переходить на іншу сторінку."
             catalog={catalog}
             excludeId={productId}
+            currentProductName={form.nameUk}
             selectedIds={colorVariantIds}
             onChange={setColorVariantIds}
-            emptyHint="Додайте білу / рожеву / чорну версію цього виробу"
+            emptyHint="Ще не повʼязано жодного кольору — знайдіть копії цієї моделі через пошук нижче"
           />
           <div className="border-t border-gray-100 dark:border-white/[0.06]" />
           <ProductRelationPicker
+            kind="look"
             label="Також у цьому луці"
-            description="Показуються в блоці «Також у цьому луці»."
+            summary="Картки під описом товару в блоці «Також у цьому луці» — для комплектів і стилізацій."
             catalog={catalog}
             excludeId={productId}
+            currentProductName={form.nameUk}
             selectedIds={lookProductIds}
             onChange={setLookProductIds}
-            emptyHint="Додайте товари луку"
+            emptyHint="Додайте 2–4 товари, які показуєте разом у фото"
           />
         </div>
       </ComponentCard>

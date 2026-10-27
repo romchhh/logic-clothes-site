@@ -51,6 +51,7 @@ export default function ProductColorPalette({
           color: product.color,
           colorHex: product.colorHex,
           images: product.images,
+          swatches: product.swatches,
         },
         (product.colorVariants ?? []) as ProductColorVariant[]
       ),
@@ -60,6 +61,7 @@ export default function ProductColorPalette({
       product.color,
       product.colorHex,
       product.images,
+      product.swatches,
       product.colorVariants,
     ]
   );

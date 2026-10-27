@@ -17,7 +17,7 @@ export default function AdminPageHeader({
   actions,
 }: Props) {
   return (
-    <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+    <header className="admin-page-header flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         {crumbs && crumbs.length > 0 && (
           <nav className="mb-2.5" aria-label="Breadcrumb">
@@ -66,6 +66,6 @@ export default function AdminPageHeader({
           {actions}
         </div>
       )}
-    </div>
+    </header>
   );
 }

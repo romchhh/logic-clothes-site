@@ -17,6 +17,8 @@ function swatchBackground(c: PaletteColor): string {
 type Props = {
   lang?: Locale;
   activeId?: string | null;
+  /** Multi-select: highlight all chosen palette ids */
+  activeIds?: string[] | null;
   mode: "pick" | "display";
   onPick?: (color: PaletteColor) => void;
   className?: string;
@@ -25,10 +27,15 @@ type Props = {
 export default function GroupedPaletteBoard({
   lang = "uk",
   activeId = null,
+  activeIds = null,
   mode,
   onPick,
   className = "",
 }: Props) {
+  const isActive = (id: string) =>
+    activeIds && activeIds.length > 0
+      ? activeIds.includes(id)
+      : activeId === id;
   const groups = getPaletteGroups();
   let shapeIndex = 0;
 
@@ -46,7 +53,7 @@ export default function GroupedPaletteBoard({
             <div className="palette-group-grid">
               {group.shades.map((c) => {
                 const label = lang === "en" ? c.labelEn : c.label;
-                const active = activeId === c.id;
+                const active = isActive(c.id);
                 const shape = paintSwatchShape(shapeIndex++);
                 const style = {
                   background: swatchBackground(c),

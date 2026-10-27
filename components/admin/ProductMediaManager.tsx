@@ -2,6 +2,10 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import {
+  isImageUploadFile,
+  prepareImageUploadFile,
+} from "@/lib/prepareUploadImage";
 import type { ProductMedia } from "@/lib/types";
 
 type Props = {
@@ -51,6 +55,10 @@ export default function ProductMediaManager({ media, onChange }: Props) {
   const rafRef = useRef(0);
 
   const dragItemRef = useRef<number | null>(null);
+  /** Images waiting for crop after multi-select */
+  const cropQueueRef = useRef<File[]>([]);
+  const [cropQueueTotal, setCropQueueTotal] = useState(0);
+  const [cropQueueIndex, setCropQueueIndex] = useState(0);
 
   useEffect(() => {
     return () => {
@@ -153,7 +161,15 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         credentials: "include",
         body: fd,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as {
+          message?: string;
+          error?: string;
+        };
+        throw new Error(
+          body.message || body.error || `HTTP ${res.status}`
+        );
+      }
       const data = (await res.json()) as {
         items?: ProductMedia[];
         urls?: string[];
@@ -171,41 +187,93 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     []
   );
 
-  /** Batch-add many files: upload with default center crop, then reorder/crop. */
+  const advanceCropQueue = useCallback(async () => {
+    const next = cropQueueRef.current.shift();
+    if (next) {
+      setCropQueueIndex((i) => i + 1);
+      await openCrop(next, null);
+      return;
+    }
+    setUploading(false);
+    setUploadProgress(null);
+    setCropQueueTotal(0);
+    setCropQueueIndex(0);
+  }, [openCrop]);
+
+  const abortCropQueue = useCallback(() => {
+    cropQueueRef.current = [];
+    setCropQueueTotal(0);
+    setCropQueueIndex(0);
+    setUploading(false);
+    setUploadProgress(null);
+  }, []);
+
+  const skipCropAndContinue = useCallback(() => {
+    closeCrop();
+    void advanceCropQueue();
+  }, [closeCrop, advanceCropQueue]);
+
+  const cancelCropSession = useCallback(() => {
+    closeCrop();
+    abortCropQueue();
+  }, [closeCrop, abortCropQueue]);
+
+  /** Videos upload immediately; images open crop (3:5) one by one. */
   const onPickFiles = async (files: FileList | File[]) => {
-    const list = Array.from(files).filter(
-      (f) => f.type.startsWith("image/") || f.type.startsWith("video/")
-    );
-    if (!list.length) return;
+    const list = Array.from(files);
+    const videos = list.filter((f) => f.type.startsWith("video/"));
+    const rawImages = list.filter((f) => isImageUploadFile(f));
+    if (!videos.length && !rawImages.length) {
+      setError("Оберіть зображення (JPEG, PNG, HEIC) або відео");
+      return;
+    }
 
     setUploading(true);
     setError(null);
-    setUploadProgress(`0 / ${list.length}`);
 
-    const added: ProductMedia[] = [];
     try {
-      for (let i = 0; i < list.length; i++) {
-        const file = list[i];
-        setUploadProgress(`${i + 1} / ${list.length}`);
+      for (let i = 0; i < videos.length; i++) {
+        const file = videos[i];
+        setUploadProgress(`Відео ${i + 1} / ${videos.length}`);
         const items = await uploadOne(file);
         if (!items.length) throw new Error("empty");
-        for (const item of items) {
-          if (item.type === "image") {
-            originalsRef.current.set(item.url, file);
-          }
-          added.push(item);
-        }
-        // Progressive UI — show each file as it lands
         const next = [...mediaRef.current, ...items];
         mediaRef.current = next;
         onChange(next);
       }
+
+      const images: File[] = [];
+      for (const f of rawImages) {
+        try {
+          images.push(await prepareImageUploadFile(f));
+        } catch (e) {
+          console.error(e);
+          setError(
+            `Не вдалося відкрити «${f.name}». Спробуйте зберегти як JPEG.`
+          );
+        }
+      }
+
+      if (!images.length) {
+        setUploading(false);
+        setUploadProgress(null);
+        return;
+      }
+
+      cropQueueRef.current = images.slice(1);
+      setCropQueueTotal(images.length);
+      setCropQueueIndex(1);
+      setUploadProgress(`Кадр 1 / ${images.length}`);
+      await openCrop(images[0], null);
     } catch (e) {
       console.error(e);
-      setError("Не вдалося завантажити частину файлів");
-    } finally {
-      setUploading(false);
-      setUploadProgress(null);
+      const msg = e instanceof Error ? e.message : "upload_failed";
+      setError(
+        msg.includes("unsupported") || msg.includes("HEIC")
+          ? msg
+          : "Не вдалося завантажити частину файлів"
+      );
+      abortCropQueue();
     }
   };
 
@@ -260,9 +328,21 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         onChange(next);
       }
       closeCrop();
+      if (!replaceUrl) {
+        if (cropQueueRef.current.length > 0) {
+          setUploadProgress(
+            `Кадр ${cropQueueIndex + 1} / ${cropQueueTotal}`
+          );
+          await advanceCropQueue();
+        } else {
+          abortCropQueue();
+        }
+      }
     } catch (e) {
       console.error(e);
-      setError("Не вдалося зберегти кадр");
+      setError(
+        e instanceof Error ? e.message : "Не вдалося зберегти кадр"
+      );
     } finally {
       setCropping(false);
     }
@@ -365,8 +445,8 @@ export default function ProductMediaManager({ media, onChange }: Props) {
             Фото та відео
           </h3>
           <p className="mt-0.5 text-sm text-gray-500">
-            Можна обрати кілька фото з папки одразу. Потім змініть порядок і
-            кадр кожної — як у картці каталогу (3:5).
+            Оберіть кілька файлів — для кожного відкриється кадрування 3:5,
+            потім сітка з можливістю змінити порядок.
           </p>
         </div>
         <button
@@ -522,9 +602,15 @@ export default function ProductMediaManager({ media, onChange }: Props) {
           >
             <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
               Кадр як у каталозі (3:5)
+              {cropQueueTotal > 1 ? (
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                  {cropQueueIndex} / {cropQueueTotal}
+                </span>
+              ) : null}
             </h4>
             <p className="mt-1 text-sm text-gray-500">
-              Плавно посуньте фото пальцем або мишею — без ривків.
+              Посуньте фото, щоб обрати кадр. Після «Зберегти кадр» відкриється
+              наступне фото, якщо ви обрали кілька.
             </p>
             <div
               ref={frameRef}
@@ -548,15 +634,25 @@ export default function ProductMediaManager({ media, onChange }: Props) {
               />
               <div className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-[#B7E1DF]" />
             </div>
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
               <button
                 type="button"
-                className="admin-btn-secondary"
+                className="admin-btn-ghost !text-xs"
                 disabled={cropping}
-                onClick={closeCrop}
+                onClick={cancelCropSession}
               >
-                Скасувати
+                Зупинити
               </button>
+              {cropQueueTotal > 1 ? (
+                <button
+                  type="button"
+                  className="admin-btn-secondary !text-xs"
+                  disabled={cropping}
+                  onClick={skipCropAndContinue}
+                >
+                  Пропустити фото
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="admin-btn-primary"
