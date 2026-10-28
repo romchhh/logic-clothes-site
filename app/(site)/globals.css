@@ -1195,31 +1195,36 @@
   }
 
   .catalog-hub{
-    padding:8px var(--page-gutter) 80px;
-    max-width:1200px;
-    margin:0 auto;
+    padding:0;
   }
   .catalog-hub-title{
-    margin:0 0 20px;
-    padding:0;
+    margin:0 0 8px;
+    padding:4px var(--page-gutter) 12px;
   }
   .catalog-hub-grid{
     display:grid;
     grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap:8px;
+    gap:0.5px;
     grid-auto-flow:dense;
+    margin:0;
+    padding:0;
+    background:var(--white);
   }
-  @media (min-width:768px){
+  @media (min-width:900px){
     .catalog-hub-grid{
       grid-template-columns:repeat(3, minmax(0, 1fr));
-      gap:10px;
+    }
+  }
+  @media (min-width:1400px){
+    .catalog-hub-grid{
+      grid-template-columns:repeat(4, minmax(0, 1fr));
     }
   }
   .catalog-hub-card{
     position:relative;
     display:block;
     overflow:hidden;
-    border-radius:var(--radius-md);
+    border-radius:0;
     min-height:clamp(140px, 28vw, 220px);
     background:#e8e8e8;
     aspect-ratio:4/5;

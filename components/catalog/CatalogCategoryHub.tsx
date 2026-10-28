@@ -59,9 +59,10 @@ export default function CatalogCategoryHub({
   if (!items.length) return null;
 
   return (
-    <div className="catalog-hub">
-      <h1 className="cat-title catalog-hub-title">{t.catalog.title}</h1>
-      <div className="catalog-hub-grid" aria-label={t.catalog.title}>
+    <div className="cat-shell">
+      <div className="catalog-hub">
+        <h1 className="cat-title catalog-hub-title">{t.catalog.title}</h1>
+        <div className="catalog-hub-grid" aria-label={t.catalog.title}>
         {items.map((cat, i) => {
           const tall = i % 5 === 0 || i % 5 === 3;
           const wide = i % 5 === 1;
@@ -82,7 +83,7 @@ export default function CatalogCategoryHub({
                 src={cat.image || "/assets/hero.png"}
                 alt={cat.label[lang]}
                 fill
-                sizes="(max-width: 768px) 50vw, 33vw"
+                sizes="(max-width: 899px) 50vw, (max-width: 1399px) 33vw, 25vw"
                 quality={75}
                 style={{ objectFit: "cover" }}
               />
@@ -90,6 +91,7 @@ export default function CatalogCategoryHub({
             </Link>
           );
         })}
+        </div>
       </div>
     </div>
   );
