@@ -1,4 +1,5 @@
 import { normalizeSizeOptions } from "@/lib/catalogProduct";
+import { normalizeMediaAdjust } from "@/lib/mediaAdjust";
 import { ensureDbReady, query, withTransaction } from "@/lib/db";
 import { bustProductCache } from "@/lib/productCache";
 import {
@@ -73,6 +74,7 @@ type ProductRow = {
     media_type?: string;
     width?: number | null;
     height?: number | null;
+    adjust?: unknown;
   }> | null;
   swatches: Array<{ img: string; label: string; hex?: string | null }> | null;
   created_at?: Date | string | null;
@@ -97,6 +99,9 @@ function mapProduct(row: ProductRow): Product {
           type: m.media_type === "video" ? "video" : "image",
           ...(m.width != null ? { width: Number(m.width) } : {}),
           ...(m.height != null ? { height: Number(m.height) } : {}),
+          ...(normalizeMediaAdjust(m.adjust)
+            ? { adjust: normalizeMediaAdjust(m.adjust) }
+            : {}),
         }))
     : [];
 
@@ -259,7 +264,8 @@ const PRODUCT_SELECT = `
             'url', i.url,
             'media_type', i.media_type,
             'width', i.width,
-            'height', i.height
+            'height', i.height,
+            'adjust', i.adjust_json
           )
           ORDER BY i.sort_order, i.id
         )
@@ -357,8 +363,8 @@ async function replaceProductChildren(
   for (let i = 0; i < mediaList.length; i++) {
     const m = mediaList[i];
     await client.query(
-      `INSERT INTO product_images (product_slug, url, sort_order, media_type, width, height)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO product_images (product_slug, url, sort_order, media_type, width, height, adjust_json)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         product.id,
         m.url,
@@ -366,6 +372,7 @@ async function replaceProductChildren(
         m.type === "video" ? "video" : "image",
         m.width ?? null,
         m.height ?? null,
+        m.adjust ? JSON.stringify(m.adjust) : null,
       ]
     );
   }

@@ -1,3 +1,4 @@
+import { normalizeMediaAdjust } from "@/lib/mediaAdjust";
 import { formatPriceLabel } from "@/lib/sql";
 import type { Product, ProductMedia } from "@/lib/types";
 
@@ -34,6 +35,9 @@ function parseMedia(body: Record<string, unknown>, images: string[]): ProductMed
           type: row.type === "video" ? ("video" as const) : ("image" as const),
           ...(typeof row.width === "number" ? { width: row.width } : {}),
           ...(typeof row.height === "number" ? { height: row.height } : {}),
+          ...(normalizeMediaAdjust(row.adjust)
+            ? { adjust: normalizeMediaAdjust(row.adjust) }
+            : {}),
         };
       })
       .filter((m): m is ProductMedia => Boolean(m));

@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n/config";
+import type { MediaAdjust } from "@/lib/mediaAdjust";
 
 export interface ProductSwatch {
   img: string;
@@ -24,6 +25,7 @@ export interface ProductMedia {
   type: ProductMediaType;
   width?: number;
   height?: number;
+  adjust?: MediaAdjust;
 }
 
 export interface Product {

@@ -74,6 +74,10 @@ async function ensureSchemaPatches(pool: Pool): Promise<void> {
       ADD COLUMN IF NOT EXISTS material_opt text,
       ADD COLUMN IF NOT EXISTS size_label text
   `);
+  await pool.query(`
+    ALTER TABLE product_images
+      ADD COLUMN IF NOT EXISTS adjust_json JSONB
+  `);
 }
 
 export async function ensureDbReady(): Promise<Pool> {

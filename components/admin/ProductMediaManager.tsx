@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useScrollLock } from "@/hooks/useScrollLock";
+import MediaEditModal, {
+  type MediaEditSession,
+} from "@/components/admin/MediaEditModal";
+import { mediaAdjustProps } from "@/components/shared/MediaWithAdjust";
+import {
+  isDefaultAdjust,
+  type MediaAdjust,
+} from "@/lib/mediaAdjust";
 import {
   isImageUploadFile,
   prepareImageUploadFile,
@@ -13,106 +20,78 @@ type Props = {
   onChange: (media: ProductMedia[]) => void;
 };
 
-type CropSource = {
-  /** Key in media list (url) being replaced; null = new file not yet in list */
-  replaceUrl: string | null;
-  file: File;
-  objectUrl: string;
-  naturalW: number;
-  naturalH: number;
-};
-
-type PanState = { x: number; y: number };
-
-function clamp(n: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, n));
-}
+type PendingImage = { file: File; replaceUrl: string | null };
 
 export default function ProductMediaManager({ media, onChange }: Props) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [cropping, setCropping] = useState(false);
-  const [cropSource, setCropSource] = useState<CropSource | null>(null);
+  const [editSession, setEditSession] = useState<MediaEditSession | null>(
+    null
+  );
 
   const mediaRef = useRef(media);
   mediaRef.current = media;
 
-  /** Keep original Files so we can re-crop after batch upload. */
   const originalsRef = useRef<Map<string, File>>(new Map());
+  const objectUrlsRef = useRef<Set<string>>(new Set());
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const frameRef = useRef<HTMLDivElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const panRef = useRef<PanState>({ x: 0, y: 0 });
-  const dragRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
-    originX: number;
-    originY: number;
-  } | null>(null);
-  const rafRef = useRef(0);
-
   const dragItemRef = useRef<number | null>(null);
-  /** Images waiting for crop after multi-select */
-  const cropQueueRef = useRef<File[]>([]);
-  const [cropQueueTotal, setCropQueueTotal] = useState(0);
-  const [cropQueueIndex, setCropQueueIndex] = useState(0);
+
+  const imageQueueRef = useRef<PendingImage[]>([]);
+  const videoAfterUploadRef = useRef<
+    { url: string; file: File; adjust?: MediaAdjust }[]
+  >([]);
+  const [queueTotal, setQueueTotal] = useState(0);
+  const [queueIndex, setQueueIndex] = useState(0);
 
   useEffect(() => {
     return () => {
-      if (cropSource?.objectUrl) URL.revokeObjectURL(cropSource.objectUrl);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      for (const u of objectUrlsRef.current) URL.revokeObjectURL(u);
+      objectUrlsRef.current.clear();
     };
-  }, [cropSource]);
-
-  useScrollLock(Boolean(cropSource));
-
-  const applyPanToDom = useCallback(() => {
-    const img = imgRef.current;
-    if (!img) return;
-    img.style.transform = `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0)`;
   }, []);
 
-  const coverLayout = useCallback((naturalW: number, naturalH: number) => {
-    const frame = frameRef.current;
-    if (!frame) return null;
-    const frameW = frame.clientWidth;
-    const frameH = frame.clientHeight;
-    if (frameW <= 0 || frameH <= 0) return null;
-    const scale = Math.max(frameW / naturalW, frameH / naturalH);
-    const dispW = naturalW * scale;
-    const dispH = naturalH * scale;
-    const minX = frameW - dispW;
-    const minY = frameH - dispH;
-    return { frameW, frameH, scale, dispW, dispH, minX, minY };
-  }, []);
+  const trackObjectUrl = (url: string) => {
+    objectUrlsRef.current.add(url);
+    return url;
+  };
 
-  const centerPan = useCallback(
-    (naturalW: number, naturalH: number) => {
-      const layout = coverLayout(naturalW, naturalH);
-      if (!layout) {
-        panRef.current = { x: 0, y: 0 };
-        return;
-      }
-      panRef.current = {
-        x: (layout.frameW - layout.dispW) / 2,
-        y: (layout.frameH - layout.dispH) / 2,
+  const uploadOne = useCallback(async (file: File): Promise<ProductMedia[]> => {
+    const fd = new FormData();
+    fd.append("images", file);
+    fd.append("fit", "catalog");
+    const res = await fetch("/api/admin/upload", {
+      method: "POST",
+      credentials: "include",
+      body: fd,
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        error?: string;
       };
-      applyPanToDom();
-      const img = imgRef.current;
-      if (img) {
-        img.style.width = `${layout.dispW}px`;
-        img.style.height = `${layout.dispH}px`;
-      }
-    },
-    [applyPanToDom, coverLayout]
-  );
+      throw new Error(body.message || body.error || `HTTP ${res.status}`);
+    }
+    const data = (await res.json()) as {
+      items?: ProductMedia[];
+      urls?: string[];
+    };
+    return (
+      data.items?.map((i) => ({
+        url: i.url,
+        type: i.type === "video" ? ("video" as const) : ("image" as const),
+        width: i.width,
+        height: i.height,
+      })) ??
+      (data.urls || []).map((url) => ({ url, type: "image" as const }))
+    );
+  }, []);
 
-  const openCrop = useCallback(
-    async (file: File, replaceUrl: string | null) => {
-      const objectUrl = URL.createObjectURL(file);
+  const openImageEdit = useCallback(
+    async (file: File, replaceUrl: string | null, initialAdjust?: MediaAdjust) => {
+      const objectUrl = trackObjectUrl(URL.createObjectURL(file));
       try {
         const img = new Image();
         await new Promise<void>((resolve, reject) => {
@@ -120,105 +99,82 @@ export default function ProductMediaManager({ media, onChange }: Props) {
           img.onerror = () => reject(new Error("img"));
           img.src = objectUrl;
         });
-        setCropSource({
+        setEditSession({
+          mode: "image",
           file,
-          objectUrl,
+          previewUrl: objectUrl,
           replaceUrl,
           naturalW: img.naturalWidth,
           naturalH: img.naturalHeight,
-        });
-        // Center after paint
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            centerPan(img.naturalWidth, img.naturalHeight);
-          });
+          initialAdjust,
         });
       } catch {
         URL.revokeObjectURL(objectUrl);
-        setError("Не вдалося відкрити зображення для кадрування");
+        objectUrlsRef.current.delete(objectUrl);
+        setError("Не вдалося відкрити зображення");
       }
-    },
-    [centerPan]
-  );
-
-  const closeCrop = useCallback(() => {
-    if (cropSource?.objectUrl) URL.revokeObjectURL(cropSource.objectUrl);
-    setCropSource(null);
-    dragRef.current = null;
-  }, [cropSource]);
-
-  const uploadOne = useCallback(
-    async (
-      file: File,
-      crop?: { x: number; y: number; w: number; h: number }
-    ): Promise<ProductMedia[]> => {
-      const fd = new FormData();
-      fd.append("images", file);
-      fd.append("fit", "catalog");
-      if (crop) fd.append("crop", JSON.stringify(crop));
-      const res = await fetch("/api/admin/upload", {
-        method: "POST",
-        credentials: "include",
-        body: fd,
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as {
-          message?: string;
-          error?: string;
-        };
-        throw new Error(
-          body.message || body.error || `HTTP ${res.status}`
-        );
-      }
-      const data = (await res.json()) as {
-        items?: ProductMedia[];
-        urls?: string[];
-      };
-      return (
-        data.items?.map((i) => ({
-          url: i.url,
-          type: i.type === "video" ? ("video" as const) : ("image" as const),
-          width: i.width,
-          height: i.height,
-        })) ??
-        (data.urls || []).map((url) => ({ url, type: "image" as const }))
-      );
     },
     []
   );
 
-  const advanceCropQueue = useCallback(async () => {
-    const next = cropQueueRef.current.shift();
-    if (next) {
-      setCropQueueIndex((i) => i + 1);
-      await openCrop(next, null);
-      return;
-    }
-    setUploading(false);
-    setUploadProgress(null);
-    setCropQueueTotal(0);
-    setCropQueueIndex(0);
-  }, [openCrop]);
+  const openVideoEdit = useCallback(
+    (url: string, file: File | null, initialAdjust?: MediaAdjust) => {
+      const previewUrl = file
+        ? trackObjectUrl(URL.createObjectURL(file))
+        : url;
+      setEditSession({
+        mode: "video",
+        file,
+        previewUrl,
+        replaceUrl: url,
+        naturalW: 1080,
+        naturalH: 1920,
+        initialAdjust,
+      });
+    },
+    []
+  );
 
-  const abortCropQueue = useCallback(() => {
-    cropQueueRef.current = [];
-    setCropQueueTotal(0);
-    setCropQueueIndex(0);
+  const closeEdit = useCallback(() => {
+    setEditSession(null);
+  }, []);
+
+  const abortQueues = useCallback(() => {
+    imageQueueRef.current = [];
+    videoAfterUploadRef.current = [];
+    setQueueTotal(0);
+    setQueueIndex(0);
     setUploading(false);
     setUploadProgress(null);
   }, []);
 
-  const skipCropAndContinue = useCallback(() => {
-    closeCrop();
-    void advanceCropQueue();
-  }, [closeCrop, advanceCropQueue]);
+  const advanceImageQueue = useCallback(async () => {
+    const next = imageQueueRef.current.shift();
+    if (next) {
+      setQueueIndex((i) => i + 1);
+      await openImageEdit(next.file, next.replaceUrl);
+      return;
+    }
+    const vid = videoAfterUploadRef.current.shift();
+    if (vid) {
+      setQueueIndex((i) => i + 1);
+      openVideoEdit(vid.url, vid.file, vid.adjust);
+      return;
+    }
+    abortQueues();
+    closeEdit();
+  }, [abortQueues, closeEdit, openImageEdit, openVideoEdit]);
 
-  const cancelCropSession = useCallback(() => {
-    closeCrop();
-    abortCropQueue();
-  }, [closeCrop, abortCropQueue]);
+  const skipEdit = useCallback(() => {
+    closeEdit();
+    void advanceImageQueue();
+  }, [advanceImageQueue, closeEdit]);
 
-  /** Videos upload immediately; images open crop (3:5) one by one. */
+  const cancelAll = useCallback(() => {
+    closeEdit();
+    abortQueues();
+  }, [abortQueues, closeEdit]);
+
   const onPickFiles = async (files: FileList | File[]) => {
     const list = Array.from(files);
     const videos = list.filter((f) => f.type.startsWith("video/"));
@@ -230,16 +186,20 @@ export default function ProductMediaManager({ media, onChange }: Props) {
 
     setUploading(true);
     setError(null);
+    videoAfterUploadRef.current = [];
 
     try {
       for (let i = 0; i < videos.length; i++) {
         const file = videos[i];
         setUploadProgress(`Відео ${i + 1} / ${videos.length}`);
         const items = await uploadOne(file);
-        if (!items.length) throw new Error("empty");
-        const next = [...mediaRef.current, ...items];
+        const fresh = items[0];
+        if (!fresh) throw new Error("empty");
+        originalsRef.current.set(fresh.url, file);
+        const next = [...mediaRef.current, fresh];
         mediaRef.current = next;
         onChange(next);
+        videoAfterUploadRef.current.push({ url: fresh.url, file });
       }
 
       const images: File[] = [];
@@ -254,97 +214,109 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         }
       }
 
-      if (!images.length) {
-        setUploading(false);
-        setUploadProgress(null);
+      const totalEdits =
+        images.length + videoAfterUploadRef.current.length;
+      if (totalEdits === 0) {
+        abortQueues();
         return;
       }
 
-      cropQueueRef.current = images.slice(1);
-      setCropQueueTotal(images.length);
-      setCropQueueIndex(1);
-      setUploadProgress(`Кадр 1 / ${images.length}`);
-      await openCrop(images[0], null);
+      imageQueueRef.current = images.slice(1).map((file) => ({
+        file,
+        replaceUrl: null,
+      }));
+      setQueueTotal(totalEdits);
+      setQueueIndex(1);
+      setUploadProgress(`Редагування 1 / ${totalEdits}`);
+
+      if (images.length > 0) {
+        await openImageEdit(images[0], null);
+      } else {
+        const v = videoAfterUploadRef.current.shift();
+        if (v) openVideoEdit(v.url, v.file);
+      }
     } catch (e) {
       console.error(e);
-      const msg = e instanceof Error ? e.message : "upload_failed";
-      setError(
-        msg.includes("unsupported") || msg.includes("HEIC")
-          ? msg
-          : "Не вдалося завантажити частину файлів"
-      );
-      abortCropQueue();
+      setError("Не вдалося завантажити частину файлів");
+      abortQueues();
     }
   };
 
-  const confirmCrop = async () => {
-    if (!cropSource) return;
-    const layout = coverLayout(cropSource.naturalW, cropSource.naturalH);
-    if (!layout) return;
+  const patchMedia = (
+    replaceUrl: string | null,
+    fresh: ProductMedia,
+    sourceFile: File | null,
+    adjust: MediaAdjust
+  ) => {
+    const withAdjust = isDefaultAdjust(adjust)
+      ? fresh
+      : { ...fresh, adjust };
+    if (sourceFile) {
+      if (replaceUrl) originalsRef.current.delete(replaceUrl);
+      originalsRef.current.set(fresh.url, sourceFile);
+    }
+    if (replaceUrl) {
+      const next = mediaRef.current.map((m) =>
+        m.url === replaceUrl ? withAdjust : m
+      );
+      mediaRef.current = next;
+      onChange(next);
+    } else {
+      const next = [...mediaRef.current, withAdjust];
+      mediaRef.current = next;
+      onChange(next);
+    }
+  };
 
-    const { naturalW, naturalH, file, replaceUrl } = cropSource;
-    const { scale, dispW, dispH, frameW, frameH } = layout;
-    const { x: panX, y: panY } = panRef.current;
-
-    // Visible frame in source-image coordinates
-    const srcX = -panX / scale;
-    const srcY = -panY / scale;
-    const srcW = frameW / scale;
-    const srcH = frameH / scale;
-
-    const crop = {
-      x: clamp(srcX / naturalW, 0, 1),
-      y: clamp(srcY / naturalH, 0, 1),
-      w: clamp(srcW / naturalW, 0.01, 1),
-      h: clamp(srcH / naturalH, 0.01, 1),
-    };
-
-    // Ensure crop stays inside image
-    if (crop.x + crop.w > 1) crop.x = Math.max(0, 1 - crop.w);
-    if (crop.y + crop.h > 1) crop.y = Math.max(0, 1 - crop.h);
-
-    void dispW;
-    void dispH;
-
-    setCropping(true);
+  const onSaveImage = async (
+    file: File,
+    replaceUrl: string | null,
+    adjust: MediaAdjust
+  ) => {
+    setUploading(true);
     setError(null);
     try {
-      const items = await uploadOne(file, crop);
+      const items = await uploadOne(file);
       const fresh = items[0];
       if (!fresh) throw new Error("empty");
-
-      if (replaceUrl) {
-        originalsRef.current.delete(replaceUrl);
-        originalsRef.current.set(fresh.url, file);
-        const next = mediaRef.current.map((m) =>
-          m.url === replaceUrl ? fresh : m
+      const source = replaceUrl
+        ? originalsRef.current.get(replaceUrl) ?? editSession?.file ?? file
+        : editSession?.file ?? file;
+      patchMedia(replaceUrl, fresh, source, adjust);
+      closeEdit();
+      if (imageQueueRef.current.length || videoAfterUploadRef.current.length) {
+        setUploadProgress(
+          `Редагування ${queueIndex + 1} / ${queueTotal}`
         );
-        mediaRef.current = next;
-        onChange(next);
+        await advanceImageQueue();
       } else {
-        originalsRef.current.set(fresh.url, file);
-        const next = [...mediaRef.current, fresh];
-        mediaRef.current = next;
-        onChange(next);
-      }
-      closeCrop();
-      if (!replaceUrl) {
-        if (cropQueueRef.current.length > 0) {
-          setUploadProgress(
-            `Кадр ${cropQueueIndex + 1} / ${cropQueueTotal}`
-          );
-          await advanceCropQueue();
-        } else {
-          abortCropQueue();
-        }
+        abortQueues();
       }
     } catch (e) {
       console.error(e);
       setError(
-        e instanceof Error ? e.message : "Не вдалося зберегти кадр"
+        e instanceof Error ? e.message : "Не вдалося зберегти фото"
       );
     } finally {
-      setCropping(false);
+      setUploading(false);
+    }
+  };
+
+  const onSaveVideo = async (replaceUrl: string, adjust: MediaAdjust) => {
+    const next = mediaRef.current.map((m) =>
+      m.url === replaceUrl
+        ? isDefaultAdjust(adjust)
+          ? { ...m, adjust: undefined }
+          : { ...m, adjust }
+        : m
+    );
+    mediaRef.current = next;
+    onChange(next);
+    closeEdit();
+    if (imageQueueRef.current.length || videoAfterUploadRef.current.length) {
+      await advanceImageQueue();
+    } else {
+      abortQueues();
     }
   };
 
@@ -375,65 +347,31 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     onChange(next);
   };
 
-  const startCropFor = async (idx: number) => {
+  const startEditFor = async (idx: number) => {
     const item = mediaRef.current[idx];
-    if (!item || item.type === "video") return;
-    const original = originalsRef.current.get(item.url);
-    if (original) {
-      await openCrop(original, item.url);
+    if (!item) return;
+    setError(null);
+    if (item.type === "video") {
+      const original = originalsRef.current.get(item.url);
+      openVideoEdit(item.url, original ?? null, item.adjust);
       return;
     }
-    // Fallback: fetch current image (already processed) for fine adjust
+    const original = originalsRef.current.get(item.url);
+    if (original) {
+      await openImageEdit(original, item.url, item.adjust);
+      return;
+    }
     try {
       const res = await fetch(item.url);
       if (!res.ok) throw new Error("fetch");
       const blob = await res.blob();
-      const file = new File([blob], "crop-source.webp", {
+      const file = new File([blob], "edit-source.webp", {
         type: blob.type || "image/webp",
       });
-      await openCrop(file, item.url);
+      await openImageEdit(file, item.url, item.adjust);
     } catch (e) {
       console.error(e);
-      setError("Не вдалося відкрити фото для кадрування");
-    }
-  };
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (!cropSource) return;
-    e.preventDefault();
-    const el = frameRef.current;
-    el?.setPointerCapture(e.pointerId);
-    dragRef.current = {
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      originX: panRef.current.x,
-      originY: panRef.current.y,
-    };
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== e.pointerId || !cropSource) return;
-    e.preventDefault();
-
-    const layout = coverLayout(cropSource.naturalW, cropSource.naturalH);
-    if (!layout) return;
-
-    const dx = e.clientX - drag.startX;
-    const dy = e.clientY - drag.startY;
-    panRef.current = {
-      x: clamp(drag.originX + dx, layout.minX, 0),
-      y: clamp(drag.originY + dy, layout.minY, 0),
-    };
-
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(applyPanToDom);
-  };
-
-  const onPointerUp = (e: React.PointerEvent) => {
-    if (dragRef.current?.pointerId === e.pointerId) {
-      dragRef.current = null;
+      setError("Не вдалося відкрити медіа для редагування");
     }
   };
 
@@ -445,19 +383,20 @@ export default function ProductMediaManager({ media, onChange }: Props) {
             Фото та відео
           </h3>
           <p className="mt-0.5 text-sm text-gray-500">
-            Оберіть кілька файлів — для кожного відкриється кадрування 3:5,
-            потім сітка з можливістю змінити порядок.
+            Завантажте файли — для кожного відкриється редактор з фільтрами,
+            точним світлом і кадром 3:5. Пресет «Вирівняти» зручний, коли фото
+            і відео з різних камер.
           </p>
         </div>
         <button
           type="button"
           className="admin-btn-secondary"
-          disabled={uploading || Boolean(cropSource)}
+          disabled={uploading || Boolean(editSession)}
           onClick={() => inputRef.current?.click()}
         >
           {uploading
             ? uploadProgress
-              ? `Завантаження ${uploadProgress}`
+              ? uploadProgress
               : "Обробка…"
             : "Додати медіа"}
         </button>
@@ -503,6 +442,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
                 <video
                   src={m.url}
                   className="h-full w-full object-cover"
+                  style={mediaAdjustProps(m.adjust).style}
                   muted
                   playsInline
                   preload="metadata"
@@ -513,6 +453,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
                   src={m.url}
                   alt=""
                   className="h-full w-full object-cover"
+                  style={mediaAdjustProps(m.adjust).style}
                   loading="eager"
                   decoding="async"
                   draggable={false}
@@ -530,6 +471,11 @@ export default function ProductMediaManager({ media, onChange }: Props) {
               {idx === 0 && (
                 <span className="absolute left-2 top-2 rounded-full bg-[#B7E1DF] px-2 py-0.5 text-[10px] font-semibold text-[#111]">
                   Головне
+                </span>
+              )}
+              {m.adjust && !isDefaultAdjust(m.adjust) && (
+                <span className="absolute right-2 top-2 rounded bg-black/55 px-1.5 py-0.5 text-[10px] text-white">
+                  Тон
                 </span>
               )}
               <span className="absolute bottom-2 left-2 rounded bg-black/55 px-1.5 py-0.5 text-[10px] text-white">
@@ -567,16 +513,14 @@ export default function ProductMediaManager({ media, onChange }: Props) {
                   Видалити
                 </button>
               </div>
-              {m.type !== "video" && (
-                <button
-                  type="button"
-                  className="admin-btn-secondary !h-9 w-full !text-xs"
-                  disabled={uploading || Boolean(cropSource)}
-                  onClick={() => void startCropFor(idx)}
-                >
-                  Кадрувати
-                </button>
-              )}
+              <button
+                type="button"
+                className="admin-btn-secondary !h-9 w-full !text-xs"
+                disabled={uploading || Boolean(editSession)}
+                onClick={() => void startEditFor(idx)}
+              >
+                Редагувати
+              </button>
             </div>
           </div>
         ))}
@@ -592,79 +536,16 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         )}
       </div>
 
-      {cropSource && (
-        <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/55 p-4">
-          <div
-            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl dark:bg-gray-900"
-            role="dialog"
-            aria-modal="true"
-            data-scroll-lock-allow
-          >
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Кадр як у каталозі (3:5)
-              {cropQueueTotal > 1 ? (
-                <span className="ml-2 text-sm font-normal text-gray-500">
-                  {cropQueueIndex} / {cropQueueTotal}
-                </span>
-              ) : null}
-            </h4>
-            <p className="mt-1 text-sm text-gray-500">
-              Посуньте фото, щоб обрати кадр. Після «Зберегти кадр» відкриється
-              наступне фото, якщо ви обрали кілька.
-            </p>
-            <div
-              ref={frameRef}
-              className="relative mx-auto mt-4 aspect-[3/5] w-full max-w-[300px] touch-none overflow-hidden rounded-xl border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
-              style={{ cursor: "grab", touchAction: "none" }}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                ref={imgRef}
-                src={cropSource.objectUrl}
-                alt=""
-                draggable={false}
-                className="pointer-events-none absolute left-0 top-0 max-w-none select-none will-change-transform"
-                onLoad={() => {
-                  centerPan(cropSource.naturalW, cropSource.naturalH);
-                }}
-              />
-              <div className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-[#B7E1DF]" />
-            </div>
-            <div className="mt-5 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="admin-btn-ghost !text-xs"
-                disabled={cropping}
-                onClick={cancelCropSession}
-              >
-                Зупинити
-              </button>
-              {cropQueueTotal > 1 ? (
-                <button
-                  type="button"
-                  className="admin-btn-secondary !text-xs"
-                  disabled={cropping}
-                  onClick={skipCropAndContinue}
-                >
-                  Пропустити фото
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="admin-btn-primary"
-                disabled={cropping}
-                onClick={() => void confirmCrop()}
-              >
-                {cropping ? "Збереження…" : "Зберегти кадр"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <MediaEditModal
+        session={editSession}
+        queueIndex={queueIndex}
+        queueTotal={queueTotal}
+        busy={uploading}
+        onClose={cancelAll}
+        onSkip={queueTotal > 1 ? skipEdit : undefined}
+        onSaveImage={onSaveImage}
+        onSaveVideo={onSaveVideo}
+      />
     </div>
   );
 }
