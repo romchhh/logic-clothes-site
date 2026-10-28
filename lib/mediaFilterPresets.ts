@@ -3,6 +3,10 @@ import {
   type MediaAdjust,
   mediaAdjustCssFilter,
 } from "@/lib/mediaAdjust";
+import {
+  savedPresetFilterId,
+  type SavedMediaPreset,
+} from "@/lib/mediaAdjustPresetsStorage";
 
 export type MediaFilterPreset = {
   id: string;
@@ -10,9 +14,16 @@ export type MediaFilterPreset = {
   tag?: string;
   adjust: MediaAdjust;
   accent: string;
+  isUser?: boolean;
 };
 
-export const MEDIA_FILTER_PRESETS: MediaFilterPreset[] = [
+export type MediaFilterGroup = {
+  id: string;
+  title: string;
+  presets: MediaFilterPreset[];
+};
+
+const BUILTIN: MediaFilterPreset[] = [
   {
     id: "original",
     label: "Оригінал",
@@ -22,8 +33,8 @@ export const MEDIA_FILTER_PRESETS: MediaFilterPreset[] = [
   },
   {
     id: "catalog",
-    label: "Каталог",
-    tag: "Для сайту",
+    label: "Каталог LC",
+    tag: "Сайт",
     adjust: {
       brightness: 4,
       contrast: 8,
@@ -32,6 +43,58 @@ export const MEDIA_FILTER_PRESETS: MediaFilterPreset[] = [
       sharpness: 18,
     },
     accent: "linear-gradient(145deg, #B7E1DF, #f0faf9)",
+  },
+  {
+    id: "mint",
+    label: "Мʼята",
+    tag: "Logic",
+    adjust: {
+      brightness: 8,
+      contrast: 4,
+      warmth: -6,
+      saturation: 10,
+      sharpness: 16,
+    },
+    accent: "linear-gradient(145deg, #B7E1DF, #7ec8c4)",
+  },
+  {
+    id: "match",
+    label: "Вирівняти",
+    tag: "Фото + відео",
+    adjust: {
+      brightness: 6,
+      contrast: 12,
+      warmth: 10,
+      saturation: 8,
+      sharpness: 24,
+    },
+    accent: "linear-gradient(145deg, #111, #B7E1DF)",
+  },
+  {
+    id: "studio",
+    label: "Студія",
+    tag: "Рівне світло",
+    adjust: {
+      brightness: 5,
+      contrast: 14,
+      warmth: 0,
+      saturation: 4,
+      sharpness: 20,
+    },
+    accent: "linear-gradient(145deg, #f0f0f0, #d0d0d0)",
+  },
+  {
+    id: "window",
+    label: "Вікно",
+    tag: "Денне",
+    adjust: {
+      brightness: 14,
+      contrast: -4,
+      warmth: -12,
+      saturation: 6,
+      sharpness: 10,
+    },
+    accent: "linear-gradient(145deg, #e3f2fd, #fff)",
   },
   {
     id: "bright",
@@ -47,22 +110,48 @@ export const MEDIA_FILTER_PRESETS: MediaFilterPreset[] = [
     accent: "linear-gradient(145deg, #fff9f0, #ffffff)",
   },
   {
+    id: "golden",
+    label: "Золота година",
+    tag: "Тепло",
+    adjust: {
+      brightness: 8,
+      contrast: 8,
+      warmth: 42,
+      saturation: 14,
+      sharpness: 12,
+    },
+    accent: "linear-gradient(145deg, #ffd89b, #f5af19)",
+  },
+  {
     id: "warm",
     label: "Теплий",
-    tag: "Золото",
+    tag: "Інтерʼєр",
     adjust: {
       brightness: 6,
       contrast: 10,
-      warmth: 38,
-      saturation: 12,
+      warmth: 32,
+      saturation: 10,
       sharpness: 12,
     },
     accent: "linear-gradient(145deg, #f5d4a8, #e8a87c)",
   },
   {
+    id: "iphone-warm",
+    label: "Жовтий iPhone",
+    tag: "Виправити",
+    adjust: {
+      brightness: 4,
+      contrast: 8,
+      warmth: -22,
+      saturation: 6,
+      sharpness: 18,
+    },
+    accent: "linear-gradient(145deg, #fff8e1, #e0f7fa)",
+  },
+  {
     id: "cool",
     label: "Холодний",
-    tag: "Сірий день",
+    tag: "Хмарно",
     adjust: {
       brightness: 2,
       contrast: 6,
@@ -71,6 +160,32 @@ export const MEDIA_FILTER_PRESETS: MediaFilterPreset[] = [
       sharpness: 14,
     },
     accent: "linear-gradient(145deg, #c8d8e8, #8fa8bc)",
+  },
+  {
+    id: "iphone-cool",
+    label: "Синій iPhone",
+    tag: "Виправити",
+    adjust: {
+      brightness: 6,
+      contrast: 10,
+      warmth: 18,
+      saturation: 4,
+      sharpness: 18,
+    },
+    accent: "linear-gradient(145deg, #e1f5fe, #ffecb3)",
+  },
+  {
+    id: "overcast",
+    label: "Похмуро",
+    tag: "Мʼяко",
+    adjust: {
+      brightness: 6,
+      contrast: -8,
+      warmth: -14,
+      saturation: -12,
+      sharpness: 8,
+    },
+    accent: "linear-gradient(145deg, #cfd8dc, #90a4ae)",
   },
   {
     id: "vivid",
@@ -86,6 +201,19 @@ export const MEDIA_FILTER_PRESETS: MediaFilterPreset[] = [
     accent: "linear-gradient(145deg, #ff8a80, #ffd54f)",
   },
   {
+    id: "editorial",
+    label: "Editorial",
+    tag: "Журнал",
+    adjust: {
+      brightness: -4,
+      contrast: 20,
+      warmth: 6,
+      saturation: 8,
+      sharpness: 18,
+    },
+    accent: "linear-gradient(145deg, #212121, #757575)",
+  },
+  {
     id: "soft",
     label: "Ніжний",
     tag: "Пудра",
@@ -97,6 +225,32 @@ export const MEDIA_FILTER_PRESETS: MediaFilterPreset[] = [
       sharpness: 4,
     },
     accent: "linear-gradient(145deg, #fce4ec, #f8bbd0)",
+  },
+  {
+    id: "matte",
+    label: "Матовий",
+    tag: "Fade",
+    adjust: {
+      brightness: 4,
+      contrast: -10,
+      warmth: 8,
+      saturation: -18,
+      sharpness: 6,
+    },
+    accent: "linear-gradient(145deg, #d7ccc8, #efebe9)",
+  },
+  {
+    id: "vintage",
+    label: "Вінтаж",
+    tag: "Плівка",
+    adjust: {
+      brightness: -2,
+      contrast: 6,
+      warmth: 24,
+      saturation: -20,
+      sharpness: 8,
+    },
+    accent: "linear-gradient(145deg, #8d6e63, #d7ccc8)",
   },
   {
     id: "cinema",
@@ -125,6 +279,32 @@ export const MEDIA_FILTER_PRESETS: MediaFilterPreset[] = [
     accent: "linear-gradient(145deg, #1a1a2e, #16213e)",
   },
   {
+    id: "night",
+    label: "Вечір",
+    tag: "Темніше",
+    adjust: {
+      brightness: -18,
+      contrast: 12,
+      warmth: 16,
+      saturation: -8,
+      sharpness: 12,
+    },
+    accent: "linear-gradient(145deg, #1a1a1a, #4a3728)",
+  },
+  {
+    id: "crisp",
+    label: "Різко",
+    tag: "Відео",
+    adjust: {
+      brightness: 4,
+      contrast: 16,
+      warmth: 4,
+      saturation: 6,
+      sharpness: 38,
+    },
+    accent: "linear-gradient(145deg, #eceff1, #111)",
+  },
+  {
     id: "mono",
     label: "Ч/Б",
     tag: "Класика",
@@ -137,47 +317,100 @@ export const MEDIA_FILTER_PRESETS: MediaFilterPreset[] = [
     },
     accent: "linear-gradient(145deg, #666, #ccc)",
   },
+];
+
+export const MEDIA_FILTER_PRESETS = BUILTIN;
+
+export const MEDIA_FILTER_GROUPS: MediaFilterGroup[] = [
   {
-    id: "match",
-    label: "Вирівняти",
-    tag: "Фото + відео",
-    adjust: {
-      brightness: 6,
-      contrast: 12,
-      warmth: 10,
-      saturation: 8,
-      sharpness: 24,
-    },
-    accent: "linear-gradient(145deg, #111, #B7E1DF)",
+    id: "brand",
+    title: "Logic Clothes",
+    presets: BUILTIN.filter((p) =>
+      ["original", "catalog", "mint", "match", "studio"].includes(p.id)
+    ),
+  },
+  {
+    id: "light",
+    title: "Світло і виправлення",
+    presets: BUILTIN.filter((p) =>
+      [
+        "bright",
+        "window",
+        "golden",
+        "warm",
+        "cool",
+        "overcast",
+        "iphone-warm",
+        "iphone-cool",
+      ].includes(p.id)
+    ),
+  },
+  {
+    id: "style",
+    title: "Стиль",
+    presets: BUILTIN.filter((p) =>
+      [
+        "vivid",
+        "soft",
+        "matte",
+        "vintage",
+        "editorial",
+        "cinema",
+        "moody",
+        "night",
+        "crisp",
+        "mono",
+      ].includes(p.id)
+    ),
   },
 ];
 
-export function presetAdjust(id: string): MediaAdjust {
-  const p = MEDIA_FILTER_PRESETS.find((x) => x.id === id);
+export function savedToFilterPreset(p: SavedMediaPreset): MediaFilterPreset {
+  return {
+    id: savedPresetFilterId(p.id),
+    label: p.name,
+    tag: "Заготовка",
+    adjust: { ...p.adjust },
+    accent: "linear-gradient(145deg, #B7E1DF, #111)",
+    isUser: true,
+  };
+}
+
+export function presetAdjust(
+  id: string,
+  saved: SavedMediaPreset[] = []
+): MediaAdjust {
+  const savedId = id.startsWith("saved:") ? id.slice(6) : null;
+  if (savedId) {
+    const u = saved.find((p) => p.id === savedId);
+    if (u) return { ...u.adjust };
+  }
+  const p = BUILTIN.find((x) => x.id === id);
   return p ? { ...p.adjust } : { ...DEFAULT_MEDIA_ADJUST };
 }
 
-export function findMatchingPresetId(adjust: MediaAdjust): string | null {
-  for (const p of MEDIA_FILTER_PRESETS) {
-    if (p.id === "original") continue;
-    const a = p.adjust;
-    if (
-      a.brightness === adjust.brightness &&
-      a.contrast === adjust.contrast &&
-      a.warmth === adjust.warmth &&
-      a.saturation === adjust.saturation &&
-      a.sharpness === adjust.sharpness
-    ) {
-      return p.id;
-    }
+export function findMatchingPresetId(
+  adjust: MediaAdjust,
+  saved: SavedMediaPreset[] = []
+): string | null {
+  for (const p of saved) {
+    if (adjustsEqual(p.adjust, adjust)) return savedPresetFilterId(p.id);
   }
-  return adjust.brightness === 0 &&
-    adjust.contrast === 0 &&
-    adjust.warmth === 0 &&
-    adjust.saturation === 0 &&
-    adjust.sharpness === 0
-    ? "original"
-    : null;
+  for (const p of BUILTIN) {
+    if (p.id === "original") continue;
+    if (adjustsEqual(p.adjust, adjust)) return p.id;
+  }
+  return adjustsEqual(adjust, DEFAULT_MEDIA_ADJUST) ? "original" : null;
+}
+
+function adjustsEqual(a: MediaAdjust, b: MediaAdjust): boolean {
+  return (
+    a.brightness === b.brightness &&
+    a.contrast === b.contrast &&
+    a.warmth === b.warmth &&
+    a.saturation === b.saturation &&
+    a.sharpness === b.sharpness
+  );
 }
 
 export { mediaAdjustCssFilter };
