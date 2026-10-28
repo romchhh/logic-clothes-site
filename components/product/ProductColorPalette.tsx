@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import GroupedPaletteBoard from "@/components/palette/GroupedPaletteBoard";
 import {
   buildFamilyPaletteSlots,
+  COLOR_PALETTE,
+  resolvePaletteId,
   type PaletteColor,
 } from "@/lib/colorPalette";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
-import ProductCustomOrderBlock from "@/components/product/ProductCustomOrderBlock";
 import type { Product, ProductColorVariant } from "@/lib/types";
 
 function isLightHex(hex: string): boolean {
@@ -43,6 +45,22 @@ export default function ProductColorPalette({
   lang: Locale;
 }) {
   const { t } = useI18n();
+
+  const productPaletteId = useMemo(
+    () =>
+      resolvePaletteId({
+        color: product.color,
+        colorHex: product.colorHex,
+      }),
+    [product.color, product.colorHex]
+  );
+
+  const [pickedId, setPickedId] = useState<string | null>(productPaletteId);
+
+  useEffect(() => {
+    setPickedId(productPaletteId);
+  }, [product.id, productPaletteId]);
+
   const slots = useMemo(
     () =>
       buildFamilyPaletteSlots(
@@ -67,83 +85,124 @@ export default function ProductColorPalette({
     ]
   );
 
-  const currentSlot = slots.find((s) => s.isCurrent) ?? slots[0];
-  const activeLabel = currentSlot
-    ? lang === "en"
-      ? currentSlot.palette.labelEn
-      : currentSlot.palette.label
-    : product.color?.trim() || "";
+  const fallbackLabel =
+    product.color?.trim() ||
+    (lang === "en"
+      ? slots[0]?.palette.labelEn
+      : slots[0]?.palette.label) ||
+    "";
 
-  const showSwatches =
-    slots.length > 0 &&
-    (slots.length > 1 || Boolean(product.color || product.colorHex));
+  const pickedColor = useMemo(
+    () => COLOR_PALETTE.find((c) => c.id === pickedId) ?? null,
+    [pickedId]
+  );
+
+  const displayLabel = pickedColor
+    ? lang === "en"
+      ? pickedColor.labelEn
+      : pickedColor.label
+    : fallbackLabel;
+
+  const contactHref = useMemo(() => {
+    const base = `/${lang}/contacts`;
+    if (!displayLabel) return base;
+    const params = new URLSearchParams({
+      model: product.id,
+      shade: displayLabel,
+    });
+    return `${base}?${params.toString()}`;
+  }, [lang, product.id, displayLabel]);
+
+  const showFamilyRow = slots.length > 1;
+
+  function onPick(color: PaletteColor) {
+    setPickedId(color.id);
+  }
 
   return (
     <div className="pdp-option pdp-option--color pdp-option--color-unified">
-      {showSwatches ? (
-        <>
-          <div className="pdp-option-top">
-            <p className="pdp-label">{t.product.color}</p>
-            {activeLabel ? (
-              <p className="pdp-option-value">{activeLabel}</p>
-            ) : null}
-          </div>
-          <div
-            className="pdp-swatches pdp-swatches--palette"
-            role="listbox"
-            aria-label={t.product.color}
-          >
+      <div className="pdp-option-top">
+        <p className="pdp-label">{t.product.color}</p>
+        {displayLabel ? (
+          <p className="pdp-option-value" aria-live="polite">
+            {displayLabel}
+          </p>
+        ) : null}
+      </div>
+
+      {showFamilyRow ? (
+        <div
+          className="pdp-color-family"
+          role="listbox"
+          aria-label={t.product.color}
+        >
+          <p className="pdp-color-family-label">
+            {lang === "uk" ? "Інші кольори моделі" : "Other colors"}
+          </p>
+          <div className="pdp-swatches pdp-swatches--palette">
             {slots.map(({ palette, variant, isCurrent }) => {
-          const label = lang === "en" ? palette.labelEn : palette.label;
-          const className = [
-            "pdp-swatch",
-            isCurrent ? "is-active" : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
+              const label =
+                lang === "en" ? palette.labelEn : palette.label;
+              const className = [
+                "pdp-swatch",
+                isCurrent || pickedId === palette.id ? "is-active" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
 
-          const face = (
-            <span className="pdp-swatch-face" style={swatchStyle(palette)} />
-          );
+              const face = (
+                <span
+                  className="pdp-swatch-face"
+                  style={swatchStyle(palette)}
+                />
+              );
 
-          if (variant && !isCurrent) {
-            return (
-              <Link
-                key={palette.id}
-                href={`/${lang}/product/${encodeURIComponent(variant.id)}`}
-                className={className}
-                role="option"
-                aria-label={label}
-                aria-selected={false}
-                title={label}
-              >
-                {face}
-              </Link>
-            );
-          }
+              if (variant && !isCurrent) {
+                return (
+                  <Link
+                    key={palette.id}
+                    href={`/${lang}/product/${encodeURIComponent(variant.id)}`}
+                    className={className}
+                    role="option"
+                    aria-label={label}
+                    title={label}
+                  >
+                    {face}
+                  </Link>
+                );
+              }
 
-          return (
-            <span
-              key={palette.id}
-              className={className}
-              role="option"
-              aria-label={label}
-              aria-selected={isCurrent}
-              title={label}
-            >
-              {face}
-            </span>
-          );
+              return (
+                <button
+                  key={palette.id}
+                  type="button"
+                  className={className}
+                  role="option"
+                  aria-selected={pickedId === palette.id}
+                  title={label}
+                  onClick={() => setPickedId(palette.id)}
+                >
+                  {face}
+                </button>
+              );
             })}
           </div>
-        </>
-      ) : (
-        <div className="pdp-option-top">
-          <p className="pdp-label">{t.product.color}</p>
         </div>
-      )}
+      ) : null}
 
-      <ProductCustomOrderBlock product={product} lang={lang} embedded />
+      <GroupedPaletteBoard
+        lang={lang}
+        mode="pick"
+        activeId={pickedId}
+        onPick={onPick}
+        className="pdp-color-unified-board"
+      />
+
+      <p className="pdp-color-unified-hint">{t.product.customOrderLead}</p>
+
+      <Link href={contactHref} className="pdp-custom-order-cta">
+        {t.product.customOrderCta}
+      </Link>
     </div>
   );
 }
