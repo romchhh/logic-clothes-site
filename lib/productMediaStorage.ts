@@ -33,6 +33,33 @@ export function contentTypeForMedia(filename: string): string {
       return "video/mp4";
     case ".webm":
       return "video/webm";
+    case ".mov":
+    case ".qt":
+      return "video/quicktime";
+    case ".m4v":
+      return "video/x-m4v";
+    case ".avi":
+      return "video/x-msvideo";
+    case ".mkv":
+      return "video/x-matroska";
+    case ".3gp":
+    case ".3g2":
+      return "video/3gpp";
+    case ".ogv":
+    case ".ogg":
+      return "video/ogg";
+    case ".heic":
+    case ".heif":
+      return "image/heic";
+    case ".avif":
+      return "image/avif";
+    case ".tif":
+    case ".tiff":
+      return "image/tiff";
+    case ".bmp":
+      return "image/bmp";
+    case ".svg":
+      return "image/svg+xml";
     default:
       return "application/octet-stream";
   }

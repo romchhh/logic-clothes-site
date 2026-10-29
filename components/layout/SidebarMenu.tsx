@@ -13,12 +13,16 @@ export default function SidebarMenu({ lang }: { lang: Locale }) {
 
   const links = [
     { href: `/${lang}/catalog`, label: t.nav.catalog },
-    { href: `/${lang}/catalog?category=new`, label: t.nav.new },
-    { href: `/${lang}/catalog?category=dresses`, label: lang === "uk" ? "Сукні" : "Dresses" },
-    { href: `/${lang}/catalog?category=outerwear`, label: lang === "uk" ? "Верхній одяг" : "Outerwear" },
-    { href: `/${lang}/about`, label: t.nav.about },
-    { href: `/${lang}/contacts`, label: t.nav.stores },
-    { href: `/${lang}/shipping-payment`, label: lang === "uk" ? "Оплата і доставка" : "Shipping & Payment" },
+    { href: `/${lang}/about`, label: t.nav.whoWeAre },
+    {
+      href: `/${lang}/about#custom-order`,
+      label: t.nav.custom14,
+    },
+    {
+      href: `/${lang}/shipping-payment`,
+      label: t.nav.shippingWorld,
+    },
+    { href: `/${lang}/contacts`, label: t.nav.storeKyiv },
   ];
 
   return (
@@ -36,10 +40,10 @@ export default function SidebarMenu({ lang }: { lang: Locale }) {
             ×
           </button>
         </div>
-        <nav>
+        <nav aria-label={t.nav.menu}>
           {links.map((item) => (
             <Link
-              key={item.label}
+              key={item.href}
               href={item.href}
               onClick={closePanels}
             >
@@ -50,7 +54,7 @@ export default function SidebarMenu({ lang }: { lang: Locale }) {
         <LangSwitcher lang={lang} variant="menu" onNavigate={closePanels} />
         <div className="mobile-menu-foot">
           <a href={`tel:${SITE_PHONE}`}>{SITE_PHONE_DISPLAY}</a>
-          <Link href={`/${lang}#about`} onClick={closePanels}>
+          <Link href={`/${lang}/contacts`} onClick={closePanels}>
             Concept store · Київ
           </Link>
         </div>

@@ -415,7 +415,7 @@ export default function CategoriesTable() {
                       </span>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/*,*/*"
                         className="hidden"
                         disabled={uploading}
                         onChange={(e) => {

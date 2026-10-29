@@ -9,8 +9,8 @@ import {
   isDefaultAdjust,
   type MediaAdjust,
 } from "@/lib/mediaAdjust";
+import { isVideoUploadFile } from "@/lib/mediaUploadKind";
 import {
-  isImageUploadFile,
   prepareImageUploadFile,
 } from "@/lib/prepareUploadImage";
 import type { ProductMedia } from "@/lib/types";
@@ -40,11 +40,9 @@ export default function ProductMediaManager({ media, onChange }: Props) {
   const dragItemRef = useRef<number | null>(null);
 
   const imageQueueRef = useRef<PendingImage[]>([]);
-  const videoAfterUploadRef = useRef<
-    { url: string; file: File; adjust?: MediaAdjust }[]
-  >([]);
   const [queueTotal, setQueueTotal] = useState(0);
   const [queueIndex, setQueueIndex] = useState(0);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -118,18 +116,36 @@ export default function ProductMediaManager({ media, onChange }: Props) {
   );
 
   const openVideoEdit = useCallback(
-    (url: string, file: File | null, initialAdjust?: MediaAdjust) => {
+    async (url: string, file: File | null, initialAdjust?: MediaAdjust) => {
       const previewUrl = file
         ? trackObjectUrl(URL.createObjectURL(file))
         : url;
+      let naturalW = 1080;
+      let naturalH = 1920;
+      try {
+        const probe = document.createElement("video");
+        probe.preload = "metadata";
+        probe.src = previewUrl;
+        await new Promise<void>((resolve, reject) => {
+          probe.onloadedmetadata = () => resolve();
+          probe.onerror = () => reject(new Error("meta"));
+        });
+        if (probe.videoWidth > 0 && probe.videoHeight > 0) {
+          naturalW = probe.videoWidth;
+          naturalH = probe.videoHeight;
+        }
+      } catch {
+        /* keep defaults */
+      }
       setEditSession({
         mode: "video",
         file,
         previewUrl,
         replaceUrl: url,
-        naturalW: 1080,
-        naturalH: 1920,
+        naturalW,
+        naturalH,
         initialAdjust,
+        label: file?.name ?? url.split("/").pop()?.split("?")[0],
       });
     },
     []
@@ -141,7 +157,6 @@ export default function ProductMediaManager({ media, onChange }: Props) {
 
   const abortQueues = useCallback(() => {
     imageQueueRef.current = [];
-    videoAfterUploadRef.current = [];
     setQueueTotal(0);
     setQueueIndex(0);
     setUploading(false);
@@ -155,15 +170,9 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       await openImageEdit(next.file, next.replaceUrl);
       return;
     }
-    const vid = videoAfterUploadRef.current.shift();
-    if (vid) {
-      setQueueIndex((i) => i + 1);
-      openVideoEdit(vid.url, vid.file, vid.adjust);
-      return;
-    }
     abortQueues();
     closeEdit();
-  }, [abortQueues, closeEdit, openImageEdit, openVideoEdit]);
+  }, [abortQueues, closeEdit, openImageEdit]);
 
   const skipEdit = useCallback(() => {
     closeEdit();
@@ -177,21 +186,22 @@ export default function ProductMediaManager({ media, onChange }: Props) {
 
   const onPickFiles = async (files: FileList | File[]) => {
     const list = Array.from(files);
-    const videos = list.filter((f) => f.type.startsWith("video/"));
-    const rawImages = list.filter((f) => isImageUploadFile(f));
+    const videos = list.filter((f) => isVideoUploadFile(f));
+    const rawImages = list.filter((f) => !isVideoUploadFile(f));
     if (!videos.length && !rawImages.length) {
-      setError("Оберіть зображення (JPEG, PNG, HEIC) або відео");
+      setError("Не вдалося прочитати файли");
       return;
     }
 
     setUploading(true);
     setError(null);
-    videoAfterUploadRef.current = [];
+    setUploadNotice(null);
 
     try {
+      let videoCount = 0;
       for (let i = 0; i < videos.length; i++) {
         const file = videos[i];
-        setUploadProgress(`Відео ${i + 1} / ${videos.length}`);
+        setUploadProgress(`Завантаження відео ${i + 1} / ${videos.length}…`);
         const items = await uploadOne(file);
         const fresh = items[0];
         if (!fresh) throw new Error("empty");
@@ -199,7 +209,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         const next = [...mediaRef.current, fresh];
         mediaRef.current = next;
         onChange(next);
-        videoAfterUploadRef.current.push({ url: fresh.url, file });
+        videoCount += 1;
       }
 
       const images: File[] = [];
@@ -214,10 +224,15 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         }
       }
 
-      const totalEdits =
-        images.length + videoAfterUploadRef.current.length;
-      if (totalEdits === 0) {
+      if (images.length === 0) {
         abortQueues();
+        if (videoCount > 0) {
+          setUploadNotice(
+            videoCount === 1
+              ? "Відео додано. Тон — кнопка «Тон відео», якщо потрібно."
+              : `Додано ${videoCount} відео. Тон — «Тон відео» на кожній картці.`
+          );
+        }
         return;
       }
 
@@ -225,16 +240,15 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         file,
         replaceUrl: null,
       }));
-      setQueueTotal(totalEdits);
+      setQueueTotal(images.length);
       setQueueIndex(1);
-      setUploadProgress(`Редагування 1 / ${totalEdits}`);
-
-      if (images.length > 0) {
-        await openImageEdit(images[0], null);
-      } else {
-        const v = videoAfterUploadRef.current.shift();
-        if (v) openVideoEdit(v.url, v.file);
+      setUploadProgress(`Кадр фото 1 / ${images.length}`);
+      if (videoCount > 0) {
+        setUploadNotice(
+          `Відео (${videoCount}) уже в галереї — відкриється лише кадрування фото.`
+        );
       }
+      await openImageEdit(images[0], null);
     } catch (e) {
       console.error(e);
       setError("Не вдалося завантажити частину файлів");
@@ -284,9 +298,9 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         : editSession?.file ?? file;
       patchMedia(replaceUrl, fresh, source, adjust);
       closeEdit();
-      if (imageQueueRef.current.length || videoAfterUploadRef.current.length) {
+      if (imageQueueRef.current.length) {
         setUploadProgress(
-          `Редагування ${queueIndex + 1} / ${queueTotal}`
+          `Кадр фото ${queueIndex + 1} / ${queueTotal}`
         );
         await advanceImageQueue();
       } else {
@@ -313,7 +327,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     mediaRef.current = next;
     onChange(next);
     closeEdit();
-    if (imageQueueRef.current.length || videoAfterUploadRef.current.length) {
+    if (imageQueueRef.current.length) {
       await advanceImageQueue();
     } else {
       abortQueues();
@@ -353,7 +367,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     setError(null);
     if (item.type === "video") {
       const original = originalsRef.current.get(item.url);
-      openVideoEdit(item.url, original ?? null, item.adjust);
+      await openVideoEdit(item.url, original ?? null, item.adjust);
       return;
     }
     const original = originalsRef.current.get(item.url);
@@ -383,9 +397,9 @@ export default function ProductMediaManager({ media, onChange }: Props) {
             Фото та відео
           </h3>
           <p className="mt-0.5 text-sm text-gray-500">
-            Завантажте файли — для кожного відкриється редактор з фільтрами,
-            точним світлом і кадром 3:5. Пресет «Вирівняти» зручний, коли фото
-            і відео з різних камер.
+            Фото після завантаження відкривають кадр 3:5. Відео одразу потрапляє
+            в галерею — тон за потреби через «Тон відео». Старі файли — «Редагувати»
+            / «Тон відео».
           </p>
         </div>
         <button
@@ -403,7 +417,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         <input
           ref={inputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/heic,image/heif,video/mp4,video/webm"
+          accept="image/*,video/*,*/*"
           multiple
           className="hidden"
           onChange={(e) => {
@@ -416,6 +430,9 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
+      {uploadNotice && !error ? (
+        <p className="text-sm text-teal-800 dark:text-teal-200/90">{uploadNotice}</p>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {media.map((m, idx) => (
@@ -446,6 +463,8 @@ export default function ProductMediaManager({ media, onChange }: Props) {
                   muted
                   playsInline
                   preload="metadata"
+                  controls
+                  onClick={(e) => e.stopPropagation()}
                 />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -519,7 +538,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
                 disabled={uploading || Boolean(editSession)}
                 onClick={() => void startEditFor(idx)}
               >
-                Редагувати
+                {m.type === "video" ? "Тон відео" : "Редагувати"}
               </button>
             </div>
           </div>
@@ -542,7 +561,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         queueTotal={queueTotal}
         busy={uploading}
         onClose={cancelAll}
-        onSkip={queueTotal > 1 ? skipEdit : undefined}
+        onSkip={skipEdit}
         onSaveImage={onSaveImage}
         onSaveVideo={onSaveVideo}
       />

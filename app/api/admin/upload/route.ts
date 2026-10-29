@@ -12,6 +12,10 @@ import {
   productMediaDir,
   productMediaPublicUrl,
 } from "@/lib/productMediaStorage";
+import {
+  isVideoUpload,
+  sanitizeVideoExtension,
+} from "@/lib/mediaUploadKind";
 
 export const runtime = "nodejs";
 
@@ -78,12 +82,10 @@ export async function POST(request: NextRequest) {
       const base = `${Date.now().toString(36)}-${Math.random()
         .toString(36)
         .slice(2, 8)}`;
-      const isVideo = file.type.startsWith("video/");
+      const isVideo = isVideoUpload(file.name, file.type);
 
       if (isVideo) {
-        const ext =
-          file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") ||
-          "mp4";
+        const ext = sanitizeVideoExtension(file.name);
         const filename = `${base}.${ext}`;
         await fs.writeFile(path.join(dir, filename), buf);
         items.push({
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest) {
           {
             error: "unsupported_image",
             message:
-              "Формат фото не підтримується. Спробуйте JPEG або PNG, або збережіть HEIC як JPEG у Фото.",
+              "Не вдалося обробити файл як зображення. Спробуйте JPEG/PNG або конвертуйте у MP4 для відео.",
           },
           { status: 415 }
         );

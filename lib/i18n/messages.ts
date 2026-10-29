@@ -9,6 +9,10 @@ export type Messages = {
     new: string;
     stores: string;
     menu: string;
+    whoWeAre: string;
+    custom14: string;
+    shippingWorld: string;
+    storeKyiv: string;
   };
   home: {
     cta: string;
@@ -76,6 +80,13 @@ export type Messages = {
     customOrderLead: string;
     customOrderCta: string;
     customOrderSelected: string;
+    discussChoose: string;
+    discussInstagram: string;
+    discussMessenger: string;
+    discussMessageLabel: string;
+    discussSend: string;
+    discussCopied: string;
+    discussCopyManual: string;
     model: string;
     modelOnPhoto: string;
     sizeChartTitle: string;
@@ -252,6 +263,10 @@ const uk: Messages = {
     new: "Новинки",
     stores: "Магазини",
     menu: "Меню",
+    whoWeAre: "Хто ми",
+    custom14: "Ваш колір + ваш розмір за 14 днів",
+    shippingWorld: "🌍 Доставка · оплата",
+    storeKyiv: "Магазин у Києві",
   },
   home: {
     cta: "Каталог",
@@ -319,8 +334,17 @@ const uk: Messages = {
     customOrderTitle: "Конструктор власного замовлення",
     customOrderLead:
       "Будь-який колір палітри — по мірках або з нашої сітки. Напишіть, який відтінок і розмір вам потрібні.",
-    customOrderCta: "Обговорити замовлення",
+    customOrderCta: "Обговорити замовлення з живою людиною",
     customOrderSelected: "Обраний відтінок",
+    discussChoose: "Куди надіслати повідомлення?",
+    discussInstagram: "Instagram Direct",
+    discussMessenger: "Месенджер (Viber менеджера)",
+    discussMessageLabel: "Ваш текст",
+    discussSend: "Надіслати",
+    discussCopied:
+      "Текст скопійовано — вставте його в Direct, якщо поле порожнє.",
+    discussCopyManual:
+      "Скопіюйте текст нижче та вставте в Instagram Direct.",
     model: "Модель:",
     modelOnPhoto:
       "На фото розмір S–M. Параметри моделі: зріст 175 см, груди 86, талія 64, стегна 92.",
@@ -511,6 +535,10 @@ const en: Messages = {
     new: "New in",
     stores: "Stores",
     menu: "Menu",
+    whoWeAre: "Who we are",
+    custom14: "Your colour + your size in 14 days",
+    shippingWorld: "🌍 Shipping · payment",
+    storeKyiv: "Store in Kyiv",
   },
   home: {
     cta: "Shop",
@@ -578,8 +606,16 @@ const en: Messages = {
     customOrderTitle: "Build your custom order",
     customOrderLead:
       "Any palette colour — standard sizes or made to measure. Tell us the shade and fit you need.",
-    customOrderCta: "Discuss your order",
+    customOrderCta: "Discuss your order with a real person",
     customOrderSelected: "Selected shade",
+    discussChoose: "Where should we receive your message?",
+    discussInstagram: "Instagram Direct",
+    discussMessenger: "Viber (order manager)",
+    discussMessageLabel: "Your message",
+    discussSend: "Send",
+    discussCopied:
+      "Message copied — paste it into Direct if the field is empty.",
+    discussCopyManual: "Copy the text below and paste it into Instagram Direct.",
     model: "Style:",
     modelOnPhoto:
       "Size on photo: S–M. Model specs: height 175 cm, bust 86, waist 64, hips 92.",

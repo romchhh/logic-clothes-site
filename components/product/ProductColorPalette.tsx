@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import GroupedPaletteBoard from "@/components/palette/GroupedPaletteBoard";
+import ProductDiscussOrder from "@/components/product/ProductDiscussOrder";
 import {
   buildFamilyPaletteSlots,
   COLOR_PALETTE,
   resolvePaletteId,
   type PaletteColor,
 } from "@/lib/colorPalette";
+import { paintSwatchShape } from "@/lib/paletteSwatchShape";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import type { Product, ProductColorVariant } from "@/lib/types";
@@ -22,15 +24,23 @@ function isLightHex(hex: string): boolean {
   return (r * 299 + g * 587 + b * 114) / 1000 > 210;
 }
 
-function swatchStyle(palette: PaletteColor): CSSProperties {
+function swatchStyle(
+  palette: PaletteColor,
+  shapeIndex: number
+): CSSProperties {
+  const shape = paintSwatchShape(shapeIndex);
   if (palette.id === "multi") {
     return {
       background:
         "conic-gradient(from 90deg, #c4c4c4, #8a8a8a, #d4c4a8, #a67b5b, #8a8a8a)",
+      borderRadius: shape.borderRadius,
+      transform: shape.transform,
     };
   }
   return {
     backgroundColor: palette.hex,
+    borderRadius: shape.borderRadius,
+    transform: shape.transform,
     boxShadow: isLightHex(palette.hex)
       ? "inset 0 0 0 1px rgba(0,0,0,0.12)"
       : "inset 0 0 0 1px rgba(0,0,0,0.06)",
@@ -103,16 +113,6 @@ export default function ProductColorPalette({
       : pickedColor.label
     : fallbackLabel;
 
-  const contactHref = useMemo(() => {
-    const base = `/${lang}/contacts`;
-    if (!displayLabel) return base;
-    const params = new URLSearchParams({
-      model: product.id,
-      shade: displayLabel,
-    });
-    return `${base}?${params.toString()}`;
-  }, [lang, product.id, displayLabel]);
-
   const showFamilyRow = slots.length > 1;
 
   function onPick(color: PaletteColor) {
@@ -140,11 +140,12 @@ export default function ProductColorPalette({
             {lang === "uk" ? "Інші кольори моделі" : "Other colors"}
           </p>
           <div className="pdp-swatches pdp-swatches--palette">
-            {slots.map(({ palette, variant, isCurrent }) => {
+            {slots.map(({ palette, variant, isCurrent }, slotIdx) => {
               const label =
                 lang === "en" ? palette.labelEn : palette.label;
               const className = [
                 "pdp-swatch",
+                "pdp-swatch--paint",
                 isCurrent || pickedId === palette.id ? "is-active" : "",
               ]
                 .filter(Boolean)
@@ -153,8 +154,10 @@ export default function ProductColorPalette({
               const face = (
                 <span
                   className="pdp-swatch-face"
-                  style={swatchStyle(palette)}
-                />
+                  style={swatchStyle(palette, slotIdx)}
+                >
+                  <span className="pdp-swatch-paint" aria-hidden="true" />
+                </span>
               );
 
               if (variant && !isCurrent) {
@@ -200,9 +203,12 @@ export default function ProductColorPalette({
 
       <p className="pdp-color-unified-hint">{t.product.customOrderLead}</p>
 
-      <Link href={contactHref} className="pdp-custom-order-cta">
-        {t.product.customOrderCta}
-      </Link>
+      <ProductDiscussOrder
+        lang={lang}
+        productId={product.id}
+        productName={product.name}
+        shadeLabel={displayLabel}
+      />
     </div>
   );
 }

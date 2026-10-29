@@ -31,6 +31,8 @@ export type MediaEditSession = {
   naturalW: number;
   naturalH: number;
   initialAdjust?: MediaAdjust;
+  /** Original filename for UI */
+  label?: string;
 };
 
 type EditorTab = "filters" | "fine" | "crop";
@@ -113,7 +115,15 @@ function FilterPresetCard({
         onClick={onPick}
       >
         <span className="media-editor-filter-thumb">
-          {!isVideo && previewUrl ? (
+          {isVideo && previewUrl ? (
+            <video
+              src={previewUrl}
+              muted
+              playsInline
+              preload="metadata"
+              style={thumbFilter ? { filter: thumbFilter } : undefined}
+            />
+          ) : !isVideo && previewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={previewUrl}
@@ -179,6 +189,8 @@ export default function MediaEditModal({
 
   const frameRef = useRef<HTMLDivElement>(null);
   const cropImgRef = useRef<HTMLImageElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoPlaying, setVideoPlaying] = useState(true);
   const panRef = useRef<PanState>({ x: 0, y: 0 });
   const cropReadyRef = useRef(false);
   const dragRef = useRef<{
@@ -203,7 +215,18 @@ export default function MediaEditModal({
     setSaveNotice(null);
     cropReadyRef.current = false;
     panRef.current = { x: 0, y: 0 };
+    setVideoPlaying(true);
   }, [session]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || session?.mode !== "video") return;
+    if (videoPlaying) {
+      void v.play().catch(() => setVideoPlaying(false));
+    } else {
+      v.pause();
+    }
+  }, [session, videoPlaying]);
 
   const applyPanToDom = useCallback(() => {
     const img = cropImgRef.current;
@@ -355,6 +378,16 @@ export default function MediaEditModal({
     }
   }
 
+  async function handleSaveWithoutTone() {
+    if (!session || session.mode !== "video" || !session.replaceUrl) return;
+    setSaving(true);
+    try {
+      await onSaveVideo(session.replaceUrl, DEFAULT_MEDIA_ADJUST);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSave() {
     if (!session) return;
     setSaving(true);
@@ -390,9 +423,11 @@ export default function MediaEditModal({
   const disabled = saving || busy;
   const showCropLayer = !isVideo && tab === "crop";
   const showFilteredPreview = !showCropLayer;
+  const showSkip = isVideo || (Boolean(onSkip) && queueTotal > 1);
+  const fileLabel = session.label?.trim();
 
   const tabs: { id: EditorTab; label: string; hide?: boolean }[] = [
-    { id: "filters", label: "Фільтри" },
+    { id: "filters", label: isVideo ? "Пресети" : "Фільтри" },
     { id: "fine", label: "Точно" },
     { id: "crop", label: "Кадр 3:5", hide: isVideo },
   ];
@@ -417,12 +452,17 @@ export default function MediaEditModal({
         <header className="media-editor-head">
           <div>
             <p className="media-editor-eyebrow">
-              {isVideo ? "Відео" : "Фото"}
+              {isVideo ? "Відео · тон на сайті" : "Фото"}
               {queueTotal > 1 ? ` · ${queueIndex} з ${queueTotal}` : ""}
             </p>
             <h2 id="media-editor-title" className="media-editor-title">
-              Редактор медіа
+              {isVideo ? "Налаштування відео" : "Редактор медіа"}
             </h2>
+            {fileLabel ? (
+              <p className="media-editor-file-label" title={fileLabel}>
+                {fileLabel}
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -440,7 +480,9 @@ export default function MediaEditModal({
           <div className="media-editor-preview-wrap">
             <div
               ref={frameRef}
-              className="media-editor-frame"
+              className={`media-editor-frame${
+                isVideo ? " media-editor-frame--video" : ""
+              }`}
               style={{
                 cursor: showCropLayer ? "grab" : "default",
                 touchAction: "none",
@@ -452,8 +494,9 @@ export default function MediaEditModal({
             >
               {isVideo ? (
                 <video
+                  ref={videoRef}
                   src={session.previewUrl}
-                  className="media-editor-media"
+                  className="media-editor-media media-editor-media--video"
                   style={
                     previewFilter ? { filter: previewFilter } : undefined
                   }
@@ -461,6 +504,8 @@ export default function MediaEditModal({
                   playsInline
                   loop
                   autoPlay
+                  controls
+                  preload="auto"
                 />
               ) : (
                 <>
@@ -491,21 +536,39 @@ export default function MediaEditModal({
                   />
                 </>
               )}
-              <div className="media-editor-frame-guide" aria-hidden="true" />
-              <span className="media-editor-frame-ratio">3 : 5</span>
+              {!isVideo ? (
+                <div className="media-editor-frame-guide" aria-hidden="true" />
+              ) : null}
+              {!isVideo ? (
+                <span className="media-editor-frame-ratio">3 : 5</span>
+              ) : (
+                <span className="media-editor-frame-ratio media-editor-frame-ratio--video">
+                  Відео
+                </span>
+              )}
             </div>
 
             <div className="media-editor-preview-actions">
-              <button
-                type="button"
-                className={`media-editor-chip${compare ? " is-active" : ""}`}
-                onPointerDown={() => setCompare(true)}
-                onPointerUp={() => setCompare(false)}
-                onPointerLeave={() => setCompare(false)}
-                onPointerCancel={() => setCompare(false)}
-              >
-                Утримуй — до / після
-              </button>
+              {isVideo ? (
+                <button
+                  type="button"
+                  className={`media-editor-chip${videoPlaying ? " is-active" : ""}`}
+                  onClick={() => setVideoPlaying((p) => !p)}
+                >
+                  {videoPlaying ? "Пауза" : "Грати"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={`media-editor-chip${compare ? " is-active" : ""}`}
+                  onPointerDown={() => setCompare(true)}
+                  onPointerUp={() => setCompare(false)}
+                  onPointerLeave={() => setCompare(false)}
+                  onPointerCancel={() => setCompare(false)}
+                >
+                  Утримуй — до / після
+                </button>
+              )}
               {activeLabel && (
                 <span className="media-editor-active-filter">{activeLabel}</span>
               )}
@@ -534,6 +597,12 @@ export default function MediaEditModal({
             </nav>
 
             <div className="media-editor-scroll">
+              {tab === "filters" && isVideo && (
+                <p className="media-editor-hint media-editor-hint--video">
+                  Кадрування не потрібне — лише вирівняйте тон з фото. Можна
+                  залишити «Оригінал» і натиснути «Без змін».
+                </p>
+              )}
               {tab === "filters" && (
                 <div className="media-editor-filters">
                   <div className="media-editor-save-preset">
@@ -705,14 +774,17 @@ export default function MediaEditModal({
             Скасувати
           </button>
           <div className="media-editor-foot-right">
-            {onSkip && queueTotal > 1 ? (
+            {showSkip ? (
               <button
                 type="button"
                 className="admin-btn-secondary"
                 disabled={disabled}
-                onClick={onSkip}
+                onClick={() => {
+                  if (isVideo) void handleSaveWithoutTone();
+                  else onSkip?.();
+                }}
               >
-                Пропустити
+                {isVideo ? "Без змін" : "Пропустити"}
               </button>
             ) : null}
             <button
@@ -721,7 +793,11 @@ export default function MediaEditModal({
               disabled={disabled}
               onClick={() => void handleSave()}
             >
-              {saving ? "Збереження…" : "Застосувати"}
+              {saving
+                ? "Збереження…"
+                : isVideo
+                  ? "Зберегти тон"
+                  : "Застосувати"}
             </button>
           </div>
         </footer>

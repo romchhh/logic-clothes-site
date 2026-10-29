@@ -1041,6 +1041,13 @@ export default function ProductForm({ productId }: Props) {
             emptyHint="Ще не повʼязано жодного кольору — знайдіть копії цієї моделі через пошук нижче"
           />
           <div className="border-t border-gray-100 dark:border-white/[0.06]" />
+          {!isEdit ? (
+            <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-[13px] leading-relaxed text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+              Спочатку натисніть «Створити товар» внизу сторінки. Після збереження
+              відкрийте товар знову — тоді можна додати речі в «Також у цьому
+              луці» (пошук існуючих товарів, не «Завантажити нове»).
+            </p>
+          ) : null}
           <ProductRelationPicker
             kind="look"
             label="Також у цьому луці"

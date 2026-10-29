@@ -1,9 +1,9 @@
 /** Client-side: normalize picks (HEIC → JPEG) before crop / upload. */
 
+import { isImageUploadFile as isImageUploadMedia } from "@/lib/mediaUploadKind";
+
 export function isImageUploadFile(file: File): boolean {
-  if (file.type.startsWith("image/")) return true;
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-  return ext === "heic" || ext === "heif" || ext === "jpg" || ext === "jpeg";
+  return isImageUploadMedia(file);
 }
 
 function isHeicFile(file: File): boolean {
