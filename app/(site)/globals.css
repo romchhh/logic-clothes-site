@@ -2976,15 +2976,13 @@
     opacity:.75;
     pointer-events:none;
   }
-    border:none;
-    object-fit:cover;
-  }
   .pdp-swatch-face img,
   img.pdp-swatch-face{
     width:100%;
     height:100%;
     object-fit:cover;
-    border-radius:50%;
+    border:none;
+    border-radius:inherit;
     display:block;
   }
   .pdp-desc,
