@@ -14,9 +14,11 @@ export function isCatalogProduct(p: Product): boolean {
   return isRealProduct(p) && p.isVisible !== false;
 }
 
-/** Can be added to basket / checkout (may still be hidden from catalog). */
+/** Can be added to basket / checkout (in stock or sew-in-14-days). */
 export function isSellableProduct(p: Product): boolean {
-  return isRealProduct(p) && p.inStock !== false;
+  return (
+    isRealProduct(p) && (Boolean(p.inStock) || Boolean(p.madeToOrder))
+  );
 }
 
 export function normalizeSizeOptions(

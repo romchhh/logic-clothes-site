@@ -145,6 +145,10 @@ export function productFromBody(
       : base.swatches || [],
     inStock:
       body.inStock != null ? Boolean(body.inStock) : base.inStock !== false,
+    madeToOrder:
+      body.madeToOrder != null
+        ? Boolean(body.madeToOrder)
+        : Boolean(base.madeToOrder),
     isVisible:
       body.isVisible != null
         ? Boolean(body.isVisible)

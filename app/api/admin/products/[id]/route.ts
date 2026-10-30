@@ -78,7 +78,13 @@ export async function PATCH(
     const body = (await request.json()) as Record<string, unknown>;
     let next = { ...current };
     if (typeof body.inStock === "boolean") next.inStock = body.inStock;
+    if (typeof body.madeToOrder === "boolean")
+      next.madeToOrder = body.madeToOrder;
     if (typeof body.isVisible === "boolean") next.isVisible = body.isVisible;
+    if (typeof body.category === "string") {
+      const cat = body.category.trim();
+      next.category = cat || undefined;
+    }
 
     const pricePatch: {
       priceNum?: number;

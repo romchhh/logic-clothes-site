@@ -1,19 +1,11 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Pagination from "./Pagination";
 import {
-  ADMIN_PRODUCTS_LIST_DEFAULT,
-  adminProductsListHasParams,
-  parseAdminProductsListState,
-  readAdminProductsListState,
-  serializeAdminProductsListState,
-  writeAdminProductsListState,
-  type AdminProductsListState,
-  type StockFilter,
-  type VisibilityFilter,
+  parseAdminProductsSort,
+  type AdminProductsSort,
 } from "@/lib/adminProductsListState";
 import {
   applyPricePatch,
@@ -29,36 +21,39 @@ const PER_PAGE = 20;
 
 type PriceDraftRow = { uah?: string; eur?: string; usd?: string };
 
-function resolveInitialState(
-  searchParams: URLSearchParams
-): AdminProductsListState {
-  if (adminProductsListHasParams(searchParams)) {
-    return parseAdminProductsListState(searchParams);
+function sortProducts(list: Product[], sort: AdminProductsSort): Product[] {
+  const next = [...list];
+  if (sort === "price-asc") {
+    next.sort((a, b) => a.priceNum - b.priceNum);
+  } else if (sort === "price-desc") {
+    next.sort((a, b) => b.priceNum - a.priceNum);
+  } else if (sort === "date-desc") {
+    next.sort((a, b) => {
+      const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+      const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+      return tb - ta;
+    });
+  } else if (sort === "date-asc") {
+    next.sort((a, b) => {
+      const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+      const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+      return ta - tb;
+    });
+  } else {
+    next.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   }
-  return readAdminProductsListState() ?? ADMIN_PRODUCTS_LIST_DEFAULT;
+  return next;
 }
 
 export default function ProductsTable() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const initialRef = useRef<AdminProductsListState | null>(null);
-  if (!initialRef.current) {
-    initialRef.current = resolveInitialState(searchParams);
-  }
-  const initial = initialRef.current;
-
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState(initial.q);
-  const [categoryId, setCategoryId] = useState(initial.cat);
-  const [stockFilter, setStockFilter] = useState<StockFilter>(initial.stock);
-  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>(
-    initial.vis
-  );
-  const [page, setPage] = useState(initial.page);
+  const [search, setSearch] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [sort, setSort] = useState<AdminProductsSort>("default");
+  const [page, setPage] = useState(1);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [priceDraft, setPriceDraft] = useState<Record<string, PriceDraftRow>>(
@@ -133,24 +128,20 @@ export default function ProductsTable() {
   }, [menuOpenId]);
 
   const counts = useMemo(() => {
-    const hidden = products.filter((p) => p.isVisible === false).length;
-    const out = products.filter((p) => !p.inStock).length;
+    const out = products.filter((p) => !p.inStock && !p.madeToOrder).length;
+    const made = products.filter((p) => p.madeToOrder).length;
     return {
       total: products.length,
-      inStock: products.length - out,
+      inStock: products.filter((p) => p.inStock).length,
+      made,
       out,
-      hidden,
     };
   }, [products]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return products.filter((p) => {
+    const list = products.filter((p) => {
       if (categoryId && p.category !== categoryId) return false;
-      if (stockFilter === "in" && !p.inStock) return false;
-      if (stockFilter === "out" && p.inStock) return false;
-      if (visibilityFilter === "visible" && p.isVisible === false) return false;
-      if (visibilityFilter === "hidden" && p.isVisible !== false) return false;
       if (!q) return true;
       return (
         p.name.toLowerCase().includes(q) ||
@@ -161,14 +152,8 @@ export default function ProductsTable() {
         categoryLabel(p.category).toLowerCase().includes(q)
       );
     });
-  }, [
-    products,
-    search,
-    categoryId,
-    stockFilter,
-    visibilityFilter,
-    categoryLabel,
-  ]);
+    return sortProducts(list, sort);
+  }, [products, search, categoryId, sort, categoryLabel]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const currentPage = Math.min(page, totalPages);
@@ -177,33 +162,9 @@ export default function ProductsTable() {
     [filtered, currentPage]
   );
 
-  const listState = useMemo<AdminProductsListState>(
-    () => ({
-      q: search,
-      cat: categoryId,
-      stock: stockFilter,
-      vis: visibilityFilter,
-      page: currentPage,
-    }),
-    [search, categoryId, stockFilter, visibilityFilter, currentPage]
-  );
-
   useEffect(() => {
     if (page !== currentPage) setPage(currentPage);
   }, [page, currentPage]);
-
-  // Persist filters + page (sessionStorage + URL) so edit → back keeps them.
-  useEffect(() => {
-    writeAdminProductsListState(listState);
-    const nextQs = serializeAdminProductsListState(listState);
-    const currentQs = serializeAdminProductsListState(
-      parseAdminProductsListState(searchParams)
-    );
-    if (nextQs === currentQs) return;
-    router.replace(nextQs ? `${pathname}?${nextQs}` : pathname, {
-      scroll: false,
-    });
-  }, [listState, pathname, router, searchParams]);
 
   const productCategories = useMemo(
     () =>
@@ -219,11 +180,12 @@ export default function ProductsTable() {
       Pick<
         Product,
         | "inStock"
-        | "isVisible"
+        | "madeToOrder"
         | "priceNum"
         | "priceEur"
         | "priceUsd"
         | "compareAtPriceNum"
+        | "category"
       >
     >
   ) {
@@ -247,7 +209,6 @@ export default function ProductsTable() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const fresh = (await res.json()) as Product;
       setProducts((list) => list.map((p) => (p.id === id ? fresh : p)));
-      // Drop storefront client product list so search/wishlist refetch.
       const { CACHE_KEYS, clearCachedData } = await import("@/lib/cache");
       clearCachedData(CACHE_KEYS.PRODUCTS);
     } catch (e) {
@@ -373,6 +334,10 @@ export default function ProductsTable() {
   }
 
   function moveProduct(id: string, direction: -1 | 1) {
+    if (sort !== "default") {
+      alert("Щоб змінити порядок вручну, оберіть сортування «За пріоритетом»");
+      return;
+    }
     const from = products.findIndex((p) => p.id === id);
     const to = from + direction;
     if (from < 0 || to < 0 || to >= products.length) return;
@@ -385,16 +350,14 @@ export default function ProductsTable() {
   function resetFilters() {
     setSearch("");
     setCategoryId("");
-    setStockFilter("all");
-    setVisibilityFilter("all");
+    setSort("default");
     setPage(1);
   }
 
   const hasActiveFilters =
     Boolean(search.trim()) ||
     Boolean(categoryId) ||
-    stockFilter !== "all" ||
-    visibilityFilter !== "all";
+    sort !== "default";
 
   return (
     <div className="admin-panel" data-tour="tour-products-table">
@@ -412,11 +375,24 @@ export default function ProductsTable() {
           </h2>
           <p className="admin-panel-desc">
             {counts.inStock} в наявності
-            {counts.out ? ` · ${counts.out} немає` : ""}
-            {counts.hidden ? ` · ${counts.hidden} приховано` : ""}
+            {counts.made ? ` · ${counts.made} за 14 днів` : ""}
+            {counts.out ? ` · ${counts.out} без статусу` : ""}
+            {" · "}фільтри не зберігаються
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/products/stock"
+            className="admin-btn-secondary !h-9 !px-3 !text-xs"
+          >
+            Наявність
+          </Link>
+          <Link
+            href="/admin/products/categories"
+            className="admin-btn-secondary !h-9 !px-3 !text-xs"
+          >
+            Категорії
+          </Link>
           <Link
             href="/admin/products/prices"
             className="admin-btn-secondary !h-9 !px-3 !text-xs"
@@ -464,6 +440,21 @@ export default function ProductsTable() {
               </option>
             ))}
           </select>
+          <select
+            value={sort}
+            onChange={(e) => {
+              setSort(parseAdminProductsSort(e.target.value));
+              setPage(1);
+            }}
+            className="admin-input lg:w-56"
+            aria-label="Сортування"
+          >
+            <option value="default">За пріоритетом</option>
+            <option value="price-asc">Ціна: від низької</option>
+            <option value="price-desc">Ціна: від високої</option>
+            <option value="date-desc">Дата: новіші</option>
+            <option value="date-asc">Дата: старіші</option>
+          </select>
           {hasActiveFilters && (
             <button
               type="button"
@@ -473,48 +464,6 @@ export default function ProductsTable() {
               Скинути
             </button>
           )}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["all", "Усі"],
-              ["in", "В наявності"],
-              ["out", "Немає"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => {
-                setStockFilter(value);
-                setPage(1);
-              }}
-              className={`admin-chip ${stockFilter === value ? "admin-chip-active" : ""}`}
-            >
-              {label}
-            </button>
-          ))}
-          <span className="mx-1 hidden h-6 w-px bg-gray-200 self-center sm:block dark:bg-white/10" />
-          {(
-            [
-              ["all", "Каталог: усі"],
-              ["visible", "Показані"],
-              ["hidden", "Приховані"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => {
-                setVisibilityFilter(value);
-                setPage(1);
-              }}
-              className={`admin-chip ${visibilityFilter === value ? "admin-chip-active" : ""}`}
-            >
-              {label}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -545,21 +494,18 @@ export default function ProductsTable() {
         ) : (
           paginated.map((p) => {
             const idx = products.findIndex((x) => x.id === p.id);
-            const hidden = p.isVisible === false;
             const busy = busyId === p.id;
             return (
               <div
                 key={p.id}
-                className={`admin-table-row flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4 sm:px-5 ${
-                  hidden ? "opacity-70" : ""
-                }`}
+                className="admin-table-row flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4 sm:px-5"
               >
                 <div className="flex items-start gap-3 sm:min-w-0 sm:flex-1">
                   <div className="flex shrink-0 flex-col items-center gap-0.5 pt-1">
                     <button
                       type="button"
                       className="admin-btn-icon !h-7 !w-7 text-xs"
-                      disabled={idx <= 0 || busy}
+                      disabled={idx <= 0 || busy || sort !== "default"}
                       onClick={() => moveProduct(p.id, -1)}
                       title="Вище в каталозі"
                       aria-label="Вище"
@@ -573,7 +519,10 @@ export default function ProductsTable() {
                       type="button"
                       className="admin-btn-icon !h-7 !w-7 text-xs"
                       disabled={
-                        idx < 0 || idx >= products.length - 1 || busy
+                        idx < 0 ||
+                        idx >= products.length - 1 ||
+                        busy ||
+                        sort !== "default"
                       }
                       onClick={() => moveProduct(p.id, 1)}
                       title="Нижче в каталозі"
@@ -698,49 +647,6 @@ export default function ProductsTable() {
                           />
                           <span>€</span>
                         </label>
-                        <label
-                          className="inline-flex items-center gap-1"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            aria-label={`Ціна в доларах: ${p.name}`}
-                            placeholder="—"
-                            className="admin-input !h-7 !w-[56px] !px-2 !text-[12px] tabular-nums"
-                            value={
-                              priceDraft[p.id]?.usd ??
-                              formatStoredForexPrice(p.priceUsd)
-                            }
-                            disabled={busy}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) =>
-                              setPriceDraft((d) => ({
-                                ...d,
-                                [p.id]: {
-                                  ...d[p.id],
-                                  usd: e.target.value,
-                                },
-                              }))
-                            }
-                            onBlur={() =>
-                              void saveListForex(p.id, "priceUsd", "usd")
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                void saveListForex(p.id, "priceUsd", "usd");
-                                (e.target as HTMLInputElement).blur();
-                              }
-                              if (e.key === "Escape") {
-                                e.preventDefault();
-                                clearPriceDraftField(p.id, "usd");
-                                (e.target as HTMLInputElement).blur();
-                              }
-                            }}
-                          />
-                          <span>$</span>
-                        </label>
                         {p.isNew ? (
                           <span className="rounded bg-[#B7E1DF]/50 px-1.5 py-0.5 text-[10px] font-semibold text-gray-800 dark:bg-[#B7E1DF]/20 dark:text-[#B7E1DF]">
                             New
@@ -766,28 +672,28 @@ export default function ProductsTable() {
                     className={`inline-flex h-8 items-center rounded-lg px-2.5 text-[12px] font-semibold transition ${
                       p.inStock
                         ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
-                        : "bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-300"
+                        : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-400"
                     }`}
-                    title="Перемкнути наявність"
+                    title="В наявності"
                   >
-                    {p.inStock ? "В наявності" : "Немає"}
+                    В наявності
                   </button>
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() =>
                       void patchProduct(p.id, {
-                        isVisible: p.isVisible === false,
+                        madeToOrder: !p.madeToOrder,
                       })
                     }
                     className={`inline-flex h-8 items-center rounded-lg px-2.5 text-[12px] font-semibold transition ${
-                      hidden
-                        ? "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-300"
+                      p.madeToOrder
+                        ? "bg-sky-50 text-sky-800 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300"
+                        : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-400"
                     }`}
-                    title="Показати / приховати в каталозі"
+                    title="Зшиємо за 14 днів"
                   >
-                    {hidden ? "Приховано" : "У каталозі"}
+                    14 днів
                   </button>
 
                   <Link

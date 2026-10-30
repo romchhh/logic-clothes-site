@@ -63,6 +63,8 @@ export interface Product {
   media?: ProductMedia[];
   swatches: ProductSwatch[];
   inStock: boolean;
+  /** «Зшиємо за 14 днів» — shown on PDP with in-stock status. */
+  madeToOrder?: boolean;
   /** When false, product is hidden from catalog / search / home rails (PDP still works). */
   isVisible?: boolean;
   sku: number | string;

@@ -57,6 +57,7 @@ type ProductRow = {
   photo_size: string | null;
   model_params: string | null;
   in_stock: boolean;
+  made_to_order?: boolean | null;
   is_visible: boolean;
   sku: string;
   category: string | null;
@@ -174,6 +175,7 @@ function mapProduct(row: ProductRow): Product {
     media: mediaResolved,
     swatches,
     inStock: Boolean(row.in_stock),
+    madeToOrder: Boolean(row.made_to_order),
     isVisible: row.is_visible !== false,
     sku: row.sku,
     ...(row.category ? { category: row.category } : {}),
@@ -216,6 +218,7 @@ const PRODUCT_SELECT = `
     p.photo_size,
     p.model_params,
     p.in_stock,
+    COALESCE(p.made_to_order, FALSE) AS made_to_order,
     COALESCE(p.is_visible, TRUE) AS is_visible,
     p.sku,
     p.category,
@@ -413,7 +416,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         color, color_hex, material,
         description, description_en, long_description, long_description_en,
         short_description, photo_size, model_params,
-        in_stock, is_visible, sku, category, is_new, is_popular, is_sale, color_group,
+        in_stock, made_to_order, is_visible, sku, category, is_new, is_popular, is_sale, color_group,
         sort_order, updated_at
       ) VALUES (
         $1,$2,$3,$4,$5,$6,
@@ -421,8 +424,8 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         $10,$11,$12,
         $13,$14,$15,$16,
         $17,$18,$19,
-        $20,$21,$22,$23,$24,$25,$26,$27,
-        $28, NOW()
+        $20,$21,$22,$23,$24,$25,$26,$27,$28,
+        $29, NOW()
       )
       ON CONFLICT (slug) DO UPDATE SET
         name = EXCLUDED.name,
@@ -444,6 +447,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         photo_size = EXCLUDED.photo_size,
         model_params = EXCLUDED.model_params,
         in_stock = EXCLUDED.in_stock,
+        made_to_order = EXCLUDED.made_to_order,
         is_visible = EXCLUDED.is_visible,
         sku = EXCLUDED.sku,
         category = EXCLUDED.category,
@@ -475,6 +479,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         product.photoSize || "",
         product.modelParams || "",
         product.inStock,
+        Boolean(product.madeToOrder),
         product.isVisible !== false,
         String(product.sku ?? product.id),
         product.category ?? null,

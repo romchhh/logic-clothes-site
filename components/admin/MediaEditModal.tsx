@@ -7,20 +7,6 @@ import {
   type MediaAdjust,
   mediaAdjustCssFilter,
 } from "@/lib/mediaAdjust";
-import {
-  findMatchingPresetId,
-  MEDIA_FILTER_GROUPS,
-  presetAdjust,
-  savedToFilterPreset,
-  type MediaFilterPreset,
-} from "@/lib/mediaFilterPresets";
-import {
-  addSavedMediaPreset,
-  loadSavedMediaPresets,
-  rememberLastMediaPresetId,
-  removeSavedMediaPreset,
-  type SavedMediaPreset,
-} from "@/lib/mediaAdjustPresetsStorage";
 import { renderAdjustedImageBlob } from "@/lib/renderAdjustedImage";
 
 export type MediaEditSession = {
@@ -35,7 +21,7 @@ export type MediaEditSession = {
   label?: string;
 };
 
-type EditorTab = "filters" | "fine" | "crop";
+type EditorTab = "fine" | "crop";
 
 type Props = {
   session: MediaEditSession | null;
@@ -78,92 +64,6 @@ const FINE_SLIDERS: {
   { key: "sharpness", label: "Різкість", hint: "Деталі", min: 0, max: 100 },
 ];
 
-function presetLabel(id: string, saved: SavedMediaPreset[]): string | null {
-  if (id === "custom" || id === "original") return null;
-  const sid = id.startsWith("saved:") ? id.slice(6) : null;
-  if (sid) return saved.find((p) => p.id === sid)?.name ?? null;
-  for (const g of MEDIA_FILTER_GROUPS) {
-    const p = g.presets.find((x) => x.id === id);
-    if (p) return p.label;
-  }
-  return null;
-}
-
-function FilterPresetCard({
-  preset,
-  active,
-  previewUrl,
-  isVideo,
-  onPick,
-  onDelete,
-}: {
-  preset: MediaFilterPreset;
-  active: boolean;
-  previewUrl: string;
-  isVideo: boolean;
-  onPick: () => void;
-  onDelete?: () => void;
-}) {
-  const thumbFilter = mediaAdjustCssFilter(preset.adjust);
-  return (
-    <div className="media-editor-filter-card-wrap">
-      <button
-        type="button"
-        className={`media-editor-filter-card${
-          active ? " is-active" : ""
-        }${preset.isUser ? " is-user" : ""}`}
-        onClick={onPick}
-      >
-        <span className="media-editor-filter-thumb">
-          {isVideo && previewUrl ? (
-            <video
-              src={previewUrl}
-              muted
-              playsInline
-              preload="metadata"
-              style={thumbFilter ? { filter: thumbFilter } : undefined}
-            />
-          ) : !isVideo && previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={previewUrl}
-              alt=""
-              style={thumbFilter ? { filter: thumbFilter } : undefined}
-            />
-          ) : (
-            <span
-              className="media-editor-filter-fallback"
-              style={{ background: preset.accent }}
-            />
-          )}
-          {preset.isUser ? (
-            <span className="media-editor-filter-star" aria-hidden="true">
-              ★
-            </span>
-          ) : null}
-        </span>
-        <span className="media-editor-filter-name">{preset.label}</span>
-        {preset.tag ? (
-          <span className="media-editor-filter-tag">{preset.tag}</span>
-        ) : null}
-      </button>
-      {onDelete ? (
-        <button
-          type="button"
-          className="media-editor-filter-delete"
-          aria-label={`Видалити ${preset.label}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
-          ×
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
 export default function MediaEditModal({
   session,
   queueIndex = 0,
@@ -175,17 +75,9 @@ export default function MediaEditModal({
   onSaveVideo,
 }: Props) {
   const [adjust, setAdjust] = useState<MediaAdjust>(DEFAULT_MEDIA_ADJUST);
-  const [activePreset, setActivePreset] = useState<string>("original");
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<EditorTab>("filters");
+  const [tab, setTab] = useState<EditorTab>("fine");
   const [compare, setCompare] = useState(false);
-  const [savedPresets, setSavedPresets] = useState<SavedMediaPreset[]>([]);
-  const [saveName, setSaveName] = useState("");
-  const [saveNotice, setSaveNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    setSavedPresets(loadSavedMediaPresets());
-  }, [session]);
 
   const frameRef = useRef<HTMLDivElement>(null);
   const cropImgRef = useRef<HTMLImageElement>(null);
@@ -206,13 +98,9 @@ export default function MediaEditModal({
 
   useEffect(() => {
     if (!session) return;
-    const initial = session.initialAdjust ?? DEFAULT_MEDIA_ADJUST;
-    setAdjust(initial);
-    setActivePreset(findMatchingPresetId(initial, loadSavedMediaPresets()) ?? "custom");
-    setTab("filters");
+    setAdjust(session.initialAdjust ?? DEFAULT_MEDIA_ADJUST);
+    setTab(session.mode === "image" ? "crop" : "fine");
     setCompare(false);
-    setSaveName("");
-    setSaveNotice(null);
     cropReadyRef.current = false;
     panRef.current = { x: 0, y: 0 };
     setVideoPlaying(true);
@@ -339,43 +227,8 @@ export default function MediaEditModal({
   const previewAdjust = compare ? DEFAULT_MEDIA_ADJUST : adjust;
   const previewFilter = mediaAdjustCssFilter(previewAdjust);
 
-  function pickPreset(id: string) {
-    setActivePreset(id);
-    setAdjust(presetAdjust(id, savedPresets));
-    rememberLastMediaPresetId(id);
-    setSaveNotice(null);
-  }
-
   function onFineChange(key: keyof MediaAdjust, value: number) {
     setAdjust((prev) => ({ ...prev, [key]: value }));
-    setActivePreset("custom");
-    setSaveNotice(null);
-  }
-
-  function handleSaveTemplate() {
-    const name = saveName.trim();
-    if (!name) {
-      setSaveNotice("Введіть назву заготовки");
-      return;
-    }
-    const next = addSavedMediaPreset(name, adjust);
-    setSavedPresets(next);
-    const created = next[0];
-    if (created) {
-      const fid = `saved:${created.id}`;
-      setActivePreset(fid);
-      rememberLastMediaPresetId(fid);
-    }
-    setSaveName("");
-    setSaveNotice("Заготовку збережено");
-  }
-
-  function handleDeleteSaved(id: string) {
-    const next = removeSavedMediaPreset(id);
-    setSavedPresets(next);
-    if (activePreset === `saved:${id}`) {
-      pickPreset("original");
-    }
   }
 
   async function handleSaveWithoutTone() {
@@ -427,12 +280,9 @@ export default function MediaEditModal({
   const fileLabel = session.label?.trim();
 
   const tabs: { id: EditorTab; label: string; hide?: boolean }[] = [
-    { id: "filters", label: isVideo ? "Пресети" : "Фільтри" },
-    { id: "fine", label: "Точно" },
+    { id: "fine", label: "Тон" },
     { id: "crop", label: "Кадр 3:5", hide: isVideo },
   ];
-
-  const activeLabel = presetLabel(activePreset, savedPresets);
 
   return (
     <div className="media-editor-root" role="presentation">
@@ -569,12 +419,6 @@ export default function MediaEditModal({
                   Утримуй — до / після
                 </button>
               )}
-              {activeLabel && (
-                <span className="media-editor-active-filter">{activeLabel}</span>
-              )}
-              {activePreset === "custom" && (
-                <span className="media-editor-active-filter">Власне</span>
-              )}
             </div>
           </div>
 
@@ -597,112 +441,18 @@ export default function MediaEditModal({
             </nav>
 
             <div className="media-editor-scroll">
-              {tab === "filters" && isVideo && (
-                <p className="media-editor-hint media-editor-hint--video">
-                  Кадрування не потрібне — лише вирівняйте тон з фото. Можна
-                  залишити «Оригінал» і натиснути «Без змін».
-                </p>
-              )}
-              {tab === "filters" && (
-                <div className="media-editor-filters">
-                  <div className="media-editor-save-preset">
-                    <p className="media-editor-save-title">
-                      Зберегти поточні налаштування
-                    </p>
-                    <div className="media-editor-save-row">
-                      <input
-                        type="text"
-                        className="admin-input media-editor-save-input"
-                        placeholder="Назва, напр. «Лук вітрина»"
-                        value={saveName}
-                        maxLength={48}
-                        onChange={(e) => {
-                          setSaveName(e.target.value);
-                          setSaveNotice(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveTemplate();
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="admin-btn-secondary media-editor-save-btn"
-                        onClick={handleSaveTemplate}
-                      >
-                        Зберегти
-                      </button>
-                    </div>
-                    {saveNotice ? (
-                      <p
-                        className={`media-editor-save-notice${
-                          saveNotice.includes("Введіть")
-                            ? " is-warn"
-                            : " is-ok"
-                        }`}
-                      >
-                        {saveNotice}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  {savedPresets.length > 0 && (
-                    <section className="media-editor-filter-section">
-                      <h3 className="media-editor-filter-section-title">
-                        Мої заготовки
-                        <span className="media-editor-filter-count">
-                          {savedPresets.length}
-                        </span>
-                      </h3>
-                      <div className="media-editor-filter-grid media-editor-filter-grid--user">
-                        {savedPresets.map((sp) => {
-                          const preset = savedToFilterPreset(sp);
-                          return (
-                            <FilterPresetCard
-                              key={preset.id}
-                              preset={preset}
-                              active={activePreset === preset.id}
-                              previewUrl={session.previewUrl}
-                              isVideo={isVideo}
-                              onPick={() => pickPreset(preset.id)}
-                              onDelete={() => handleDeleteSaved(sp.id)}
-                            />
-                          );
-                        })}
-                      </div>
-                    </section>
-                  )}
-
-                  {MEDIA_FILTER_GROUPS.map((group) => (
-                    <section
-                      key={group.id}
-                      className="media-editor-filter-section"
-                    >
-                      <h3 className="media-editor-filter-section-title">
-                        {group.title}
-                      </h3>
-                      <div className="media-editor-filter-grid">
-                        {group.presets.map((preset) => (
-                          <FilterPresetCard
-                            key={preset.id}
-                            preset={preset}
-                            active={activePreset === preset.id}
-                            previewUrl={session.previewUrl}
-                            isVideo={isVideo}
-                            onPick={() => pickPreset(preset.id)}
-                          />
-                        ))}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              )}
-
               {tab === "fine" && (
                 <div className="media-editor-fine">
-                  <p className="media-editor-hint">
-                    Тонке налаштування — ідеально, коли фото і відео з різного
-                    світла.
-                  </p>
+                  {isVideo ? (
+                    <p className="media-editor-hint media-editor-hint--video">
+                      Вирівняйте тон з фото. Або «Без змін» — відео залишиться
+                      як є.
+                    </p>
+                  ) : (
+                    <p className="media-editor-hint">
+                      Світло, контраст, температура — коли кадр з іншої камери.
+                    </p>
+                  )}
                   {FINE_SLIDERS.map(({ key, label, hint, min, max }) => (
                     <label key={key} className="media-editor-slider">
                       <div className="media-editor-slider-top">
@@ -729,23 +479,10 @@ export default function MediaEditModal({
                   <button
                     type="button"
                     className="media-editor-reset"
-                    onClick={() => pickPreset("original")}
+                    onClick={() => setAdjust(DEFAULT_MEDIA_ADJUST)}
                   >
                     Скинути все
                   </button>
-                  <div className="media-editor-fine-save">
-                    <p className="media-editor-hint">
-                      Сподобалось поєднання? Збережіть у «Фільтри» → заготовка
-                      зʼявиться зверху.
-                    </p>
-                    <button
-                      type="button"
-                      className="admin-btn-secondary !text-xs"
-                      onClick={() => setTab("filters")}
-                    >
-                      Зберегти заготовку…
-                    </button>
-                  </div>
                 </div>
               )}
 
@@ -756,7 +493,7 @@ export default function MediaEditModal({
                   </p>
                   <ul className="media-editor-crop-tips">
                     <li>Центруйте модель або виріз</li>
-                    <li>Фільтри застосуються після кадру</li>
+                    <li>Тон зі вкладки «Тон» застосується після збереження</li>
                   </ul>
                 </div>
               )}

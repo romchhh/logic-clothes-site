@@ -53,6 +53,8 @@ export type Messages = {
     inStock: string;
     outOfStock: string;
     preorder: string;
+    availability: string;
+    sewIn14Days: string;
     size: string;
     sizeGuide: string;
     sizeCustom: string;
@@ -308,6 +310,8 @@ const uk: Messages = {
     inStock: "В наявності",
     outOfStock: "Немає в наявності",
     preorder: "Під замовлення",
+    availability: "Наявність",
+    sewIn14Days: "Зшиємо за 14 днів",
     size: "Розмір",
     sizeGuide: "Розмірна сітка",
     sizeCustom: "По мірках",
@@ -580,6 +584,8 @@ const en: Messages = {
     inStock: "In stock",
     outOfStock: "Out of stock",
     preorder: "Made to order",
+    availability: "Availability",
+    sewIn14Days: "Sewn in 14 days",
     size: "Size",
     sizeGuide: "Size chart",
     sizeCustom: "By measurements",

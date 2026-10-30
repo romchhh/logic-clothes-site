@@ -95,6 +95,11 @@ const migrations = [
     description: "Product catalog visibility flag",
     file: "database/migrations/2026-10-22_lc_product_visibility.sql",
   },
+  {
+    id: "2026-04-30_lc_made_to_order",
+    description: "Sew in 14 days availability flag",
+    file: "database/migrations/2026-04-30_lc_made_to_order.sql",
+  },
 ];
 
 async function main() {

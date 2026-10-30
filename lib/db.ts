@@ -59,6 +59,10 @@ async function ensureSchemaPatches(pool: Pool): Promise<void> {
   `);
   await pool.query(`
     ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS made_to_order boolean NOT NULL DEFAULT false
+  `);
+  await pool.query(`
+    ALTER TABLE products
       ADD COLUMN IF NOT EXISTS price_usd NUMERIC(12, 2)
   `);
   await pool.query(`

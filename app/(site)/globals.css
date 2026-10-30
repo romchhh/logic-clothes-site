@@ -2014,6 +2014,7 @@
     color:var(--pdp-soft);
   }
   .pdp--immersive .pdp-desc-block--immersive,
+  .pdp--immersive .pdp-availability--immersive,
   .pdp--immersive .pdp-fabric--immersive,
   .pdp--immersive .pdp-model--immersive{
     padding:14px 0;
@@ -2024,6 +2025,20 @@
     font-size:14px;
     line-height:1.55;
     max-width:none;
+  }
+  .pdp-availability-list{
+    margin:6px 0 0;
+    padding:0;
+    list-style:none;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    font-size:14px;
+    line-height:1.5;
+    color:var(--pdp-soft);
+  }
+  .pdp-availability-list li::before{
+    content:"· ";
   }
   .pdp--immersive .pdp-fabric p:last-child,
   .pdp--immersive .pdp-model--immersive p{

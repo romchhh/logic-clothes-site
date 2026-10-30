@@ -334,6 +334,20 @@ export default function ProductClient({
               </div>
         </div>
 
+        {(product.inStock || product.madeToOrder) && (
+          <div className="pdp-block pdp-availability pdp-availability--immersive">
+            <p className="pdp-label">{t.product.availability}</p>
+            <ul className="pdp-availability-list">
+              {product.inStock ? (
+                <li>{t.product.inStock}</li>
+              ) : null}
+              {product.madeToOrder ? (
+                <li>{t.product.sewIn14Days}</li>
+              ) : null}
+            </ul>
+          </div>
+        )}
+
         {displayDesc && (
           <div className="pdp-block pdp-desc-block pdp-desc-block--immersive">
             <p className="pdp-desc">{displayDesc}</p>

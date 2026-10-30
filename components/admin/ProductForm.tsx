@@ -71,7 +71,7 @@ type FormState = {
   descriptionEn: string;
   sortOrder: string;
   inStock: boolean;
-  isVisible: boolean;
+  madeToOrder: boolean;
   isNew: boolean;
   isPopular: boolean;
   isSale: boolean;
@@ -110,7 +110,7 @@ const EMPTY: FormState = {
   descriptionEn: "",
   sortOrder: "",
   inStock: true,
-  isVisible: true,
+  madeToOrder: false,
   isNew: false,
   isPopular: false,
   isSale: false,
@@ -304,7 +304,7 @@ export default function ProductForm({ productId }: Props) {
           sortOrder:
             p.sortOrder != null ? String(p.sortOrder) : "0",
           inStock: p.inStock !== false,
-          isVisible: p.isVisible !== false,
+          madeToOrder: Boolean(p.madeToOrder),
           isNew: Boolean(p.isNew),
           isPopular: Boolean(p.isPopular),
           isSale: Boolean(p.isSale),
@@ -482,7 +482,8 @@ export default function ProductForm({ productId }: Props) {
         return Number.isFinite(n) ? Math.max(0, Math.round(n)) : undefined;
       })(),
       inStock: form.inStock,
-      isVisible: form.isVisible,
+      madeToOrder: form.madeToOrder,
+      isVisible: true,
       isNew: form.isNew,
       isPopular: form.isPopular,
       isSale: form.isSale || (compareAt != null && compareAt > priceNum),
@@ -751,15 +752,15 @@ export default function ProductForm({ productId }: Props) {
                 setEnabled={(v) => set("inStock", v)}
               />
               <ToggleSwitch
-                label="Показувати в каталозі"
-                enabled={form.isVisible}
-                setEnabled={(v) => set("isVisible", v)}
+                label="Зшиємо за 14 днів"
+                enabled={form.madeToOrder}
+                setEnabled={(v) => set("madeToOrder", v)}
               />
             </div>
             <p className="text-xs text-gray-400">
-              Без наявності товар лишається на сайті, але його не можна
-              замовити. Без «в каталозі» — не видно в каталозі / пошуку /
-              головній (сторінка товару за прямим посиланням працює).
+              Ці статуси показуються в описі товару на сайті. Можна увімкнути
+              обидва (частина розмірів є, інше — під замовлення). Без жодного —
+              товар не додається в кошик.
             </p>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
               <ToggleSwitch
@@ -794,7 +795,7 @@ export default function ProductForm({ productId }: Props) {
       <ComponentCard
         title="Розміри в наявності"
         sectionId="section-sizes"
-        desc="Які розміри є зараз. На сайті вони підсвітяться в блоці «В наявності», якщо увімкнено «В наявності»."
+        desc="Які розміри є зараз. На сайті вони підсвітяться, якщо увімкнено статус «В наявності»."
       >
         <AdminChipField
           label="Розміри"
