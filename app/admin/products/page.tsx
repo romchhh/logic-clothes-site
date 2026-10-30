@@ -16,26 +16,29 @@ export default function ProductsPage() {
         description="Завжди всі товари. Пошук, сортування й категорія — лише на цю сесію."
         crumbs={[{ label: "Товари" }]}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <Link
               href="/admin/products/stock"
-              className="admin-btn-secondary"
+              className="admin-btn-secondary hidden sm:inline-flex"
             >
               Редагувати наявність
             </Link>
             <Link
               href="/admin/products/categories"
-              className="admin-btn-secondary"
+              className="admin-btn-secondary hidden sm:inline-flex"
             >
               Редагувати категорії
             </Link>
             <Link
               href="/admin/products/prices"
-              className="admin-btn-secondary"
+              className="admin-btn-secondary hidden sm:inline-flex"
             >
               Редагувати всі ціни
             </Link>
-            <Link href="/admin/products/add" className="admin-btn-primary">
+            <Link
+              href="/admin/products/add"
+              className="admin-btn-primary w-full sm:w-auto"
+            >
               Додати товар
             </Link>
           </div>

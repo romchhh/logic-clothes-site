@@ -90,7 +90,7 @@ export default function FeedsPanel() {
               return (
                 <li
                   key={row.path}
-                  className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 px-3 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -110,18 +110,18 @@ export default function FeedsPanel() {
                       {url || row.path}
                     </a>
                   </div>
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex w-full shrink-0 gap-2 sm:w-auto">
                     <a
                       href={row.path}
                       target="_blank"
                       rel="noreferrer"
-                      className="admin-btn-secondary !py-2 text-[13px]"
+                      className="admin-btn-secondary flex-1 !h-10 !text-[13px] sm:flex-none"
                     >
                       Відкрити
                     </a>
                     <button
                       type="button"
-                      className="admin-btn-primary !py-2 text-[13px]"
+                      className="admin-btn-primary flex-1 !h-10 !text-[13px] sm:flex-none"
                       onClick={() => void copy(url || row.path)}
                     >
                       {copied === url ? "Скопійовано" : "Копіювати"}

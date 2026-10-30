@@ -34,13 +34,13 @@ const AppHeader: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-[99999] flex w-full border-b border-gray-200/80 bg-white/85 backdrop-blur-xl dark:border-gray-800 dark:bg-[#141414]/88">
-      <div className="flex grow items-center justify-between px-3 py-2.5 lg:px-6">
-        <div className="flex items-center gap-3">
+    <header className="admin-app-header sticky top-0 z-[99999] flex w-full border-b border-gray-200/80 bg-white/90 backdrop-blur-xl dark:border-gray-800 dark:bg-[#141414]/92">
+      <div className="flex grow items-center justify-between gap-2 px-3 py-2 lg:px-6 lg:py-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <button
-            className="admin-btn-icon"
+            className="admin-btn-icon !h-10 !w-10"
             onClick={handleToggle}
-            aria-label="Toggle Sidebar"
+            aria-label={isMobileOpen ? "Закрити меню" : "Відкрити меню"}
           >
             {isMobileOpen ? (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -65,13 +65,13 @@ const AppHeader: React.FC = () => {
 
           <Link
             href="/admin"
-            className="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-white lg:hidden"
+            className="truncate text-[15px] font-semibold tracking-tight text-gray-900 dark:text-white lg:hidden"
           >
             Logic Clothes
           </Link>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             data-tour="tour-instructions"
@@ -79,10 +79,48 @@ const AppHeader: React.FC = () => {
               requestAdminTour();
               router.push("/admin");
             }}
-            className="admin-btn-secondary !h-9 !px-3.5 !text-[13px]"
+            className="admin-btn-icon sm:hidden"
+            title="Інструкції"
+            aria-label="Інструкції"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+              <path
+                d="M12 11v5M12 8h.01"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            data-tour="tour-instructions"
+            onClick={() => {
+              requestAdminTour();
+              router.push("/admin");
+            }}
+            className="admin-btn-secondary !h-9 !px-3.5 !text-[13px] hidden sm:inline-flex"
           >
             Інструкції
           </button>
+          <Link
+            href="/"
+            target="_blank"
+            className="admin-btn-icon sm:hidden"
+            title="Відкрити сайт"
+            aria-label="Відкрити сайт"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M14 5h5v5M19 5l-9 9M11 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </Link>
           <Link
             href="/"
             target="_blank"
@@ -93,7 +131,7 @@ const AppHeader: React.FC = () => {
           <ThemeToggleButton />
           <button
             onClick={handleLogout}
-            className="admin-btn-icon"
+            className="admin-btn-icon !h-10 !w-10"
             title="Вийти"
             aria-label="Вийти"
           >

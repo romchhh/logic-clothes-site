@@ -330,27 +330,25 @@ export default function HeroSettingsForm() {
         </div>
       </section>
 
-      <div className="admin-sticky-bar">
+      <div className="admin-sticky-bar admin-sticky-bar--form">
         <p className="hidden text-[13px] text-gray-500 sm:block dark:text-gray-400">
           Зміни на головній після збереження
         </p>
-        <div className="ml-auto flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            className="admin-btn-secondary"
-            onClick={() => void load()}
-            disabled={saving || uploading}
-          >
-            Скинути
-          </button>
-          <button
-            type="submit"
-            className="admin-btn-primary"
-            disabled={saving || uploading}
-          >
-            {saving ? "Збереження…" : "Зберегти"}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="admin-btn-secondary admin-sticky-cancel"
+          onClick={() => void load()}
+          disabled={saving || uploading}
+        >
+          Скинути
+        </button>
+        <button
+          type="submit"
+          className="admin-btn-primary admin-sticky-save sm:ml-auto"
+          disabled={saving || uploading}
+        >
+          {saving ? "Збереження…" : "Зберегти"}
+        </button>
       </div>
     </form>
   );

@@ -19,15 +19,24 @@ export default function AdminDashboard() {
         actions={
           <div
             data-tour="tour-dashboard-actions"
-            className="flex flex-wrap items-center gap-2"
+            className="flex w-full flex-wrap items-center gap-2 sm:w-auto"
           >
-            <Link href="/admin/products/add" className="admin-btn-primary">
+            <Link
+              href="/admin/products/add"
+              className="admin-btn-primary w-full sm:w-auto"
+            >
               Додати товар
             </Link>
-            <Link href="/admin/hero" className="admin-btn-secondary">
+            <Link
+              href="/admin/hero"
+              className="admin-btn-secondary flex-1 sm:flex-none"
+            >
               Hero
             </Link>
-            <Link href="/admin/orders" className="admin-btn-secondary">
+            <Link
+              href="/admin/orders"
+              className="admin-btn-secondary flex-1 sm:flex-none"
+            >
               Замовлення
             </Link>
           </div>

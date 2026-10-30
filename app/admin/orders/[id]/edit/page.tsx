@@ -180,7 +180,70 @@ export default function EditOrderPage() {
           </ComponentCard>
 
           <ComponentCard title="Товари">
-            <div className="overflow-x-auto">
+            {/* Mobile item cards */}
+            <div className="space-y-3 md:hidden">
+              {(order.items ?? []).map((item, i) => {
+                const lines = variantLines(item);
+                return (
+                  <div
+                    key={`${item.productId}-${item.size}-${i}`}
+                    className="flex gap-3 border-b border-gray-100 pb-3 last:border-0 last:pb-0 dark:border-white/[0.06]"
+                  >
+                    {item.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.image}
+                        alt=""
+                        className="h-16 w-12 shrink-0 rounded-md border border-gray-200 object-cover dark:border-gray-700"
+                      />
+                    ) : (
+                      <div className="flex h-16 w-12 shrink-0 items-center justify-center rounded-md border border-dashed border-gray-200 text-[10px] text-gray-400 dark:border-gray-700">
+                        —
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {item.name}
+                      </div>
+                      {lines.length > 0 && (
+                        <p className="mt-0.5 text-[12px] text-gray-500">
+                          {lines.map((l) => l.value).join(" · ")}
+                        </p>
+                      )}
+                      <div className="mt-1.5 flex items-baseline justify-between gap-2 text-sm">
+                        <span className="text-gray-500">
+                          {item.quantity} × {formatAdminMoney(item.priceNum)}
+                        </span>
+                        <span className="font-semibold tabular-nums text-gray-900 dark:text-white">
+                          {formatAdminMoney(
+                            (Number(item.priceNum) || 0) *
+                              (Number(item.quantity) || 1)
+                          )}
+                        </span>
+                      </div>
+                      {item.productId && (
+                        <Link
+                          href={`/admin/products/${encodeURIComponent(item.productId)}/edit`}
+                          className="mt-1 inline-block text-xs text-brand-500 hover:underline"
+                        >
+                          Відкрити товар
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="flex justify-between border-t border-gray-200 pt-3 text-sm dark:border-gray-700">
+                <span className="font-medium text-gray-600 dark:text-gray-300">
+                  Всього
+                </span>
+                <span className="font-semibold tabular-nums text-gray-900 dark:text-white">
+                  {formatAdminMoney(order.total)}
+                </span>
+              </div>
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 text-left text-gray-500 dark:border-gray-800 dark:text-gray-400">
@@ -303,22 +366,23 @@ export default function EditOrderPage() {
             </div>
           </ComponentCard>
 
-          <div className="admin-sticky-bar">
+          <div className="admin-sticky-bar admin-sticky-bar--form">
             <p className="hidden text-[13px] text-gray-500 sm:block dark:text-gray-400">
               Статус і коментар оновляться після збереження
             </p>
-            <div className="ml-auto flex flex-wrap items-center gap-2.5">
-              <Link href="/admin/orders" className="admin-btn-secondary">
-                Скасувати
-              </Link>
-              <button
-                type="submit"
-                disabled={saving}
-                className="admin-btn-primary"
-              >
-                {saving ? "Збереження…" : "Зберегти"}
-              </button>
-            </div>
+            <Link
+              href="/admin/orders"
+              className="admin-btn-secondary admin-sticky-cancel"
+            >
+              Скасувати
+            </Link>
+            <button
+              type="submit"
+              disabled={saving}
+              className="admin-btn-primary admin-sticky-save sm:ml-auto"
+            >
+              {saving ? "Збереження…" : "Зберегти"}
+            </button>
           </div>
         </form>
       )}

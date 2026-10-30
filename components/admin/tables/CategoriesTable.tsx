@@ -251,7 +251,7 @@ export default function CategoriesTable() {
 
   return (
     <div className="space-y-6" data-tour="tour-categories-page">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {loading ? "…" : categories.length} у каталозі ·{" "}
           {loading ? "…" : productCats.length} для товарів
@@ -259,7 +259,7 @@ export default function CategoriesTable() {
         <button
           type="button"
           onClick={openCreate}
-          className="admin-btn-primary"
+          className="admin-btn-primary w-full sm:w-auto"
         >
           Додати категорію
         </button>
@@ -528,89 +528,69 @@ function CategoryRows({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-left">
-        <thead>
-          <tr className="border-b border-gray-100 dark:border-white/[0.06]">
-            <th className="admin-th w-10" />
-            <th className="admin-th">Категорія</th>
-            <th className="admin-th">Тип</th>
-            <th className="admin-th">Товарів</th>
-            <th className="admin-th">Статус</th>
-            <th className="admin-th text-right">Дії</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-white/[0.06]">
-          {items.map((c) => {
-            const idx = allIds.indexOf(c.id);
-            return (
-            <tr
-              key={c.id}
-              className="group transition-colors hover:bg-gray-50/80 dark:hover:bg-white/[0.03]"
-            >
-              <td className="px-3 py-3">
-                <div className="flex flex-col gap-0.5">
-                  <button
-                    type="button"
-                    className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 dark:hover:bg-white/10"
-                    disabled={idx <= 0}
-                    onClick={() => onMove(c.id, -1)}
-                    aria-label="Вище"
-                  >
-                    ▲
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 dark:hover:bg-white/10"
-                    disabled={idx < 0 || idx >= allIds.length - 1}
-                    onClick={() => onMove(c.id, 1)}
-                    aria-label="Нижче"
-                  >
-                    ▼
-                  </button>
-                </div>
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-3">
+    <>
+      {/* Mobile cards */}
+      <div className="divide-y divide-gray-100 dark:divide-white/[0.06] md:hidden">
+        {items.map((c) => {
+          const idx = allIds.indexOf(c.id);
+          return (
+            <div key={c.id} className="flex gap-2.5 px-3 py-3">
+              <div className="flex shrink-0 flex-col items-center gap-0.5 pt-1">
+                <button
+                  type="button"
+                  className="admin-btn-icon !h-7 !w-7 text-[10px]"
+                  disabled={idx <= 0}
+                  onClick={() => onMove(c.id, -1)}
+                  aria-label="Вище"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn-icon !h-7 !w-7 text-[10px]"
+                  disabled={idx < 0 || idx >= allIds.length - 1}
+                  onClick={() => onMove(c.id, 1)}
+                  aria-label="Нижче"
+                >
+                  ↓
+                </button>
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex items-center gap-2.5">
                   {c.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={c.image}
                       alt=""
-                      className="h-12 w-9 rounded-md border border-gray-200 object-cover dark:border-gray-700"
+                      className="h-12 w-9 shrink-0 rounded-md border border-gray-200 object-cover dark:border-gray-700"
                     />
                   ) : (
-                    <div className="h-12 w-9 rounded-md bg-gray-100 dark:bg-gray-800" />
+                    <div className="h-12 w-9 shrink-0 rounded-md bg-gray-100 dark:bg-gray-800" />
                   )}
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-white">
+                  <div className="min-w-0">
+                    <div className="truncate font-semibold text-gray-900 dark:text-white">
                       {c.label.uk}
                     </div>
-                    <div className="text-xs text-gray-400">
-                      {c.label.en} · <code>{c.id}</code>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
+                      {kindBadge(c)}
+                      {c.kind === "category" ? (
+                        <span>{c.productCount ?? 0} тов.</span>
+                      ) : null}
                     </div>
                   </div>
                 </div>
-              </td>
-              <td className="px-4 py-3">{kindBadge(c)}</td>
-              <td className="px-4 py-3 text-sm tabular-nums text-gray-600 dark:text-gray-400">
-                {c.kind === "category" ? (c.productCount ?? 0) : "—"}
-              </td>
-              <td className="px-4 py-3">
-                <button
-                  type="button"
-                  onClick={() => onToggle(c)}
-                  className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                    c.isVisible
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                      : "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400"
-                  }`}
-                >
-                  {c.isVisible ? "Видима" : "Прихована"}
-                </button>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <div className="flex justify-end gap-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onToggle(c)}
+                    className={`inline-flex h-8 items-center rounded-lg px-2.5 text-[12px] font-semibold ${
+                      c.isVisible
+                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                        : "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400"
+                    }`}
+                  >
+                    {c.isVisible ? "Видима" : "Прихована"}
+                  </button>
                   <button
                     type="button"
                     className="admin-btn-secondary !h-8 !px-3 !text-xs"
@@ -621,19 +601,127 @@ function CategoryRows({
                   {!c.isSystem && (
                     <button
                       type="button"
-                      className="admin-btn-danger"
+                      className="admin-btn-danger !h-8"
                       onClick={() => onDelete(c)}
                     >
                       Видалити
                     </button>
                   )}
                 </div>
-              </td>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[640px] text-left">
+          <thead>
+            <tr className="border-b border-gray-100 dark:border-white/[0.06]">
+              <th className="admin-th w-10" />
+              <th className="admin-th">Категорія</th>
+              <th className="admin-th">Тип</th>
+              <th className="admin-th">Товарів</th>
+              <th className="admin-th">Статус</th>
+              <th className="admin-th text-right">Дії</th>
             </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-white/[0.06]">
+            {items.map((c) => {
+              const idx = allIds.indexOf(c.id);
+              return (
+                <tr
+                  key={c.id}
+                  className="group transition-colors hover:bg-gray-50/80 dark:hover:bg-white/[0.03]"
+                >
+                  <td className="px-3 py-3">
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 dark:hover:bg-white/10"
+                        disabled={idx <= 0}
+                        onClick={() => onMove(c.id, -1)}
+                        aria-label="Вище"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 dark:hover:bg-white/10"
+                        disabled={idx < 0 || idx >= allIds.length - 1}
+                        onClick={() => onMove(c.id, 1)}
+                        aria-label="Нижче"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      {c.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={c.image}
+                          alt=""
+                          className="h-12 w-9 rounded-md border border-gray-200 object-cover dark:border-gray-700"
+                        />
+                      ) : (
+                        <div className="h-12 w-9 rounded-md bg-gray-100 dark:bg-gray-800" />
+                      )}
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {c.label.uk}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {c.label.en} · <code>{c.id}</code>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">{kindBadge(c)}</td>
+                  <td className="px-4 py-3 text-sm tabular-nums text-gray-600 dark:text-gray-400">
+                    {c.kind === "category" ? (c.productCount ?? 0) : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => onToggle(c)}
+                      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                        c.isVisible
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                          : "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400"
+                      }`}
+                    >
+                      {c.isVisible ? "Видима" : "Прихована"}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        type="button"
+                        className="admin-btn-secondary !h-8 !px-3 !text-xs"
+                        onClick={() => onEdit(c)}
+                      >
+                        Змінити
+                      </button>
+                      {!c.isSystem && (
+                        <button
+                          type="button"
+                          className="admin-btn-danger"
+                          onClick={() => onDelete(c)}
+                        >
+                          Видалити
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

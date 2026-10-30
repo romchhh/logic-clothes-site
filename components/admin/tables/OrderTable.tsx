@@ -258,22 +258,27 @@ export default function OrdersTable() {
           </div>
         ) : (
           paginated.map((o) => (
-            <div key={o.id} className="space-y-2 p-4">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-800 dark:text-white/90">
-                  {o.id}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {formatAdminDate(o.createdAt)}
-                </span>
+            <div key={o.id} className="space-y-3 px-3 py-3.5 sm:p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate font-semibold text-gray-900 dark:text-white">
+                    {o.customerName}
+                  </div>
+                  <div className="mt-0.5 text-[12px] text-gray-500">
+                    {o.id} · {formatAdminDate(o.createdAt)}
+                  </div>
+                </div>
+                <div className="shrink-0 text-right text-[15px] font-semibold tabular-nums text-gray-900 dark:text-white">
+                  {formatAdminMoney(o.total)}
+                </div>
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {o.customerName} · {o.phone}
-              </div>
-              <div className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {formatAdminMoney(o.total)}
-              </div>
-              <div className="text-xs text-gray-500">
+              <a
+                href={`tel:${o.phone}`}
+                className="block text-sm text-gray-600 hover:underline dark:text-gray-400"
+              >
+                {o.phone}
+              </a>
+              <div className="text-[12px] text-gray-500">
                 {o.paymentType === "full"
                   ? "Повна"
                   : o.paymentType === "prepay"
@@ -287,7 +292,21 @@ export default function OrdersTable() {
                     : "очікує"}
               </div>
               {statusSelect(o)}
-              {actions(o)}
+              <div className="flex gap-2">
+                <Link
+                  href={`/admin/orders/${encodeURIComponent(o.id)}/edit`}
+                  className="admin-btn-secondary !h-9 flex-1 !text-xs"
+                >
+                  Відкрити
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(o.id)}
+                  className="admin-btn-danger !h-9"
+                >
+                  Видалити
+                </button>
+              </div>
             </div>
           ))
         )}

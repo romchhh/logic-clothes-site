@@ -102,18 +102,18 @@ export default function CustomersTable() {
             Сума покупок (без скасованих): {formatAdminMoney(totalSpent)}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Пошук: імʼя, телефон, email…"
-            className="h-10 w-full min-w-[220px] rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 outline-none focus:border-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-72"
+            className="admin-input w-full sm:w-72"
           />
           <button
             type="button"
             onClick={load}
-            className="admin-btn-secondary !py-2 text-[13px]"
+            className="admin-btn-secondary !h-10 shrink-0 !text-[13px]"
           >
             Оновити
           </button>
@@ -227,58 +227,49 @@ export default function CustomersTable() {
       </div>
 
       {/* Mobile cards */}
-      <div className="space-y-3 p-4 md:hidden">
+      <div className="divide-y divide-gray-100 dark:divide-white/[0.05] md:hidden">
         {loading ? (
-          <p className="text-sm text-gray-500">Завантаження...</p>
+          <p className="p-4 text-sm text-gray-500">Завантаження...</p>
         ) : paginated.length === 0 ? (
-          <p className="text-sm text-gray-500">Клієнтів поки немає</p>
+          <p className="p-4 text-sm text-gray-500">Клієнтів поки немає</p>
         ) : (
           paginated.map((c) => (
-            <div
-              key={c.id}
-              className="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/[0.08] dark:bg-white/[0.03]"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {c.name}
-                  </p>
-                  <a
-                    href={`tel:${c.phone}`}
-                    className="mt-1 block text-sm text-gray-500 hover:underline"
-                  >
-                    {c.phoneDisplay}
-                  </a>
-                  {c.email && (
-                    <p className="mt-0.5 text-sm text-gray-400">{c.email}</p>
-                  )}
-                </div>
-                <Link
-                  href={`/admin/customers/${encodeURIComponent(c.id)}`}
-                  className="admin-btn-secondary !h-8 !px-3 !text-xs"
+            <div key={c.id} className="space-y-3 px-3 py-3.5">
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-gray-900 dark:text-white">
+                  {c.name}
+                </p>
+                <a
+                  href={`tel:${c.phone}`}
+                  className="mt-0.5 block text-sm text-gray-500 hover:underline"
                 >
-                  Відкрити
-                </Link>
+                  {c.phoneDisplay}
+                </a>
+                {c.email && (
+                  <p className="mt-0.5 truncate text-[12px] text-gray-400">
+                    {c.email}
+                  </p>
+                )}
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-gray-500">
+              <div className="grid grid-cols-3 gap-2 text-[12px] text-gray-500">
                 <div>
-                  <div className="uppercase tracking-wide text-gray-400">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400">
                     Замовлень
                   </div>
-                  <div className="mt-0.5 font-medium text-gray-800 dark:text-white/90">
+                  <div className="mt-0.5 font-medium tabular-nums text-gray-800 dark:text-white/90">
                     {c.orderCount}
                   </div>
                 </div>
                 <div>
-                  <div className="uppercase tracking-wide text-gray-400">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400">
                     Сума
                   </div>
-                  <div className="mt-0.5 font-medium text-gray-800 dark:text-white/90">
+                  <div className="mt-0.5 font-medium tabular-nums text-gray-800 dark:text-white/90">
                     {formatAdminMoney(c.totalSpent)}
                   </div>
                 </div>
                 <div>
-                  <div className="uppercase tracking-wide text-gray-400">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400">
                     Останнє
                   </div>
                   <div className="mt-0.5 font-medium text-gray-800 dark:text-white/90">
@@ -286,6 +277,12 @@ export default function CustomersTable() {
                   </div>
                 </div>
               </div>
+              <Link
+                href={`/admin/customers/${encodeURIComponent(c.id)}`}
+                className="admin-btn-secondary !h-9 w-full !text-xs"
+              >
+                Відкрити
+              </Link>
             </div>
           ))
         )}

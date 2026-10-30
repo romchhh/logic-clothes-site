@@ -175,7 +175,7 @@ export default function BulkPricesEditor() {
               : `${products.length} товарів · змінено: ${dirtyIds.length}`}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="hidden flex-wrap items-center gap-2 sm:flex">
           <button
             type="button"
             onClick={() => void load()}
@@ -321,6 +321,29 @@ export default function BulkPricesEditor() {
             );
           })
         )}
+      </div>
+
+      <div className="admin-sticky-bar sm:hidden">
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="admin-btn-secondary flex-1 !h-10 !text-xs"
+          disabled={loading || saving}
+        >
+          Оновити
+        </button>
+        <button
+          type="button"
+          onClick={() => void saveAll()}
+          className="admin-btn-primary flex-[1.4] !h-10 !text-xs"
+          disabled={saving || dirtyIds.length === 0}
+        >
+          {saving
+            ? "Збереження…"
+            : dirtyIds.length
+              ? `Зберегти (${dirtyIds.length})`
+              : "Зберегти"}
+        </button>
       </div>
     </div>
   );

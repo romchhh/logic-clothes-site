@@ -18,7 +18,7 @@ function Metric({ label, value, hint, href }: MetricProps) {
       <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400">
         {label}
       </span>
-      <div className="mt-2 text-[28px] font-semibold tracking-tight text-gray-900 tabular-nums dark:text-white">
+      <div className="admin-metric-value mt-1.5 text-[22px] font-semibold tracking-tight text-gray-900 tabular-nums sm:mt-2 sm:text-[28px] dark:text-white">
         {value}
       </div>
       {hint && (
@@ -28,7 +28,7 @@ function Metric({ label, value, hint, href }: MetricProps) {
   );
 
   const className =
-    "admin-panel block p-5 transition duration-200 hover:-translate-y-0.5 hover:border-[#B7E1DF]/80 hover:shadow-[0_12px_28px_-16px_rgba(16,24,40,0.25)] dark:hover:border-[#B7E1DF]/30 dark:hover:shadow-none md:p-6";
+    "admin-panel block p-3.5 transition duration-200 hover:-translate-y-0.5 hover:border-[#B7E1DF]/80 hover:shadow-[0_12px_28px_-16px_rgba(16,24,40,0.25)] dark:hover:border-[#B7E1DF]/30 dark:hover:shadow-none sm:p-5 md:p-6";
 
   if (href) {
     return (
@@ -49,7 +49,7 @@ export const EcommerceMetrics = () => {
   return (
     <div className="space-y-3">
       {error && <p className="text-sm text-red-500">{error}</p>}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 md:gap-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4 md:gap-4">
         <Metric
           label="Замовлення"
           value={val(stats?.orders)}

@@ -380,7 +380,7 @@ export default function ProductsTable() {
             {" · "}фільтри не зберігаються
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="admin-mobile-scroll flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <Link
             href="/admin/products/stock"
             className="admin-btn-secondary !h-9 !px-3 !text-xs"
@@ -410,21 +410,21 @@ export default function ProductsTable() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-3 dark:border-white/[0.05] sm:px-5">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Пошук: назва, ID, SKU…"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            className="admin-input lg:max-w-sm"
-          />
+      <div className="flex flex-col gap-2.5 border-b border-gray-100 px-3 py-3 dark:border-white/[0.05] sm:gap-3 sm:px-5">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Пошук: назва, ID, SKU…"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          className="admin-input lg:max-w-sm"
+        />
+        <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center">
           <select
             value={categoryId}
             onChange={(e) => {
@@ -459,7 +459,7 @@ export default function ProductsTable() {
             <button
               type="button"
               onClick={resetFilters}
-              className="admin-btn-ghost !h-9 self-start"
+              className="admin-btn-ghost !h-9 col-span-2 self-start lg:col-span-1"
             >
               Скинути
             </button>
@@ -498,10 +498,10 @@ export default function ProductsTable() {
             return (
               <div
                 key={p.id}
-                className="admin-table-row flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4 sm:px-5"
+                className="admin-table-row flex flex-col gap-2.5 px-3 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-5 sm:py-3.5"
               >
-                <div className="flex items-start gap-3 sm:min-w-0 sm:flex-1">
-                  <div className="flex shrink-0 flex-col items-center gap-0.5 pt-1">
+                <div className="flex items-start gap-2.5 sm:min-w-0 sm:flex-1 sm:gap-3">
+                  <div className="flex shrink-0 flex-col items-center gap-0.5 pt-0.5 sm:pt-1">
                     <button
                       type="button"
                       className="admin-btn-icon !h-7 !w-7 text-xs"
@@ -532,7 +532,7 @@ export default function ProductsTable() {
                     </button>
                   </div>
 
-                  <div className="flex min-w-0 flex-1 gap-3">
+                  <div className="flex min-w-0 flex-1 gap-2.5 sm:gap-3">
                     <Link
                       href={`/admin/products/${encodeURIComponent(p.id)}/edit`}
                       className="group shrink-0"
@@ -541,7 +541,7 @@ export default function ProductsTable() {
                       <img
                         src={getProductImageSrc(p.images)}
                         alt=""
-                        className="h-[72px] w-[54px] rounded-lg border border-gray-200 object-cover dark:border-gray-700"
+                        className="h-16 w-12 rounded-lg border border-gray-200 object-cover sm:h-[72px] sm:w-[54px] dark:border-gray-700"
                       />
                     </Link>
                     <div className="min-w-0 flex-1">
@@ -662,14 +662,14 @@ export default function ProductsTable() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:shrink-0">
+                <div className="admin-mobile-scroll flex flex-wrap items-center gap-2 pl-9 sm:ml-auto sm:pl-0 sm:shrink-0">
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() =>
                       void patchProduct(p.id, { inStock: !p.inStock })
                     }
-                    className={`inline-flex h-8 items-center rounded-lg px-2.5 text-[12px] font-semibold transition ${
+                    className={`inline-flex h-8 shrink-0 items-center rounded-lg px-2.5 text-[12px] font-semibold transition ${
                       p.inStock
                         ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
                         : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-400"
@@ -686,7 +686,7 @@ export default function ProductsTable() {
                         madeToOrder: !p.madeToOrder,
                       })
                     }
-                    className={`inline-flex h-8 items-center rounded-lg px-2.5 text-[12px] font-semibold transition ${
+                    className={`inline-flex h-8 shrink-0 items-center rounded-lg px-2.5 text-[12px] font-semibold transition ${
                       p.madeToOrder
                         ? "bg-sky-50 text-sky-800 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300"
                         : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-400"
@@ -698,7 +698,7 @@ export default function ProductsTable() {
 
                   <Link
                     href={`/admin/products/${encodeURIComponent(p.id)}/edit`}
-                    className="admin-btn-secondary !h-8 !px-3 !text-xs"
+                    className="admin-btn-secondary !h-8 shrink-0 !px-3 !text-xs"
                   >
                     Редагувати
                   </Link>

@@ -29,11 +29,48 @@ export default function RecentOrders() {
           href="/admin/orders"
           className="admin-btn-secondary !h-9 !px-3.5 !text-[13px]"
         >
-          Усі замовлення
+          Усі
         </Link>
       </div>
 
-      <div className="overflow-x-auto px-2 pb-2 sm:px-3">
+      {/* Mobile list */}
+      <div className="divide-y divide-gray-100 dark:divide-white/[0.06] md:hidden">
+        {loading ? (
+          <p className="px-3 py-6 text-sm text-gray-500">Завантаження…</p>
+        ) : error ? (
+          <p className="px-3 py-6 text-sm text-red-500">{error}</p>
+        ) : orders.length === 0 ? (
+          <p className="px-3 py-6 text-sm text-gray-500">Замовлень поки немає</p>
+        ) : (
+          orders.map((o) => (
+            <Link
+              key={o.id}
+              href={`/admin/orders/${o.id}/edit`}
+              className="flex items-center justify-between gap-3 px-3 py-3.5 transition hover:bg-gray-50/80 dark:hover:bg-white/[0.03]"
+            >
+              <div className="min-w-0">
+                <div className="truncate text-[14px] font-semibold text-gray-900 dark:text-white">
+                  {o.customerName}
+                </div>
+                <div className="mt-0.5 text-[12px] text-gray-500">
+                  #{o.id.slice(0, 8)} · {formatAdminDate(o.createdAt)}
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <span className="text-[14px] font-semibold tabular-nums text-gray-900 dark:text-white">
+                  {formatAdminMoney(o.total)}
+                </span>
+                <Badge color={orderStatusBadgeColor(o.status)}>
+                  {orderStatusLabel(o.status)}
+                </Badge>
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden overflow-x-auto px-2 pb-2 sm:px-3 md:block">
         {loading ? (
           <p className="px-3 py-6 text-sm text-gray-500">Завантаження…</p>
         ) : error ? (
