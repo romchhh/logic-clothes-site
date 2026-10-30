@@ -45,11 +45,9 @@ export default function ColorPalettePicker({ selection, onChange }: Props) {
 
   return (
     <div className="space-y-4">
-      <p className="text-[13px] leading-relaxed text-gray-500 dark:text-gray-400">
-        Відтінки на цій сторінці товару (можна кілька). Основний колір — на
-        картці в каталозі. Якщо інший колір — це{" "}
-        <strong>окремий товар</strong> у каталозі, налаштуйте внизу в блоці
-        «Повʼязані товари (інші кольори)».
+      <p className="hidden text-[13px] leading-snug text-gray-500 sm:block dark:text-gray-400">
+        Відтінки на цій сторінці. Інший колір моделі — окремий товар у блоці
+        «Звʼязки».
       </p>
 
       <GroupedPaletteBoard

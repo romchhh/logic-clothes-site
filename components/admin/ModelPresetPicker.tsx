@@ -55,9 +55,8 @@ export default function ModelPresetPicker({
 
   return (
     <div className="space-y-4">
-      <p className="text-[13px] leading-relaxed text-gray-500 dark:text-gray-400">
-        Квадратики — для вас у адмінці (імʼя моделі). На сайті клієнт бачить лише
-        розмір на фото та параметри.
+      <p className="hidden text-[13px] text-gray-500 sm:block dark:text-gray-400">
+        Пресет моделі для себе в адмінці.
       </p>
       {presets.length > 0 && (
         <div className="flex flex-wrap gap-2">

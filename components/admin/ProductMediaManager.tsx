@@ -390,21 +390,14 @@ export default function ProductMediaManager({ media, onChange }: Props) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
-            Фото та відео
-          </h3>
-          <p className="mt-0.5 text-sm text-gray-500">
-            Фото після завантаження відкривають кадр 3:5. Відео одразу потрапляє
-            в галерею — тон за потреби через «Тон відео». Старі файли — «Редагувати»
-            / «Тон відео».
-          </p>
-        </div>
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="hidden text-[13px] text-gray-500 sm:block">
+          Фото — кадр 3:5. Відео — одразу в галерею.
+        </p>
         <button
           type="button"
-          className="admin-btn-secondary"
+          className="admin-btn-secondary w-full sm:w-auto"
           disabled={uploading || Boolean(editSession)}
           onClick={() => inputRef.current?.click()}
         >

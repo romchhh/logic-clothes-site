@@ -365,6 +365,24 @@
 
 .admin-sticky-bar {
   @apply sticky bottom-0 z-20 -mx-4 mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200/90 bg-[#f3f4f5]/90 px-4 py-3.5 backdrop-blur-md md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 dark:border-white/[0.06] dark:bg-[#0f0f0f]/90;
+  padding-bottom: max(0.875rem, env(safe-area-inset-bottom));
+}
+
+.admin-sticky-bar--form {
+  @apply gap-2;
+}
+
+@media (max-width: 639px) {
+  .admin-sticky-bar--form {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    align-items: stretch;
+  }
+  .admin-sticky-bar--form .admin-sticky-cancel,
+  .admin-sticky-bar--form .admin-sticky-save {
+    width: 100%;
+    min-height: 44px;
+  }
 }
 
 .admin-table-row {
@@ -393,15 +411,19 @@
 }
 
 .admin-section-nav {
-  @apply sticky top-[52px] z-30 -mx-4 mb-5 border-b border-gray-200/80 bg-[#eef0f2]/90 px-4 backdrop-blur-md dark:border-white/[0.06] dark:bg-[#0c0c0c]/90 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8;
+  @apply sticky top-14 z-30 -mx-4 mb-4 border-b border-gray-200/80 bg-[#eef0f2]/95 px-3 backdrop-blur-md dark:border-white/[0.06] dark:bg-[#0c0c0c]/95 md:-mx-6 md:mb-5 md:px-6 lg:-mx-8 lg:px-8;
 }
 
 .admin-section-nav-inner {
-  @apply flex gap-1 overflow-x-auto pb-2 pt-1;
+  @apply flex gap-1 overflow-x-auto pb-1.5 pt-1.5 [-ms-overflow-style:none] [scrollbar-width:none];
+}
+
+.admin-section-nav-inner::-webkit-scrollbar {
+  display: none;
 }
 
 .admin-section-nav-link {
-  @apply shrink-0 rounded-full border border-transparent px-3.5 py-1.5 text-[13px] font-medium text-gray-600 transition duration-200 hover:bg-white/80 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white;
+  @apply shrink-0 rounded-full border border-transparent px-3 py-1.5 text-[12px] font-medium text-gray-600 transition duration-200 hover:bg-white/80 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white sm:px-3.5 sm:text-[13px];
 }
 
 .admin-section-nav-link.is-active {
@@ -425,7 +447,60 @@
 }
 
 .admin-form-stack {
-  @apply space-y-5 md:space-y-6;
+  @apply space-y-3.5 md:space-y-6;
+}
+
+.admin-toggle-row {
+  @apply flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-2;
+}
+
+.admin-product-form .admin-panel-head {
+  @apply px-3.5 py-3 sm:px-5 sm:py-4;
+}
+
+.admin-product-form .admin-panel-title {
+  @apply text-[14px] sm:text-[15px];
+}
+
+.admin-product-form .admin-chip {
+  @apply px-2.5 py-1.5 text-[12px] sm:px-3 sm:text-[13px];
+}
+
+.admin-product-form .admin-input {
+  @apply px-3 py-2.5 text-[16px] sm:text-sm;
+}
+
+@media (max-width: 639px) {
+  .admin-product-form .admin-page-header h1,
+  .admin-main:has(.admin-product-form) .admin-page-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .admin-product-form .grid.gap-4 {
+    gap: 0.85rem;
+  }
+
+  .admin-product-form .space-y-8 {
+    --tw-space-y-reverse: 0;
+  }
+
+  .admin-product-form .space-y-8 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1.25rem;
+  }
+
+  .admin-product-form .space-y-10 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1.5rem;
+  }
+
+  /* Palette board: avoid overflow / squeeze on narrow screens */
+  .admin-product-form .palette-board {
+    gap: 10px 12px;
+  }
+
+  .admin-product-form .palette-group-grid {
+    --palette-dot: 22px;
+    gap: 3px;
+  }
 }
 
 /* ——— Media editor (product photos / video tone) ——— */

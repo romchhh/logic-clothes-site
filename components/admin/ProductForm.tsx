@@ -570,7 +570,7 @@ export default function ProductForm({ productId }: Props) {
   return (
     <form
       onSubmit={(e) => void handleSubmit(e)}
-      className="admin-form-stack"
+      className="admin-form-stack admin-product-form"
       data-tour="tour-product-form"
     >
       {error && (
@@ -738,14 +738,10 @@ export default function ProductForm({ productId }: Props) {
                 onChange={(e) => set("sortOrder", e.target.value)}
                 placeholder={isEdit ? "0" : "Авто (в кінець)"}
               />
-              <p className="mt-1 text-xs text-gray-400">
-                Менше число — вище в каталозі. Порожнє при створенні — в кінець
-                списку.
-              </p>
             </div>
           </div>
-          <div className="flex flex-col gap-4 pt-6">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div className="flex flex-col gap-3 md:pt-1">
+            <div className="admin-toggle-row">
               <ToggleSwitch
                 label="В наявності"
                 enabled={form.inStock}
@@ -757,12 +753,7 @@ export default function ProductForm({ productId }: Props) {
                 setEnabled={(v) => set("madeToOrder", v)}
               />
             </div>
-            <p className="text-xs text-gray-400">
-              Ці статуси показуються в описі товару на сайті. Можна увімкнути
-              обидва (частина розмірів є, інше — під замовлення). Без жодного —
-              товар не додається в кошик.
-            </p>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div className="admin-toggle-row">
               <ToggleSwitch
                 label="New"
                 enabled={form.isNew}
@@ -792,16 +783,11 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Sizes */}
-      <ComponentCard
-        title="Розміри в наявності"
-        sectionId="section-sizes"
-        desc="Які розміри є зараз. На сайті вони підсвітяться, якщо увімкнено статус «В наявності»."
-      >
+      <ComponentCard title="Розміри" sectionId="section-sizes">
         <AdminChipField
-          label="Розміри"
-          hint="Можна вставити список одразу (кома або новий рядок). Нові назви запамʼятовуються для інших товарів."
-          placeholderChip="Свій розмір, напр. 42"
-          bulkPlaceholder="XXS, XS, S, M, L, XL, A, B, C, D"
+          label="Розміри в наявності"
+          placeholderChip="Свій розмір"
+          bulkPlaceholder="XXS, XS, S, M, L, XL"
           suggestions={Array.from(
             new Set([...ADMIN_SIZE_PRESETS, ...form.sizeOptions])
           )}
@@ -817,11 +803,7 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Length + material variants */}
-      <ComponentCard
-        title="Варіації"
-        sectionId="section-variants"
-        desc="Опційно. Якщо нічого не обрати — блок на сторінці товару не з’явиться."
-      >
+      <ComponentCard title="Варіації" sectionId="section-variants">
         <div className="space-y-6">
           <div>
             <Label>Довжина</Label>
@@ -863,10 +845,9 @@ export default function ProductForm({ productId }: Props) {
           </div>
 
           <AdminChipField
-            label="Назви тканин (варіанти на сайті)"
-            hint="Клієнт обирає одну з назв. Список можна розширити масово — значення запамʼятовуються в браузері та підтягуються з каталогу."
-            placeholderChip="Нова назва тканини"
-            bulkPlaceholder="Шовк, Креп, Трикотаж, Віскоза"
+            label="Тканини"
+            placeholderChip="Нова тканина"
+            bulkPlaceholder="Шовк, Креп, Трикотаж"
             suggestions={Array.from(
               new Set([
                 ...PRESET_FABRIC_NAMES,
@@ -910,10 +891,9 @@ export default function ProductForm({ productId }: Props) {
         <div className="space-y-8">
           <div className="space-y-3">
             <AdminChipField
-              label="Склад — збережені варіанти"
-              hint="Клік по чіпу підставляє текст у поле нижче. Нові склади запамʼятовуються після збереження товару або масового додавання."
-              placeholderChip="Новий склад одним рядком"
-              bulkPlaceholder={"95% бавовна, 5% еластан\n100% шовк"}
+              label="Збережені склади"
+              placeholderChip="Новий склад"
+              bulkPlaceholder={"95% бавовна, 5% еластан"}
               suggestions={Array.from(
                 new Set([
                   ...compositionSuggestions,
@@ -1014,74 +994,55 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Relations */}
-      <ComponentCard
-        title="Звʼязки між товарами"
-        sectionId="section-links"
-        desc="Два окремі блоки: інші кольори цієї моделі (окремі сторінки товарів) і речі в одному образі на фото."
-      >
-        <div className="admin-help-box mb-6 !border-gray-200/80 !bg-gray-50/90 dark:!border-white/10 dark:!bg-white/[0.04]">
-          <p className="text-[13px] leading-relaxed text-gray-700 dark:text-gray-300">
-          <strong className="font-semibold text-gray-800 dark:text-white">
-            Не плутати:
-          </strong>{" "}
-          кілька відтінків на{" "}
-          <em>одній</em> сторінці — у блоці «Колір» вище; перехід на{" "}
-          <em>інший товар</em> того ж виробу — у «Повʼязані товари» нижче.
-          </p>
-        </div>
-        <div className="space-y-10">
+      <ComponentCard title="Звʼязки" sectionId="section-links">
+        <div className="space-y-8">
           <ProductRelationPicker
             kind="color-siblings"
-            label="Повʼязані товари (інші кольори)"
-            summary="Окремі товари в каталозі: на сайті клієнт перемикає колір і переходить на іншу сторінку."
+            label="Інші кольори моделі"
             catalog={catalog}
             excludeId={productId}
             currentProductName={form.nameUk}
             selectedIds={colorVariantIds}
             onChange={setColorVariantIds}
-            emptyHint="Ще не повʼязано жодного кольору — знайдіть копії цієї моделі через пошук нижче"
+            emptyHint="Пошуком додайте копії цієї моделі"
           />
           <div className="border-t border-gray-100 dark:border-white/[0.06]" />
           {!isEdit ? (
-            <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-[13px] leading-relaxed text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-              Спочатку натисніть «Створити товар» внизу сторінки. Після збереження
-              відкрийте товар знову — тоді можна додати речі в «Також у цьому
-              луці» (пошук існуючих товарів, не «Завантажити нове»).
+            <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-[12px] leading-snug text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+              Спочатку створіть товар — лук можна додати після збереження.
             </p>
           ) : null}
           <ProductRelationPicker
             kind="look"
             label="Також у цьому луці"
-            summary="Картки під описом товару в блоці «Також у цьому луці» — для комплектів і стилізацій."
             catalog={catalog}
             excludeId={productId}
             currentProductName={form.nameUk}
             selectedIds={lookProductIds}
             onChange={setLookProductIds}
-            emptyHint="Додайте 2–4 товари, які показуєте разом у фото"
+            emptyHint="Додайте 2–4 товари з каталогу"
           />
         </div>
       </ComponentCard>
 
-      <div className="admin-sticky-bar">
-        <p className="hidden text-[13px] text-gray-500 sm:block dark:text-gray-400">
-          {isEdit ? "Зміни збережуться одразу після підтвердження" : "Новий товар з’явиться в каталозі після створення"}
-        </p>
-        <div className="ml-auto flex flex-wrap items-center gap-2.5">
-          <Link
-            href={getAdminProductsListHref()}
-            className="admin-btn-secondary"
-          >
-            Скасувати
-          </Link>
-          <button type="submit" disabled={saving} className="admin-btn-primary">
-            {saving
-              ? "Збереження…"
-              : isEdit
-                ? "Зберегти зміни"
-                : "Створити товар"}
-          </button>
-        </div>
+      <div className="admin-sticky-bar admin-sticky-bar--form">
+        <Link
+          href={getAdminProductsListHref()}
+          className="admin-btn-secondary admin-sticky-cancel"
+        >
+          Скасувати
+        </Link>
+        <button
+          type="submit"
+          disabled={saving}
+          className="admin-btn-primary admin-sticky-save"
+        >
+          {saving
+            ? "Збереження…"
+            : isEdit
+              ? "Зберегти"
+              : "Створити"}
+        </button>
       </div>
     </form>
   );

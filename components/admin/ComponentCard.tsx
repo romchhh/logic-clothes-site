@@ -21,12 +21,14 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   return (
     <section
       id={sectionId}
-      className={`admin-panel scroll-mt-32 ${className}`}
+      className={`admin-panel scroll-mt-28 sm:scroll-mt-32 ${className}`}
     >
       <div className="admin-panel-head">
         <div className="min-w-0">
           <h3 className="admin-panel-title">{title}</h3>
-          {desc ? <p className="admin-panel-desc">{desc}</p> : null}
+          {desc ? (
+            <p className="admin-panel-desc hidden sm:block">{desc}</p>
+          ) : null}
         </div>
         {actions ? (
           <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -34,8 +36,8 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
           </div>
         ) : null}
       </div>
-      <div className="p-5 sm:p-6">
-        <div className="space-y-5">{children}</div>
+      <div className="p-3.5 sm:p-5 md:p-6">
+        <div className="space-y-4 sm:space-y-5">{children}</div>
       </div>
     </section>
   );

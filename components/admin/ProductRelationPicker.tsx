@@ -8,15 +8,14 @@ export type RelationPickerKind = "color-siblings" | "look";
 
 const STEPS: Record<RelationPickerKind, string[]> = {
   "color-siblings": [
-    "Створіть окремий товар на кожен колір (у списку товарів: ⋯ → «Зробити копію», потім змініть колір у блоці «Колір»).",
-    "У полі нижче знайдіть інші кольори цієї ж моделі та натисніть «Додати».",
-    "На сайті під перемикачем кольору з’являться переходи на ці сторінки товарів.",
+    "Кожен колір — окремий товар (⋯ → копія).",
+    "Нижче знайдіть і натисніть «Додати».",
+    "Збережіть форму внизу.",
   ],
   look: [
-    "Товар має бути вже збережений у каталозі (окремий slug).",
-    "У полі «Також у цьому луці» знайдіть існуючі товари через пошук і натисніть «Додати» — не потрібно створювати новий товар тут.",
-    "Збережіть форму («Зберегти зміни»). На сайті блок з’явиться під описом.",
-    "Порядок ▲▼ — як картки показуються в рядку.",
+    "Спочатку збережіть цей товар.",
+    "Пошуком додайте існуючі товари з каталогу.",
+    "Збережіть форму — блок з’явиться на сайті.",
   ],
 };
 
@@ -62,6 +61,7 @@ export default function ProductRelationPicker({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [browseAll, setBrowseAll] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const byId = useMemo(
@@ -164,28 +164,35 @@ export default function ProductRelationPicker({
           ) : null}
         </div>
         {summary ? (
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          <p className="mt-1 hidden text-[13px] text-gray-500 sm:block dark:text-gray-400">
             {summary}
           </p>
         ) : null}
-      </div>
-
-      <div className="admin-help-box" role="note">
-        <p className="admin-help-box-title">Як це працює</p>
-        <ol>
-          {steps.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
+        <button
+          type="button"
+          className="mt-1 admin-btn-ghost !h-7 !px-0 !text-[12px] text-gray-500"
+          onClick={() => setHelpOpen((v) => !v)}
+          aria-expanded={helpOpen}
+        >
+          {helpOpen ? "▴ Сховати підказку" : "▾ Як це працює"}
+        </button>
+        {helpOpen ? (
+          <div className="admin-help-box mt-2" role="note">
+            <ol>
+              {steps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
       </div>
 
       <div>
-        <p className="mb-2 text-[12px] font-medium text-gray-500 dark:text-gray-400">
-          {selected.length > 0 ? "Додані товари" : "Список порожній"}
-        </p>
         {selected.length > 0 ? (
           <>
-            <p className="mb-2 text-[11px] text-gray-400">{listHint}</p>
+            <p className="mb-2 hidden text-[11px] text-gray-400 sm:block">
+              {listHint}
+            </p>
             <ul className="space-y-2">
               {selected.map((p, i) => (
                 <li
@@ -253,7 +260,7 @@ export default function ProductRelationPicker({
             </ul>
           </>
         ) : (
-          <p className="rounded-xl border border-dashed border-gray-200 px-4 py-5 text-center text-sm text-gray-500 dark:border-white/10 dark:text-gray-400">
+          <p className="rounded-xl border border-dashed border-gray-200 px-3 py-3 text-center text-[13px] text-gray-500 dark:border-white/10 dark:text-gray-400">
             {emptyHint}
           </p>
         )}
@@ -348,17 +355,13 @@ export default function ProductRelationPicker({
                   onClick={() => setBrowseAll((v) => !v)}
                 >
                   {browseAll
-                    ? "Згорнути список"
-                    : `Показати ще (${rankedAvailable.length - suggestions.length})`}
+                    ? "Згорнути"
+                    : `Ще ${rankedAvailable.length - suggestions.length}`}
                 </button>
               </div>
             ) : null}
           </div>
         )}
-        <p className="mt-1.5 text-[11px] text-gray-400">
-          Після вибору натисніть «Зберегти зміни» внизу сторінки, щоб звʼязки
-          зʼявились на сайті.
-        </p>
       </div>
     </div>
   );

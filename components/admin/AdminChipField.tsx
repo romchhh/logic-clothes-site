@@ -36,6 +36,7 @@ export default function AdminChipField({
 }: Props) {
   const [custom, setCustom] = useState("");
   const [bulk, setBulk] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const pool = Array.from(new Set([...suggestions, ...selected]));
 
@@ -57,19 +58,20 @@ export default function AdminChipField({
     if (!parts.length) return;
     onBulkAdd(parts);
     setBulk("");
+    setBulkOpen(false);
   }
 
   return (
     <div className="space-y-3">
       <div>
         <Label>{label}</Label>
-        {hint && (
-          <p className="mt-1 text-[13px] leading-relaxed text-gray-500 dark:text-gray-400">
+        {hint ? (
+          <p className="mt-1 hidden text-[12px] leading-snug text-gray-500 sm:block dark:text-gray-400">
             {hint}
           </p>
-        )}
+        ) : null}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {pool.map((value) => {
           const active = singleSelect
             ? activeValue === value
@@ -92,12 +94,12 @@ export default function AdminChipField({
               className={`admin-chip ${active ? "admin-chip-active" : ""}`}
               title={value}
             >
-              {value.length > 48 ? `${value.slice(0, 48)}…` : value}
+              {value.length > 36 ? `${value.slice(0, 36)}…` : value}
             </button>
           );
         })}
       </div>
-      <div className="flex max-w-md items-center gap-2">
+      <div className="flex flex-col gap-2 sm:max-w-md sm:flex-row sm:items-center">
         <input
           className="admin-input flex-1"
           value={custom}
@@ -113,26 +115,37 @@ export default function AdminChipField({
         <button
           type="button"
           onClick={addCustom}
-          className="admin-btn-secondary shrink-0"
+          className="admin-btn-secondary shrink-0 sm:!h-10"
         >
           Додати
         </button>
       </div>
-      <div className="space-y-2">
-        <Label>Вставити багато одразу</Label>
-        <TextArea
-          rows={3}
-          value={bulk}
-          onChange={setBulk}
-          placeholder={bulkPlaceholder}
-        />
+      <div>
         <button
           type="button"
-          onClick={applyBulk}
-          className="admin-btn-secondary"
+          className="admin-btn-ghost !h-8 !px-0 !text-[12px] text-gray-500"
+          onClick={() => setBulkOpen((v) => !v)}
+          aria-expanded={bulkOpen}
         >
-          Додати всі до списку
+          {bulkOpen ? "▴ Сховати список" : "▾ Вставити список"}
         </button>
+        {bulkOpen ? (
+          <div className="mt-2 space-y-2">
+            <TextArea
+              rows={2}
+              value={bulk}
+              onChange={setBulk}
+              placeholder={bulkPlaceholder}
+            />
+            <button
+              type="button"
+              onClick={applyBulk}
+              className="admin-btn-secondary"
+            >
+              Додати всі
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
