@@ -417,7 +417,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         <input
           ref={inputRef}
           type="file"
-          accept="image/*,video/*,*/*"
+          accept="image/*,video/*"
           multiple
           className="hidden"
           onChange={(e) => {

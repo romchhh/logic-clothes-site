@@ -206,7 +206,7 @@ export default function HeroSettingsForm() {
             <input
               ref={fileRef}
               type="file"
-              accept="image/*,*/*"
+              accept="image/*"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
