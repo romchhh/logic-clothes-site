@@ -199,10 +199,6 @@ export default function ProductClient({
         </div>
 
         <div className="pdp-detail">
-        <Link href={`/${lang}/catalog`} className="pdp-back">
-          {t.product.catalog}
-        </Link>
-
         <header className="pdp-intro pdp-intro--row">
           <h1 className="pdp-title">{displayName}</h1>
           <div className="pdp-price">
@@ -512,19 +508,21 @@ export default function ProductClient({
             onAdd={addCustom}
           />
         ) : null}
-
-        {related.length > 0 && (
-          <section className="pdp-related" aria-label={t.product.lookTitle}>
-            <h2 className="pdp-section-title">{t.product.lookTitle}</h2>
-            <div className="pdp-related-grid">
-              {related.map((p) => (
-                <ProductCard key={p.id} product={p} lang={lang} />
-              ))}
-            </div>
-          </section>
-        )}
         </div>
       </div>
+
+      {related.length > 0 && (
+        <section className="pdp-related pdp-related--look" aria-label={t.product.lookTitle}>
+          <div className="pdp-related-head">
+            <h2 className="pdp-section-title">{t.product.lookTitle}</h2>
+          </div>
+          <div className="pdp-related-grid">
+            {related.map((p) => (
+              <ProductCard key={p.id} product={p} lang={lang} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="pdp-immersive-tail">
       <div className="pdp-below pdp-below--immersive">

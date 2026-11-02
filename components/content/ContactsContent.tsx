@@ -1,5 +1,4 @@
 import type { Locale } from "@/lib/i18n/config";
-import { getLegalPage } from "@/lib/content/legal";
 import {
   SITE_ADDRESS_LINES,
   SITE_EMAIL,
@@ -9,15 +8,21 @@ import {
   SITE_PHONE,
   SITE_PHONE_DISPLAY,
 } from "@/lib/siteContact";
+import { getLegalPageContent } from "@/lib/sitePages";
 
-export default function ContactsContent({ lang }: { lang: Locale }) {
-  const page = getLegalPage(lang, "contacts");
+export default async function ContactsContent({ lang }: { lang: Locale }) {
+  const page = await getLegalPageContent(lang, "contacts");
   if (!page) return null;
 
   const storeSection = page.sections.find((s) =>
     /concept store/i.test(s.heading)
   );
   const replySection = page.sections.find((s) => s.bullets?.length);
+  const addressLines =
+    storeSection?.paragraphs
+      ?.flatMap((p) => p.split("\n"))
+      .map((l) => l.trim())
+      .filter(Boolean) ?? SITE_ADDRESS_LINES;
 
   return (
     <article className="contacts-page">
@@ -32,15 +37,13 @@ export default function ContactsContent({ lang }: { lang: Locale }) {
             <section className="contacts-block">
               <h2>{storeSection.heading}</h2>
               <address className="contacts-address">
-                {SITE_ADDRESS_LINES.map((line) => (
+                {addressLines.map((line) => (
                   <span key={line}>{line}</span>
                 ))}
               </address>
               <ul className="contacts-meta">
                 <li>
-                  <span>
-                    {lang === "uk" ? "Телефон" : "Phone"}
-                  </span>
+                  <span>{lang === "uk" ? "Телефон" : "Phone"}</span>
                   <a href={`tel:${SITE_PHONE}`}>{SITE_PHONE_DISPLAY}</a>
                 </li>
                 <li>

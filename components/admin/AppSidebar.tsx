@@ -97,6 +97,33 @@ function HeroIcon({ className }: { className?: string }) {
   );
 }
 
+function ContentIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden
+    >
+      <path
+        d="M6 4.5h8.5L18 8v11.5a1 1 0 01-1 1H6a1 1 0 01-1-1v-14a1 1 0 011-1z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M14 4.5V8h3.5" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M8 12h8M8 15.5h6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function UsersIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -156,6 +183,7 @@ const navGroups: NavGroup[] = [
     label: "Система",
     items: [
       { name: "Hero", icon: <HeroIcon />, path: "/admin/hero" },
+      { name: "Контент", icon: <ContentIcon />, path: "/admin/content" },
       { name: "Фіди", icon: <FeedIcon />, path: "/admin/feeds" },
       {
         name: "Налаштування",

@@ -4,7 +4,7 @@ import ContactsContent from "@/components/content/ContactsContent";
 import LegalContent from "@/components/content/LegalContent";
 import JsonLd from "@/components/shared/JsonLd";
 import PageShell from "@/components/shared/PageShell";
-import { getLegalPage, getLegalSlugs } from "@/lib/content/legal";
+import { getLegalSlugs } from "@/lib/content/legal";
 import { SUPPORTED_LOCALES } from "@/lib/i18n/config";
 import { getMessages } from "@/lib/i18n/messages";
 import { getSiteUrl, pageAlternates, parseLangParam } from "@/lib/i18n/seo";
@@ -14,6 +14,7 @@ import {
   SITE_NAME,
   SITE_PHONE,
 } from "@/lib/siteContact";
+import { getLegalPageContent } from "@/lib/sitePages";
 
 export const revalidate = 300;
 
@@ -31,7 +32,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang: raw, legalSlug } = await params;
   const lang = parseLangParam(raw);
-  const page = getLegalPage(lang, legalSlug);
+  const page = await getLegalPageContent(lang, legalSlug);
   if (!page) return { title: "Not found", robots: { index: false } };
   return {
     title: page.title,
@@ -47,7 +48,7 @@ export default async function LegalSlugPage({
 }) {
   const { lang: raw, legalSlug } = await params;
   const lang = parseLangParam(raw);
-  const page = getLegalPage(lang, legalSlug);
+  const page = await getLegalPageContent(lang, legalSlug);
   if (!page) notFound();
 
   const t = getMessages(lang);

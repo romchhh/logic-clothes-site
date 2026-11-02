@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import AboutContent from "@/components/content/AboutContent";
 import JsonLd from "@/components/shared/JsonLd";
 import PageShell from "@/components/shared/PageShell";
-import { aboutContent } from "@/lib/content/about";
 import { getMessages } from "@/lib/i18n/messages";
 import { getSiteUrl, pageAlternates, parseLangParam } from "@/lib/i18n/seo";
 import {
   generateAboutPageStructuredData,
   generateBreadcrumbStructuredData,
 } from "@/lib/seo";
+import { getAboutPage } from "@/lib/sitePages";
 
 export const revalidate = 300;
 
@@ -18,7 +18,7 @@ export async function generateMetadata({
   params: Promise<{ lang: string }>;
 }): Promise<Metadata> {
   const lang = parseLangParam((await params).lang);
-  const c = aboutContent[lang];
+  const c = await getAboutPage(lang);
   return {
     title: c.title,
     description: c.lead,
@@ -38,7 +38,7 @@ export default async function AboutPage({
   params: Promise<{ lang: string }>;
 }) {
   const lang = parseLangParam((await params).lang);
-  const c = aboutContent[lang];
+  const c = await getAboutPage(lang);
   const t = getMessages(lang);
   const baseUrl = getSiteUrl();
 

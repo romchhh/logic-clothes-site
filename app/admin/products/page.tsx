@@ -36,6 +36,12 @@ export default function ProductsPage() {
               Редагувати всі ціни
             </Link>
             <Link
+              href="/admin/products/crops"
+              className="admin-btn-secondary !hidden sm:!inline-flex"
+            >
+              Кадрувати всі фото
+            </Link>
+            <Link
               href="/admin/products/add"
               className="admin-btn-primary w-full sm:w-auto"
             >
