@@ -1,5 +1,6 @@
 /** Client-side: normalize picks (HEIC → JPEG) and cap size before crop / upload. */
 
+import { looksLikeVideoBytes } from "@/lib/mediaBytes";
 import { isImageUploadFile as isImageUploadMedia } from "@/lib/mediaUploadKind";
 
 /** Long edge cap — enough for 960×1600 export, much faster in the crop editor. */
@@ -65,6 +66,10 @@ async function downscaleForEditor(file: File): Promise<File> {
 }
 
 export async function prepareImageUploadFile(file: File): Promise<File> {
+  const head = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+  if (looksLikeVideoBytes(head)) {
+    throw new Error("video_file");
+  }
   let next = file;
   if (isHeicFile(file)) {
     const heic2any = (await import("heic2any")).default;

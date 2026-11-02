@@ -7,12 +7,15 @@ import MediaEditModal, {
 } from "@/components/admin/MediaEditModal";
 import { mediaAdjustProps } from "@/components/shared/MediaWithAdjust";
 import AdminVideoThumb from "@/components/admin/AdminVideoThumb";
-import { captureVideoPoster } from "@/lib/captureVideoPoster";
+import {
+  captureVideoPoster,
+  captureVideoPosterFromUrl,
+} from "@/lib/captureVideoPoster";
 import {
   isDefaultAdjust,
   type MediaAdjust,
 } from "@/lib/mediaAdjust";
-import { isVideoUploadFile } from "@/lib/mediaUploadKind";
+import { classifyUploadFile } from "@/lib/mediaUploadKind";
 import {
   prepareImageUploadFile,
 } from "@/lib/prepareUploadImage";
@@ -48,6 +51,8 @@ export default function ProductMediaManager({ media, onChange }: Props) {
   const [queueIndex, setQueueIndex] = useState(0);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
 
+  const posterRequestedRef = useRef(new Set<string>());
+
   useEffect(() => {
     const urls = objectUrlsRef.current;
     return () => {
@@ -55,6 +60,20 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       urls.clear();
     };
   }, []);
+
+  useEffect(() => {
+    for (const m of media) {
+      if (m.type !== "video" || posterRequestedRef.current.has(m.url)) continue;
+      posterRequestedRef.current.add(m.url);
+      void captureVideoPosterFromUrl(m.url)
+        .then((poster) => {
+          setVideoPosters((prev) =>
+            prev[m.url] ? prev : { ...prev, [m.url]: poster }
+          );
+        })
+        .catch(() => undefined);
+    }
+  }, [media]);
 
   const trackObjectUrl = (url: string) => {
     objectUrlsRef.current.add(url);
@@ -156,6 +175,22 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     []
   );
 
+  const loadVideoDimensions = (src: string): Promise<{ w: number; h: number }> =>
+    new Promise((resolve, reject) => {
+      const video = document.createElement("video");
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+      video.src = `${src.split("#")[0]}#t=0.1`;
+      video.onloadedmetadata = () => {
+        resolve({
+          w: video.videoWidth || 1080,
+          h: video.videoHeight || 1920,
+        });
+      };
+      video.onerror = () => reject(new Error("video_meta"));
+    });
+
   const closeEdit = useCallback(() => {
     setEditSession(null);
   }, []);
@@ -191,8 +226,14 @@ export default function ProductMediaManager({ media, onChange }: Props) {
 
   const onPickFiles = async (files: FileList | File[]) => {
     const list = Array.from(files);
-    const videos = list.filter((f) => isVideoUploadFile(f));
-    const rawImages = list.filter((f) => !isVideoUploadFile(f));
+    const kinds = await Promise.all(
+      list.map(async (f) => ({
+        f,
+        kind: (await classifyUploadFile(f)) as "video" | "image",
+      }))
+    );
+    const videos = kinds.filter((x) => x.kind === "video").map((x) => x.f);
+    const rawImages = kinds.filter((x) => x.kind === "image").map((x) => x.f);
     if (!videos.length && !rawImages.length) {
       setError("Не вдалося прочитати файли");
       return;
@@ -216,7 +257,8 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         if (!fresh) throw new Error("empty");
         originalsRef.current.set(fresh.url, file);
         queueMicrotask(() => {
-          void captureVideoPoster(file)
+          void captureVideoPosterFromUrl(fresh.url)
+            .catch(() => captureVideoPoster(file))
             .then((poster) => {
               if (!poster) return;
               setVideoPosters((prev) => ({ ...prev, [fresh.url]: poster }));
@@ -411,11 +453,23 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     setError(null);
     if (item.type === "video") {
       const original = originalsRef.current.get(item.url);
-      openVideoEdit(
-        item.url,
-        original ?? null,
-        item.adjust
-      );
+      if (original) {
+        openVideoEdit(item.url, original, item.adjust);
+        return;
+      }
+      try {
+        const dims = await loadVideoDimensions(item.url);
+        openVideoEdit(
+          item.url,
+          null,
+          item.adjust,
+          dims.w,
+          dims.h
+        );
+      } catch (e) {
+        console.error(e);
+        openVideoEdit(item.url, null, item.adjust);
+      }
       return;
     }
     const original = originalsRef.current.get(item.url);

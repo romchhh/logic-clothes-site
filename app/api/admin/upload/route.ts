@@ -12,6 +12,7 @@ import {
   productMediaDir,
   productMediaPublicUrl,
 } from "@/lib/productMediaStorage";
+import { looksLikeVideoBytes } from "@/lib/mediaBytes";
 import {
   isVideoUpload,
   sanitizeVideoExtension,
@@ -27,19 +28,6 @@ type CropPayload = {
   w: number;
   h: number;
 };
-
-function looksLikeVideo(buf: Buffer): boolean {
-  if (buf.length < 12) return false;
-  const head = buf.subarray(0, 16).toString("latin1");
-  if (head.includes("ftyp")) return true;
-  if (
-    buf.subarray(0, 4).toString("latin1") === "RIFF" &&
-    buf.subarray(8, 12).toString("latin1") === "WEBM"
-  ) {
-    return true;
-  }
-  return false;
-}
 
 function parseCrop(raw: FormDataEntryValue | null): CropPayload | null {
   if (typeof raw !== "string" || !raw.trim()) return null;
@@ -104,7 +92,7 @@ export async function POST(request: NextRequest) {
       const isVideo =
         kindVideo ||
         isVideoUpload(file.name, file.type) ||
-        looksLikeVideo(buf);
+        looksLikeVideoBytes(buf);
 
       if (isVideo) {
         const filename = `${base}.${sanitizeVideoExtension(file.name)}`;
@@ -129,6 +117,16 @@ export async function POST(request: NextRequest) {
           type: "image",
           width: PRODUCT_CARD_EXPORT_W,
           height: PRODUCT_CARD_EXPORT_H,
+        });
+        continue;
+      }
+
+      if (looksLikeVideoBytes(buf)) {
+        const filename = `${base}.${sanitizeVideoExtension(file.name)}`;
+        await fs.writeFile(path.join(dir, filename), buf);
+        items.push({
+          url: productMediaPublicUrl(filename),
+          type: "video",
         });
         continue;
       }

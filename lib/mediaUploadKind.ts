@@ -1,5 +1,7 @@
 /** Shared image/video detection for admin uploads (client + server). */
 
+import { looksLikeImageBytes, looksLikeVideoBytes } from "@/lib/mediaBytes";
+
 export const VIDEO_EXTENSIONS = new Set([
   "mp4",
   "m4v",
@@ -80,9 +82,22 @@ export function isImageUpload(name: string, mimeType = ""): boolean {
   if (mime.startsWith("image/")) return true;
   const ext = extFromName(name);
   if (ext && IMAGE_EXTENSIONS.has(ext)) return true;
-  /** Phones often send empty MIME — treat unknown as image and let sharp try. */
-  if (!mime || mime === "application/octet-stream") return true;
+  if (ext && VIDEO_EXTENSIONS.has(ext)) return false;
+  /** Unknown MIME without extension — do not assume image (avoids sharp on video). */
+  if (!mime || mime === "application/octet-stream") return false;
   return false;
+}
+
+/** Classify ambiguous phone picks (empty MIME, missing extension). */
+export async function classifyUploadFile(
+  file: File
+): Promise<"video" | "image"> {
+  if (isVideoUpload(file.name, file.type)) return "video";
+  if (isImageUpload(file.name, file.type)) return "image";
+  const head = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+  if (looksLikeVideoBytes(head)) return "video";
+  if (looksLikeImageBytes(head)) return "image";
+  return "image";
 }
 
 export function isVideoUploadFile(file: File): boolean {

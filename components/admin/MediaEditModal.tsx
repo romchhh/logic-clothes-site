@@ -260,12 +260,22 @@ export default function MediaEditModal({
   );
 
   useEffect(() => {
-    if (!session || session.mode !== "image") return;
+    if (!session || (session.mode !== "image" && session.mode !== "video"))
+      return;
     cropReadyRef.current = false;
-    const run = (recenter: boolean) =>
-      applyCoverSize(session.naturalW, session.naturalH, recenter);
-    const img = cropImgRef.current;
-    if (img?.complete && img.naturalWidth) run(true);
+    const nw =
+      session.mode === "video"
+        ? naturalRef.current.w || session.naturalW
+        : session.naturalW;
+    const nh =
+      session.mode === "video"
+        ? naturalRef.current.h || session.naturalH
+        : session.naturalH;
+    const run = (recenter: boolean) => applyCoverSize(nw, nh, recenter);
+    if (session.mode === "image") {
+      const img = cropImgRef.current;
+      if (img?.complete && img.naturalWidth) run(true);
+    }
     const frame = frameRef.current;
     if (!frame || typeof ResizeObserver === "undefined") {
       const t = window.setTimeout(() => run(true), 50);
@@ -604,8 +614,8 @@ export default function MediaEditModal({
             <div
               ref={frameRef}
               className={`media-editor-frame${
-                isVideo ? " media-editor-frame--video" : ""
-              }${showCropLayer && tab === "crop" ? " is-cropping" : ""}`}
+                showCropLayer && tab === "crop" ? " is-cropping" : ""
+              }`}
               style={{
                 cursor: showCropLayer && tab === "crop" ? "grab" : "default",
                 touchAction: "none",
@@ -660,7 +670,13 @@ export default function MediaEditModal({
                     } catch {
                       /* keep first frame */
                     }
+                    v.pause();
                   }}
+                  onError={() =>
+                    setSaveError(
+                      "Не вдалося відкрити відео для прев’ю. Оновіть сторінку або завантажте знову."
+                    )
+                  }
                 />
               ) : (
                 /* Same framed crop on both tabs — this is what gets saved. */
