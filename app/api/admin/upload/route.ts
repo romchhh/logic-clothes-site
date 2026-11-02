@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { spawn } from "child_process";
 import { promises as fs } from "fs";
-import os from "os";
 import path from "path";
 import sharp from "sharp";
 import { requireAdmin } from "@/lib/adminAuth";
@@ -39,79 +37,6 @@ function looksLikeVideo(buf: Buffer): boolean {
     return true;
   }
   return false;
-}
-
-function runCmd(
-  bin: string,
-  args: string[],
-  timeoutMs: number
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(bin, args, { stdio: ["ignore", "ignore", "pipe"] });
-    let settled = false;
-    const finish = (err?: Error) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      if (err) reject(err);
-      else resolve();
-    };
-    const timer = setTimeout(() => {
-      child.kill("SIGKILL");
-      finish(new Error(`${bin} timeout`));
-    }, timeoutMs);
-    child.on("error", (err) => finish(err));
-    child.on("close", (code) => {
-      if (code === 0) finish();
-      else finish(new Error(`${bin} ${code}`));
-    });
-  });
-}
-
-/**
- * Store video immediately. mp4/webm are written as-is.
- * MOV and other containers get a short stream-copy remux (no re-encode).
- * If that does not finish quickly, the original file is saved so the request never hangs.
- */
-async function storeVideoFile(
-  input: Buffer,
-  name: string,
-  mime: string,
-  dir: string,
-  base: string
-): Promise<string> {
-  const ext = sanitizeVideoExtension(name);
-  const mimeL = mime.toLowerCase();
-  const directMp4 = ext === "mp4" || mimeL.includes("mp4");
-  const directWebm = ext === "webm" || mimeL.includes("webm");
-
-  if (directMp4 || directWebm) {
-    const filename = `${base}.${directWebm ? "webm" : "mp4"}`;
-    await fs.writeFile(path.join(dir, filename), input);
-    return filename;
-  }
-
-  const tmpIn = path.join(os.tmpdir(), `lc-vid-${base}`);
-  const tmpOut = path.join(os.tmpdir(), `lc-vid-${base}.mp4`);
-  try {
-    await fs.writeFile(tmpIn, input);
-    await runCmd(
-      "ffmpeg",
-      ["-y", "-i", tmpIn, "-c", "copy", "-movflags", "+faststart", tmpOut],
-      8000
-    );
-    const filename = `${base}.mp4`;
-    await fs.copyFile(tmpOut, path.join(dir, filename));
-    return filename;
-  } catch (err) {
-    console.warn("[upload] fast remux skipped:", err);
-    const filename = `${base}.${ext}`;
-    await fs.writeFile(path.join(dir, filename), input);
-    return filename;
-  } finally {
-    await fs.unlink(tmpIn).catch(() => {});
-    await fs.unlink(tmpOut).catch(() => {});
-  }
 }
 
 function parseCrop(raw: FormDataEntryValue | null): CropPayload | null {
@@ -175,13 +100,8 @@ export async function POST(request: NextRequest) {
         isVideoUpload(file.name, file.type) || looksLikeVideo(buf);
 
       if (isVideo) {
-        const filename = await storeVideoFile(
-          buf,
-          file.name,
-          file.type,
-          dir,
-          base
-        );
+        const filename = `${base}.${sanitizeVideoExtension(file.name)}`;
+        await fs.writeFile(path.join(dir, filename), buf);
         items.push({
           url: productMediaPublicUrl(filename),
           type: "video",

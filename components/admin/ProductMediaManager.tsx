@@ -68,7 +68,11 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     fd.append("fit", "catalog");
     if (opts?.ready) fd.append("ready", "1");
     const ctrl = new AbortController();
-    const timer = window.setTimeout(() => ctrl.abort(), 45_000);
+    const isVideo = isVideoUploadFile(file);
+    const timer = window.setTimeout(
+      () => ctrl.abort(),
+      isVideo ? 5 * 60_000 : 45_000
+    );
     let res: Response;
     try {
       res = await fetch("/api/admin/upload", {
