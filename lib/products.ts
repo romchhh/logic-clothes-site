@@ -48,6 +48,7 @@ function enrichColorVariants(products: Product[]): Product[] {
 
 const loadProductsCached = unstable_cache(
   async (_epoch: number): Promise<Product[]> => {
+    void _epoch;
     try {
       const products = await readProducts();
       return enrichColorVariants(products);

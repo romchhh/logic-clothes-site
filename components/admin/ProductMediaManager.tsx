@@ -45,9 +45,10 @@ export default function ProductMediaManager({ media, onChange }: Props) {
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
 
   useEffect(() => {
+    const urls = objectUrlsRef.current;
     return () => {
-      for (const u of objectUrlsRef.current) URL.revokeObjectURL(u);
-      objectUrlsRef.current.clear();
+      for (const u of urls) URL.revokeObjectURL(u);
+      urls.clear();
     };
   }, []);
 

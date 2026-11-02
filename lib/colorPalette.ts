@@ -444,7 +444,7 @@ export function buildPaletteSlots(
   },
   family: PaletteSlotVariant[]
 ): PaletteSlot[] {
-  const { self, byPalette } = resolveMembers(current, family);
+  const { byPalette } = resolveMembers(current, family);
 
   return COLOR_PALETTE.map((palette) => {
     const variant = byPalette.get(palette.id) ?? null;

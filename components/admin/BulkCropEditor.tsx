@@ -77,9 +77,10 @@ export default function BulkCropEditor() {
 
   useEffect(() => {
     void load();
+    const urls = objectUrlsRef.current;
     return () => {
-      for (const u of objectUrlsRef.current) URL.revokeObjectURL(u);
-      objectUrlsRef.current.clear();
+      for (const u of urls) URL.revokeObjectURL(u);
+      urls.clear();
     };
   }, [load]);
 

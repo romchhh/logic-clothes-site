@@ -1,7 +1,6 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __lcProductsEpoch: number | undefined;
 }
 
