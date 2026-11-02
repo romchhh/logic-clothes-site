@@ -67,11 +67,24 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     fd.append("images", file);
     fd.append("fit", "catalog");
     if (opts?.ready) fd.append("ready", "1");
-    const res = await fetch("/api/admin/upload", {
-      method: "POST",
-      credentials: "include",
-      body: fd,
-    });
+    const ctrl = new AbortController();
+    const timer = window.setTimeout(() => ctrl.abort(), 45_000);
+    let res: Response;
+    try {
+      res = await fetch("/api/admin/upload", {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+        signal: ctrl.signal,
+      });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        throw new Error("Завантаження занадто довге — спробуйте коротше відео");
+      }
+      throw err;
+    } finally {
+      window.clearTimeout(timer);
+    }
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as {
         message?: string;
@@ -278,7 +291,11 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       await openImageEdit(images[0], null);
     } catch (e) {
       console.error(e);
-      setError("Не вдалося завантажити частину файлів");
+      setError(
+        e instanceof Error && e.message
+          ? e.message
+          : "Не вдалося завантажити частину файлів"
+      );
       abortQueues();
     } finally {
       setUploading(false);

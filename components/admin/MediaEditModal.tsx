@@ -463,30 +463,15 @@ export default function MediaEditModal({
       if (!cropReadyRef.current) {
         centerPan(session.naturalW, session.naturalH);
       }
-      // Prefer decoding from the original file (CORS-safe) when possible
-      let source: CanvasImageSource = img;
-      let sourceW = session.naturalW;
-      let sourceH = session.naturalH;
-      try {
-        const bmp = await createImageBitmap(session.file);
-        source = bmp;
-        sourceW = bmp.width;
-        sourceH = bmp.height;
-      } catch {
-        /* fall back to <img> */
-      }
       const crop = getCropRect();
       const blob = await renderAdjustedImageBlob(
-        source,
-        sourceW,
-        sourceH,
+        img,
+        img.naturalWidth || session.naturalW,
+        img.naturalHeight || session.naturalH,
         crop,
         adjust
       );
-      if ("close" in source && typeof (source as ImageBitmap).close === "function") {
-        (source as ImageBitmap).close();
-      }
-      const file = new File([blob], "catalog.webp", { type: "image/webp" });
+      const file = new File([blob], "catalog.jpg", { type: "image/jpeg" });
       await onSaveImage(file, session.replaceUrl, adjust);
     } catch (err) {
       console.error(err);
@@ -502,8 +487,7 @@ export default function MediaEditModal({
 
   const isVideo = session.mode === "video";
   const disabled = saving || busy;
-  const showCropLayer = !isVideo && tab === "crop";
-  const showFilteredPreview = !showCropLayer;
+  const showCropLayer = !isVideo;
   const showSkip = Boolean(onSkip) && (isVideo || queueTotal > 1);
   const fileLabel = session.label?.trim();
 
@@ -573,9 +557,9 @@ export default function MediaEditModal({
               ref={frameRef}
               className={`media-editor-frame${
                 isVideo ? " media-editor-frame--video" : ""
-              }${showCropLayer ? " is-cropping" : ""}`}
+              }${showCropLayer && tab === "crop" ? " is-cropping" : ""}`}
               style={{
-                cursor: showCropLayer ? "grab" : "default",
+                cursor: showCropLayer && tab === "crop" ? "grab" : "default",
                 touchAction: "none",
               }}
               onPointerDown={onPointerDown}
@@ -599,38 +583,21 @@ export default function MediaEditModal({
                   preload="auto"
                 />
               ) : (
-                <>
-                  {showFilteredPreview && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={session.previewUrl}
-                      alt=""
-                      className="media-editor-media"
-                      draggable={false}
-                      style={
-                        previewFilter ? { filter: previewFilter } : undefined
-                      }
-                    />
-                  )}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    ref={cropImgRef}
-                    src={session.previewUrl}
-                    alt=""
-                    draggable={false}
-                    className={`media-editor-crop-layer${
-                      showCropLayer ? " is-visible" : ""
-                    }`}
-                    style={
-                      showCropLayer && previewFilter
-                        ? { filter: previewFilter }
-                        : undefined
-                    }
-                    onLoad={() =>
-                      centerPan(session.naturalW, session.naturalH)
-                    }
-                  />
-                </>
+                /* Same framed crop on both tabs — this is what gets saved. */
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  ref={cropImgRef}
+                  src={session.previewUrl}
+                  alt=""
+                  draggable={false}
+                  className="media-editor-crop-layer is-visible"
+                  style={
+                    previewFilter ? { filter: previewFilter } : undefined
+                  }
+                  onLoad={() =>
+                    centerPan(session.naturalW, session.naturalH)
+                  }
+                />
               )}
               {!isVideo ? (
                 <div className="media-editor-frame-guide" aria-hidden="true" />
@@ -653,7 +620,7 @@ export default function MediaEditModal({
                 >
                   {videoPlaying ? "Пауза" : "Грати"}
                 </button>
-              ) : showCropLayer ? (
+              ) : tab === "crop" ? (
                 <div className="media-editor-zoom-bar">
                   <button
                     type="button"

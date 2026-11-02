@@ -28,16 +28,6 @@ type CropPayload = {
   h: number;
 };
 
-const BROWSER_VIDEO_CODECS = new Set([
-  "h264",
-  "avc1",
-  "avc",
-  "vp8",
-  "vp9",
-  "av1",
-  "theora",
-]);
-
 function looksLikeVideo(buf: Buffer): boolean {
   if (buf.length < 12) return false;
   const head = buf.subarray(0, 16).toString("latin1");
@@ -51,154 +41,76 @@ function looksLikeVideo(buf: Buffer): boolean {
   return false;
 }
 
-function likelyNeedsTranscode(name: string, mime: string): boolean {
-  const lower = name.toLowerCase();
-  const m = mime.toLowerCase();
-  if (
-    m.includes("quicktime") ||
-    m.includes("hevc") ||
-    m.includes("x-m4v") ||
-    lower.endsWith(".mov") ||
-    lower.endsWith(".qt") ||
-    lower.endsWith(".m4v") ||
-    lower.endsWith(".hevc") ||
-    lower.endsWith(".mkv") ||
-    lower.endsWith(".avi") ||
-    lower.endsWith(".3gp")
-  ) {
-    return true;
-  }
-  // mp4 / webm often already browser-ready — confirm with ffprobe when available
-  return false;
-}
-
 function runCmd(
   bin: string,
   args: string[],
   timeoutMs: number
-): Promise<{ code: number; stdout: string }> {
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
-    let stdout = "";
-    let stderr = "";
+    const child = spawn(bin, args, { stdio: ["ignore", "ignore", "pipe"] });
+    let settled = false;
+    const finish = (err?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (err) reject(err);
+      else resolve();
+    };
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
-      reject(new Error(`${bin} timeout`));
+      finish(new Error(`${bin} timeout`));
     }, timeoutMs);
-    child.stdout.on("data", (d: Buffer) => {
-      stdout += d.toString("utf8");
-    });
-    child.stderr.on("data", (d: Buffer) => {
-      stderr += d.toString("utf8");
-    });
-    child.on("error", (err) => {
-      clearTimeout(timer);
-      reject(err);
-    });
+    child.on("error", (err) => finish(err));
     child.on("close", (code) => {
-      clearTimeout(timer);
-      if (code === 0) resolve({ code: 0, stdout });
-      else reject(new Error(`${bin} ${code}: ${stderr.slice(-400)}`));
+      if (code === 0) finish();
+      else finish(new Error(`${bin} ${code}`));
     });
   });
 }
 
-async function probeVideoCodec(filePath: string): Promise<string | null> {
-  try {
-    const { stdout } = await runCmd(
-      "ffprobe",
-      [
-        "-v",
-        "error",
-        "-select_streams",
-        "v:0",
-        "-show_entries",
-        "stream=codec_name",
-        "-of",
-        "csv=p=0",
-        filePath,
-      ],
-      8000
-    );
-    return stdout.trim().toLowerCase().split(/[\r\n,]/)[0] || null;
-  } catch {
-    return null;
-  }
-}
-
-/** Fast path: keep file if already browser-playable; else re-encode lightly. */
-async function ensureBrowserVideo(
+/**
+ * Store video immediately. mp4/webm are written as-is.
+ * MOV and other containers get a short stream-copy remux (no re-encode).
+ * If that does not finish quickly, the original file is saved so the request never hangs.
+ */
+async function storeVideoFile(
   input: Buffer,
   name: string,
-  mime: string
-): Promise<{ data: Uint8Array; ext: string }> {
-  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-  const tmpIn = path.join(os.tmpdir(), `lc-vid-${id}`);
-  await fs.writeFile(tmpIn, input);
+  mime: string,
+  dir: string,
+  base: string
+): Promise<string> {
+  const ext = sanitizeVideoExtension(name);
+  const mimeL = mime.toLowerCase();
+  const directMp4 = ext === "mp4" || mimeL.includes("mp4");
+  const directWebm = ext === "webm" || mimeL.includes("webm");
 
+  if (directMp4 || directWebm) {
+    const filename = `${base}.${directWebm ? "webm" : "mp4"}`;
+    await fs.writeFile(path.join(dir, filename), input);
+    return filename;
+  }
+
+  const tmpIn = path.join(os.tmpdir(), `lc-vid-${base}`);
+  const tmpOut = path.join(os.tmpdir(), `lc-vid-${base}.mp4`);
   try {
-    const codec = await probeVideoCodec(tmpIn);
-    const force = likelyNeedsTranscode(name, mime);
-    const okCodec = codec ? BROWSER_VIDEO_CODECS.has(codec) : false;
-    const looksMp4 =
-      name.toLowerCase().endsWith(".mp4") ||
-      mime.toLowerCase().includes("mp4");
-    const looksWebm =
-      name.toLowerCase().endsWith(".webm") ||
-      mime.toLowerCase().includes("webm");
-
-    // Already friendly — store as-is (no re-encode).
-    if (!force && okCodec && (looksMp4 || looksWebm)) {
-      return {
-        data: input,
-        ext: looksWebm ? "webm" : "mp4",
-      };
-    }
-    if (!force && !codec && looksMp4) {
-      // No ffprobe — trust mp4 from desktop cameras; skip slow encode.
-      return { data: input, ext: "mp4" };
-    }
-    if (!force && looksWebm) {
-      return { data: input, ext: "webm" };
-    }
-
-    const tmpOut = path.join(os.tmpdir(), `lc-vid-${id}.mp4`);
-    try {
-      // ultrafast + higher CRF + no audio: product clips don't need soundtrack
-      await runCmd(
-        "ffmpeg",
-        [
-          "-y",
-          "-i",
-          tmpIn,
-          "-an",
-          "-c:v",
-          "libx264",
-          "-preset",
-          "ultrafast",
-          "-crf",
-          "28",
-          "-pix_fmt",
-          "yuv420p",
-          "-movflags",
-          "+faststart",
-          "-vf",
-          "scale='min(960,iw)':-2",
-          "-threads",
-          "0",
-          tmpOut,
-        ],
-        120_000
-      );
-      return {
-        data: new Uint8Array(await fs.readFile(tmpOut)),
-        ext: "mp4",
-      };
-    } finally {
-      await fs.unlink(tmpOut).catch(() => {});
-    }
+    await fs.writeFile(tmpIn, input);
+    await runCmd(
+      "ffmpeg",
+      ["-y", "-i", tmpIn, "-c", "copy", "-movflags", "+faststart", tmpOut],
+      8000
+    );
+    const filename = `${base}.mp4`;
+    await fs.copyFile(tmpOut, path.join(dir, filename));
+    return filename;
+  } catch (err) {
+    console.warn("[upload] fast remux skipped:", err);
+    const filename = `${base}.${ext}`;
+    await fs.writeFile(path.join(dir, filename), input);
+    return filename;
   } finally {
     await fs.unlink(tmpIn).catch(() => {});
+    await fs.unlink(tmpOut).catch(() => {});
   }
 }
 
@@ -220,16 +132,6 @@ function parseCrop(raw: FormDataEntryValue | null): CropPayload | null {
     /* ignore */
   }
   return null;
-}
-
-function isClientReadyWebp(file: File, readyFlag: string): boolean {
-  if (readyFlag === "1" || readyFlag === "true") return true;
-  const name = file.name.toLowerCase();
-  const type = file.type.toLowerCase();
-  return (
-    (type === "image/webp" || name.endsWith(".webp")) &&
-    (name.includes("catalog") || name.includes("crop"))
-  );
 }
 
 export async function POST(request: NextRequest) {
@@ -273,18 +175,13 @@ export async function POST(request: NextRequest) {
         isVideoUpload(file.name, file.type) || looksLikeVideo(buf);
 
       if (isVideo) {
-        let videoBuf: Uint8Array = buf;
-        let ext = "mp4";
-        try {
-          const ensured = await ensureBrowserVideo(buf, file.name, file.type);
-          videoBuf = ensured.data;
-          ext = ensured.ext;
-        } catch (err) {
-          console.error("[upload] video optimize failed, storing original:", err);
-          ext = sanitizeVideoExtension(file.name);
-        }
-        const filename = `${base}.${ext}`;
-        await fs.writeFile(path.join(dir, filename), videoBuf);
+        const filename = await storeVideoFile(
+          buf,
+          file.name,
+          file.type,
+          dir,
+          base
+        );
         items.push({
           url: productMediaPublicUrl(filename),
           type: "video",
@@ -292,24 +189,19 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Client already cropped/toned to catalog webp — skip second encode.
-      if (isClientReadyWebp(file, readyFlag) && !crop) {
-        const filename = `${base}.webp`;
+      // Client already cropped/toned — write bytes, do not decode again.
+      if ((readyFlag === "1" || readyFlag === "true") && !crop) {
+        const jpeg =
+          file.type === "image/jpeg" ||
+          file.name.toLowerCase().endsWith(".jpg") ||
+          file.name.toLowerCase().endsWith(".jpeg");
+        const filename = `${base}.${jpeg ? "jpg" : "webp"}`;
         await fs.writeFile(path.join(dir, filename), buf);
-        let width = PRODUCT_CARD_EXPORT_W;
-        let height = PRODUCT_CARD_EXPORT_H;
-        try {
-          const meta = await sharp(buf).metadata();
-          if (meta.width) width = meta.width;
-          if (meta.height) height = meta.height;
-        } catch {
-          /* keep defaults */
-        }
         items.push({
           url: productMediaPublicUrl(filename),
           type: "image",
-          width,
-          height,
+          width: PRODUCT_CARD_EXPORT_W,
+          height: PRODUCT_CARD_EXPORT_H,
         });
         continue;
       }
