@@ -28,6 +28,16 @@ type CropPayload = {
   h: number;
 };
 
+const BROWSER_VIDEO_CODECS = new Set([
+  "h264",
+  "avc1",
+  "avc",
+  "vp8",
+  "vp9",
+  "av1",
+  "theora",
+]);
+
 function looksLikeVideo(buf: Buffer): boolean {
   if (buf.length < 12) return false;
   const head = buf.subarray(0, 16).toString("latin1");
@@ -41,43 +51,154 @@ function looksLikeVideo(buf: Buffer): boolean {
   return false;
 }
 
-/** Browsers play mp4 reliably. MOV/HEVC from phones often will not. */
-async function transcodeToMp4(input: Buffer): Promise<Uint8Array> {
+function likelyNeedsTranscode(name: string, mime: string): boolean {
+  const lower = name.toLowerCase();
+  const m = mime.toLowerCase();
+  if (
+    m.includes("quicktime") ||
+    m.includes("hevc") ||
+    m.includes("x-m4v") ||
+    lower.endsWith(".mov") ||
+    lower.endsWith(".qt") ||
+    lower.endsWith(".m4v") ||
+    lower.endsWith(".hevc") ||
+    lower.endsWith(".mkv") ||
+    lower.endsWith(".avi") ||
+    lower.endsWith(".3gp")
+  ) {
+    return true;
+  }
+  // mp4 / webm often already browser-ready — confirm with ffprobe when available
+  return false;
+}
+
+function runCmd(
+  bin: string,
+  args: string[],
+  timeoutMs: number
+): Promise<{ code: number; stdout: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(new Error(`${bin} timeout`));
+    }, timeoutMs);
+    child.stdout.on("data", (d: Buffer) => {
+      stdout += d.toString("utf8");
+    });
+    child.stderr.on("data", (d: Buffer) => {
+      stderr += d.toString("utf8");
+    });
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolve({ code: 0, stdout });
+      else reject(new Error(`${bin} ${code}: ${stderr.slice(-400)}`));
+    });
+  });
+}
+
+async function probeVideoCodec(filePath: string): Promise<string | null> {
+  try {
+    const { stdout } = await runCmd(
+      "ffprobe",
+      [
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=codec_name",
+        "-of",
+        "csv=p=0",
+        filePath,
+      ],
+      8000
+    );
+    return stdout.trim().toLowerCase().split(/[\r\n,]/)[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Fast path: keep file if already browser-playable; else re-encode lightly. */
+async function ensureBrowserVideo(
+  input: Buffer,
+  name: string,
+  mime: string
+): Promise<{ data: Uint8Array; ext: string }> {
   const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const tmpIn = path.join(os.tmpdir(), `lc-vid-${id}`);
-  const tmpOut = path.join(os.tmpdir(), `lc-vid-${id}.mp4`);
   await fs.writeFile(tmpIn, input);
+
   try {
-    await new Promise<void>((resolve, reject) => {
-      const ff = spawn("ffmpeg", [
-        "-y",
-        "-i",
-        tmpIn,
-        "-c:v",
-        "libx264",
-        "-preset",
-        "veryfast",
-        "-crf",
-        "23",
-        "-pix_fmt",
-        "yuv420p",
-        "-c:a",
-        "aac",
-        "-movflags",
-        "+faststart",
-        "-vf",
-        "scale='min(1280,iw)':-2",
-        tmpOut,
-      ]);
-      ff.on("error", reject);
-      ff.on("close", (code) =>
-        code === 0 ? resolve() : reject(new Error(`ffmpeg ${code}`))
+    const codec = await probeVideoCodec(tmpIn);
+    const force = likelyNeedsTranscode(name, mime);
+    const okCodec = codec ? BROWSER_VIDEO_CODECS.has(codec) : false;
+    const looksMp4 =
+      name.toLowerCase().endsWith(".mp4") ||
+      mime.toLowerCase().includes("mp4");
+    const looksWebm =
+      name.toLowerCase().endsWith(".webm") ||
+      mime.toLowerCase().includes("webm");
+
+    // Already friendly — store as-is (no re-encode).
+    if (!force && okCodec && (looksMp4 || looksWebm)) {
+      return {
+        data: input,
+        ext: looksWebm ? "webm" : "mp4",
+      };
+    }
+    if (!force && !codec && looksMp4) {
+      // No ffprobe — trust mp4 from desktop cameras; skip slow encode.
+      return { data: input, ext: "mp4" };
+    }
+    if (!force && looksWebm) {
+      return { data: input, ext: "webm" };
+    }
+
+    const tmpOut = path.join(os.tmpdir(), `lc-vid-${id}.mp4`);
+    try {
+      // ultrafast + higher CRF + no audio: product clips don't need soundtrack
+      await runCmd(
+        "ffmpeg",
+        [
+          "-y",
+          "-i",
+          tmpIn,
+          "-an",
+          "-c:v",
+          "libx264",
+          "-preset",
+          "ultrafast",
+          "-crf",
+          "28",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "-vf",
+          "scale='min(960,iw)':-2",
+          "-threads",
+          "0",
+          tmpOut,
+        ],
+        120_000
       );
-    });
-    return new Uint8Array(await fs.readFile(tmpOut));
+      return {
+        data: new Uint8Array(await fs.readFile(tmpOut)),
+        ext: "mp4",
+      };
+    } finally {
+      await fs.unlink(tmpOut).catch(() => {});
+    }
   } finally {
     await fs.unlink(tmpIn).catch(() => {});
-    await fs.unlink(tmpOut).catch(() => {});
   }
 }
 
@@ -101,6 +222,16 @@ function parseCrop(raw: FormDataEntryValue | null): CropPayload | null {
   return null;
 }
 
+function isClientReadyWebp(file: File, readyFlag: string): boolean {
+  if (readyFlag === "1" || readyFlag === "true") return true;
+  const name = file.name.toLowerCase();
+  const type = file.type.toLowerCase();
+  return (
+    (type === "image/webp" || name.endsWith(".webp")) &&
+    (name.includes("catalog") || name.includes("crop"))
+  );
+}
+
 export async function POST(request: NextRequest) {
   const denied = requireAdmin(request);
   if (denied) return denied;
@@ -116,6 +247,7 @@ export async function POST(request: NextRequest) {
 
     const crop = parseCrop(form.get("crop"));
     const fitMode = String(form.get("fit") || "");
+    const readyFlag = String(form.get("ready") || "");
     const fitCard =
       fitMode === "catalog" ||
       fitMode === "instagram" ||
@@ -144,9 +276,11 @@ export async function POST(request: NextRequest) {
         let videoBuf: Uint8Array = buf;
         let ext = "mp4";
         try {
-          videoBuf = await transcodeToMp4(buf);
+          const ensured = await ensureBrowserVideo(buf, file.name, file.type);
+          videoBuf = ensured.data;
+          ext = ensured.ext;
         } catch (err) {
-          console.error("[upload] ffmpeg failed, storing original:", err);
+          console.error("[upload] video optimize failed, storing original:", err);
           ext = sanitizeVideoExtension(file.name);
         }
         const filename = `${base}.${ext}`;
@@ -158,33 +292,63 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      let decoded: Buffer;
-      try {
-        decoded = await decodeImageToJpegBuffer(buf, base);
-      } catch (decodeErr) {
-        console.error("[upload] decode failed:", decodeErr);
-        return NextResponse.json(
-          {
-            error: "unsupported_image",
-            message:
-              "Не вдалося обробити файл як зображення. Спробуйте JPEG/PNG або конвертуйте у MP4 для відео.",
-          },
-          { status: 415 }
-        );
+      // Client already cropped/toned to catalog webp — skip second encode.
+      if (isClientReadyWebp(file, readyFlag) && !crop) {
+        const filename = `${base}.webp`;
+        await fs.writeFile(path.join(dir, filename), buf);
+        let width = PRODUCT_CARD_EXPORT_W;
+        let height = PRODUCT_CARD_EXPORT_H;
+        try {
+          const meta = await sharp(buf).metadata();
+          if (meta.width) width = meta.width;
+          if (meta.height) height = meta.height;
+        } catch {
+          /* keep defaults */
+        }
+        items.push({
+          url: productMediaPublicUrl(filename),
+          type: "image",
+          width,
+          height,
+        });
+        continue;
       }
 
-      const meta = await sharp(decoded).metadata();
-      const srcW = meta.width || PRODUCT_CARD_EXPORT_W;
-      const srcH = meta.height || PRODUCT_CARD_EXPORT_H;
+      // Prefer single-pass sharp (no full-res JPEG intermediate).
+      let working: Buffer = buf;
+      let srcW = PRODUCT_CARD_EXPORT_W;
+      let srcH = PRODUCT_CARD_EXPORT_H;
+      try {
+        const meta = await sharp(buf, { failOn: "none" }).rotate().metadata();
+        srcW = meta.width || srcW;
+        srcH = meta.height || srcH;
+      } catch (directErr) {
+        try {
+          working = await decodeImageToJpegBuffer(buf, base);
+          const meta = await sharp(working).metadata();
+          srcW = meta.width || srcW;
+          srcH = meta.height || srcH;
+        } catch (decodeErr) {
+          console.error("[upload] decode failed:", decodeErr || directErr);
+          return NextResponse.json(
+            {
+              error: "unsupported_image",
+              message:
+                "Не вдалося обробити файл як зображення. Спробуйте JPEG/PNG або конвертуйте у MP4 для відео.",
+            },
+            { status: 415 }
+          );
+        }
+      }
 
-      let pipeline;
+      let pipeline = sharp(working, { failOn: "none" }).rotate();
 
       if (crop) {
         const left = Math.max(0, Math.round(crop.x * srcW));
         const top = Math.max(0, Math.round(crop.y * srcH));
         const width = Math.min(srcW - left, Math.round(crop.w * srcW));
         const height = Math.min(srcH - top, Math.round(crop.h * srcH));
-        pipeline = sharp(decoded)
+        pipeline = pipeline
           .extract({
             left,
             top,
@@ -195,7 +359,7 @@ export async function POST(request: NextRequest) {
             fit: "fill",
           });
       } else if (fitCard) {
-        pipeline = sharp(decoded).resize(
+        pipeline = pipeline.resize(
           PRODUCT_CARD_EXPORT_W,
           PRODUCT_CARD_EXPORT_H,
           {
@@ -204,20 +368,22 @@ export async function POST(request: NextRequest) {
           }
         );
       } else if (fitHero) {
-        pipeline = sharp(decoded).resize({
-          width: 2400,
+        pipeline = pipeline.resize({
+          width: 2000,
           withoutEnlargement: true,
         });
       } else {
-        pipeline = sharp(decoded).resize({
-          width: 1600,
+        pipeline = pipeline.resize({
+          width: 1400,
           withoutEnlargement: true,
         });
       }
 
       const filename = `${base}.webp`;
       const outPath = path.join(dir, filename);
-      const info = await pipeline.webp({ quality: 84 }).toFile(outPath);
+      const info = await pipeline
+        .webp({ quality: 78, effort: 3 })
+        .toFile(outPath);
       items.push({
         url: productMediaPublicUrl(filename),
         type: "image",
@@ -226,7 +392,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Avoid CDN/browser caching a 404 from before the file existed.
     const res = NextResponse.json({
       urls: items.map((i) => i.url),
       items,

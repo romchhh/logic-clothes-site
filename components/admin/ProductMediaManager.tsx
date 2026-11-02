@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import AdminUploadPreloader from "@/components/admin/AdminUploadPreloader";
 import MediaEditModal, {
   type MediaEditSession,
 } from "@/components/admin/MediaEditModal";
@@ -57,10 +58,15 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     return url;
   };
 
-  const uploadOne = useCallback(async (file: File): Promise<ProductMedia[]> => {
+  const uploadOne = useCallback(
+    async (
+      file: File,
+      opts?: { ready?: boolean }
+    ): Promise<ProductMedia[]> => {
     const fd = new FormData();
     fd.append("images", file);
     fd.append("fit", "catalog");
+    if (opts?.ready) fd.append("ready", "1");
     const res = await fetch("/api/admin/upload", {
       method: "POST",
       credentials: "include",
@@ -86,7 +92,9 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       })) ??
       (data.urls || []).map((url) => ({ url, type: "image" as const }))
     );
-  }, []);
+  },
+  []
+  );
 
   const openImageEdit = useCallback(
     async (file: File, replaceUrl: string | null, initialAdjust?: MediaAdjust) => {
@@ -202,7 +210,11 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       let videoCount = 0;
       for (let i = 0; i < videos.length; i++) {
         const file = videos[i];
-        setUploadProgress(`Завантаження відео ${i + 1} / ${videos.length}…`);
+        setUploadProgress(
+          videos.length > 1
+            ? `Завантаження відео ${i + 1} з ${videos.length}…`
+            : "Завантаження відео…"
+        );
         const items = await uploadOne(file);
         const fresh = items[0];
         if (!fresh) throw new Error("empty");
@@ -214,7 +226,20 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       }
 
       const images: File[] = [];
-      for (const f of rawImages) {
+      if (rawImages.length) {
+        setUploadProgress(
+          rawImages.length > 1
+            ? `Підготовка фото (0 / ${rawImages.length})…`
+            : "Підготовка фото…"
+        );
+      }
+      for (let i = 0; i < rawImages.length; i++) {
+        const f = rawImages[i];
+        if (rawImages.length > 1) {
+          setUploadProgress(
+            `Підготовка фото ${i + 1} з ${rawImages.length}…`
+          );
+        }
         try {
           images.push(await prepareImageUploadFile(f));
         } catch (e) {
@@ -293,9 +318,14 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     adjust: MediaAdjust
   ) => {
     setUploading(true);
+    setUploadProgress(
+      queueTotal > 1
+        ? `Збереження фото ${queueIndex} з ${queueTotal}…`
+        : "Збереження фото…"
+    );
     setError(null);
     try {
-      const items = await uploadOne(file);
+      const items = await uploadOne(file, { ready: true });
       const fresh = items[0];
       if (!fresh) throw new Error("empty");
       const source = replaceUrl
@@ -305,7 +335,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       closeEdit();
       if (imageQueueRef.current.length) {
         setUploadProgress(
-          `Кадр фото ${queueIndex + 1} / ${queueTotal}`
+          `Наступне фото ${queueIndex + 1} з ${queueTotal}…`
         );
         await advanceImageQueue();
       } else {
@@ -318,6 +348,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       );
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -396,6 +427,10 @@ export default function ProductMediaManager({ media, onChange }: Props) {
 
   return (
     <div className="space-y-3">
+      <AdminUploadPreloader
+        open={uploading && !editSession}
+        label={uploadProgress || "Завантаження…"}
+      />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="hidden text-[13px] text-gray-500 sm:block">
           Фото — кадр 3:5. Відео — одразу в галерею.
@@ -406,11 +441,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
           disabled={uploading || Boolean(editSession)}
           onClick={() => inputRef.current?.click()}
         >
-          {uploading
-            ? uploadProgress
-              ? uploadProgress
-              : "Обробка…"
-            : "Додати медіа"}
+          Додати медіа
         </button>
         <input
           ref={inputRef}
@@ -557,7 +588,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         session={editSession}
         queueIndex={queueIndex}
         queueTotal={queueTotal}
-        busy={uploading && !editSession}
+        busy={uploading}
         onClose={cancelAll}
         onSkip={skipEdit}
         onSaveImage={onSaveImage}

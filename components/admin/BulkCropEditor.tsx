@@ -180,6 +180,7 @@ export default function BulkCropEditor() {
     const fd = new FormData();
     fd.append("images", file);
     fd.append("fit", "catalog");
+    fd.append("ready", "1");
     const res = await fetch("/api/admin/upload", {
       method: "POST",
       credentials: "include",

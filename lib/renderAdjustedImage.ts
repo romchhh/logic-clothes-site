@@ -93,7 +93,7 @@ export async function renderAdjustedImageBlob(
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("toBlob"))),
       "image/webp",
-      0.88
+      0.8
     );
   });
 }
