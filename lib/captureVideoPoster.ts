@@ -8,11 +8,11 @@ export async function captureVideoPoster(
     const video = document.createElement("video");
     video.muted = true;
     video.playsInline = true;
-    video.preload = "auto";
+    video.preload = "metadata";
     video.src = objectUrl;
 
     await new Promise<void>((resolve, reject) => {
-      video.onloadeddata = () => resolve();
+      video.onloadedmetadata = () => resolve();
       video.onerror = () => reject(new Error("video"));
     });
 

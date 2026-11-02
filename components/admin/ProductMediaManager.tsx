@@ -64,11 +64,15 @@ export default function ProductMediaManager({ media, onChange }: Props) {
   const uploadOne = useCallback(
     async (
       file: File,
-      opts?: { ready?: boolean }
+      opts?: { ready?: boolean; video?: boolean }
     ): Promise<ProductMedia[]> => {
     const fd = new FormData();
     fd.append("images", file);
-    fd.append("fit", "catalog");
+    if (opts?.video) {
+      fd.append("kind", "video");
+    } else {
+      fd.append("fit", "catalog");
+    }
     if (opts?.ready) fd.append("ready", "1");
     const res = await fetch("/api/admin/upload", {
       method: "POST",
@@ -207,14 +211,17 @@ export default function ProductMediaManager({ media, onChange }: Props) {
             ? `Завантаження відео ${i + 1} з ${videos.length}…`
             : "Завантаження відео…"
         );
-        const posterPromise = captureVideoPoster(file).catch(() => null);
-        const items = await uploadOne(file);
+        const items = await uploadOne(file, { video: true });
         const fresh = items[0];
         if (!fresh) throw new Error("empty");
         originalsRef.current.set(fresh.url, file);
-        void posterPromise.then((poster) => {
-          if (!poster) return;
-          setVideoPosters((prev) => ({ ...prev, [fresh.url]: poster }));
+        queueMicrotask(() => {
+          void captureVideoPoster(file)
+            .then((poster) => {
+              if (!poster) return;
+              setVideoPosters((prev) => ({ ...prev, [fresh.url]: poster }));
+            })
+            .catch(() => undefined);
         });
         const next = [...mediaRef.current, fresh];
         mediaRef.current = next;
