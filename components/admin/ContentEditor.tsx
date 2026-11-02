@@ -9,7 +9,7 @@ import {
   type AboutLocaleContent,
   type ContentPageSlug,
   type SitePagesStore,
-} from "@/lib/sitePages";
+} from "@/lib/sitePagesTypes";
 import type { LegalPage, LegalSection } from "@/lib/content/legal";
 import type { Locale } from "@/lib/i18n/config";
 
