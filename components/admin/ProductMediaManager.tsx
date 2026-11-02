@@ -6,7 +6,8 @@ import MediaEditModal, {
   type MediaEditSession,
 } from "@/components/admin/MediaEditModal";
 import { mediaAdjustProps } from "@/components/shared/MediaWithAdjust";
-import VideoStill from "@/components/shared/VideoStill";
+import AdminVideoThumb from "@/components/admin/AdminVideoThumb";
+import { captureVideoPoster } from "@/lib/captureVideoPoster";
 import {
   isDefaultAdjust,
   type MediaAdjust,
@@ -36,6 +37,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
   mediaRef.current = media;
 
   const originalsRef = useRef<Map<string, File>>(new Map());
+  const [videoPosters, setVideoPosters] = useState<Record<string, string>>({});
   const objectUrlsRef = useRef<Set<string>>(new Set());
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -126,27 +128,16 @@ export default function ProductMediaManager({ media, onChange }: Props) {
   );
 
   const openVideoEdit = useCallback(
-    async (url: string, file: File | null, initialAdjust?: MediaAdjust) => {
+    (
+      url: string,
+      file: File | null,
+      initialAdjust?: MediaAdjust,
+      naturalW = 1080,
+      naturalH = 1920
+    ) => {
       const previewUrl = file
         ? trackObjectUrl(URL.createObjectURL(file))
         : url;
-      let naturalW = 1080;
-      let naturalH = 1920;
-      try {
-        const probe = document.createElement("video");
-        probe.preload = "metadata";
-        probe.src = previewUrl;
-        await new Promise<void>((resolve, reject) => {
-          probe.onloadedmetadata = () => resolve();
-          probe.onerror = () => reject(new Error("meta"));
-        });
-        if (probe.videoWidth > 0 && probe.videoHeight > 0) {
-          naturalW = probe.videoWidth;
-          naturalH = probe.videoHeight;
-        }
-      } catch {
-        /* keep defaults */
-      }
       setEditSession({
         mode: "video",
         file,
@@ -216,10 +207,15 @@ export default function ProductMediaManager({ media, onChange }: Props) {
             ? `Завантаження відео ${i + 1} з ${videos.length}…`
             : "Завантаження відео…"
         );
+        const posterPromise = captureVideoPoster(file).catch(() => null);
         const items = await uploadOne(file);
         const fresh = items[0];
         if (!fresh) throw new Error("empty");
         originalsRef.current.set(fresh.url, file);
+        void posterPromise.then((poster) => {
+          if (!poster) return;
+          setVideoPosters((prev) => ({ ...prev, [fresh.url]: poster }));
+        });
         const next = [...mediaRef.current, fresh];
         mediaRef.current = next;
         onChange(next);
@@ -408,7 +404,11 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     setError(null);
     if (item.type === "video") {
       const original = originalsRef.current.get(item.url);
-      await openVideoEdit(item.url, original ?? null, item.adjust);
+      openVideoEdit(
+        item.url,
+        original ?? null,
+        item.adjust
+      );
       return;
     }
     const original = originalsRef.current.get(item.url);
@@ -490,10 +490,10 @@ export default function ProductMediaManager({ media, onChange }: Props) {
           >
             <div className="relative aspect-[3/5] bg-gray-100 dark:bg-gray-800">
               {m.type === "video" ? (
-                <VideoStill
+                <AdminVideoThumb
                   src={m.url}
                   adjust={m.adjust}
-                  className="absolute inset-0"
+                  poster={videoPosters[m.url] ?? null}
                 />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element

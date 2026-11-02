@@ -625,8 +625,8 @@ export default function MediaEditModal({
                   }
                   muted
                   playsInline
-                  loop
-                  preload="auto"
+                  loop={false}
+                  preload="metadata"
                   onLoadedMetadata={(e) => {
                     const v = e.currentTarget;
                     const w = v.videoWidth || session.naturalW;

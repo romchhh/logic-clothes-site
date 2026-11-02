@@ -19,10 +19,12 @@ export default function VideoStill({
   autoPlay?: boolean;
 }) {
   const tone = mediaAdjustStyle(adjust);
+  const base = src.split("#")[0];
+  const stillSrc = autoPlay ? base : `${base}#t=0.1`;
 
   return (
     <video
-      src={src}
+      src={stillSrc}
       className={className}
       style={{
         width: "100%",
@@ -35,24 +37,13 @@ export default function VideoStill({
       playsInline
       loop={autoPlay}
       autoPlay={autoPlay}
-      preload="auto"
+      preload={autoPlay ? "auto" : "metadata"}
       onLoadedData={(e) => {
-        const v = e.currentTarget;
         if (autoPlay) return;
-        const show = () => v.pause();
-        if (v.currentTime > 0.05) {
-          show();
-          return;
-        }
-        const onSeeked = () => {
-          v.removeEventListener("seeked", onSeeked);
-          show();
-        };
-        v.addEventListener("seeked", onSeeked);
         try {
-          v.currentTime = 0.15;
+          e.currentTarget.pause();
         } catch {
-          show();
+          /* ignore */
         }
       }}
     />

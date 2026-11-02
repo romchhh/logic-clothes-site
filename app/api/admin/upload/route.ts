@@ -12,6 +12,7 @@ import {
   productMediaDir,
   productMediaPublicUrl,
 } from "@/lib/productMediaStorage";
+import { streamFileToDisk } from "@/lib/streamFileToDisk";
 import {
   isVideoUpload,
   sanitizeVideoExtension,
@@ -94,12 +95,23 @@ export async function POST(request: NextRequest) {
     }> = [];
 
     for (const file of files) {
-      const buf = Buffer.from(await file.arrayBuffer());
       const base = `${Date.now().toString(36)}-${Math.random()
         .toString(36)
         .slice(2, 8)}`;
-      const isVideo =
-        isVideoUpload(file.name, file.type) || looksLikeVideo(buf);
+      const isVideoByMeta = isVideoUpload(file.name, file.type);
+
+      if (isVideoByMeta) {
+        const filename = `${base}.${sanitizeVideoExtension(file.name)}`;
+        await streamFileToDisk(file, path.join(dir, filename));
+        items.push({
+          url: productMediaPublicUrl(filename),
+          type: "video",
+        });
+        continue;
+      }
+
+      const buf = Buffer.from(await file.arrayBuffer());
+      const isVideo = looksLikeVideo(buf);
 
       if (isVideo) {
         const filename = `${base}.${sanitizeVideoExtension(file.name)}`;
