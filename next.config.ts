@@ -11,11 +11,13 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "80mb",
+      bodySizeLimit: "100mb",
     },
-    middlewareClientMaxBodySize: "80mb",
+    // Next proxy aborts the socket (ECONNRESET) above the default ~10mb.
+    proxyClientMaxBodySize: "100mb",
+    middlewareClientMaxBodySize: "100mb",
     optimizePackageImports: ["tailwind-merge"],
-  },
+  } as NextConfig["experimental"],
   compress: true,
   poweredByHeader: false,
   trailingSlash: false,

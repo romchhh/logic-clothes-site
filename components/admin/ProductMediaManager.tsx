@@ -6,6 +6,7 @@ import MediaEditModal, {
   type MediaEditSession,
 } from "@/components/admin/MediaEditModal";
 import { mediaAdjustProps } from "@/components/shared/MediaWithAdjust";
+import VideoStill from "@/components/shared/VideoStill";
 import {
   isDefaultAdjust,
   type MediaAdjust,
@@ -67,28 +68,11 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     fd.append("images", file);
     fd.append("fit", "catalog");
     if (opts?.ready) fd.append("ready", "1");
-    const ctrl = new AbortController();
-    const isVideo = isVideoUploadFile(file);
-    const timer = window.setTimeout(
-      () => ctrl.abort(),
-      isVideo ? 5 * 60_000 : 45_000
-    );
-    let res: Response;
-    try {
-      res = await fetch("/api/admin/upload", {
-        method: "POST",
-        credentials: "include",
-        body: fd,
-        signal: ctrl.signal,
-      });
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        throw new Error("Завантаження занадто довге — спробуйте коротше відео");
-      }
-      throw err;
-    } finally {
-      window.clearTimeout(timer);
-    }
+    const res = await fetch("/api/admin/upload", {
+      method: "POST",
+      credentials: "include",
+      body: fd,
+    });
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as {
         message?: string;
@@ -271,8 +255,8 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         if (videoCount > 0) {
           setUploadNotice(
             videoCount === 1
-              ? "Відео додано. Тон — кнопка «Тон відео», якщо потрібно."
-              : `Додано ${videoCount} відео. Тон — «Тон відео» на кожній картці.`
+              ? "Відео додано. Кадр — кнопка «Кадр»."
+              : `Додано ${videoCount} відео. Кадр — кнопка «Кадр» на картці.`
           );
         }
         return;
@@ -506,15 +490,10 @@ export default function ProductMediaManager({ media, onChange }: Props) {
           >
             <div className="relative aspect-[3/5] bg-gray-100 dark:bg-gray-800">
               {m.type === "video" ? (
-                <video
+                <VideoStill
                   src={m.url}
-                  className="h-full w-full object-cover"
-                  style={mediaAdjustProps(m.adjust).style}
-                  muted
-                  playsInline
-                  preload="metadata"
-                  controls
-                  onClick={(e) => e.stopPropagation()}
+                  adjust={m.adjust}
+                  className="absolute inset-0"
                 />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -588,7 +567,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
                 disabled={uploading || Boolean(editSession)}
                 onClick={() => void startEditFor(idx)}
               >
-                {m.type === "video" ? "Тон відео" : "Редагувати"}
+                {m.type === "video" ? "Кадр" : "Редагувати"}
               </button>
             </div>
           </div>

@@ -9,8 +9,14 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import type { MediaAdjust } from "@/lib/mediaAdjust";
+import VideoStill from "@/components/shared/VideoStill";
 
-export type GallerySlide = { url: string; type: "image" | "video" };
+export type GallerySlide = {
+  url: string;
+  type: "image" | "video";
+  adjust?: MediaAdjust;
+};
 
 export default function ProductImmersiveGallery({
   slides,
@@ -148,15 +154,12 @@ export default function ProductImmersiveGallery({
           aria-label={`${alt} — ${index + 1}`}
         >
           {current.type === "video" ? (
-            <video
+            <VideoStill
               key={current.url}
               src={current.url}
-              className="pdp-immerse-hero-img"
+              adjust={current.adjust}
               autoPlay
-              muted
-              loop
-              playsInline
-              controls
+              className="pdp-immerse-hero-img"
             />
           ) : (
             <Image
@@ -214,14 +217,7 @@ export default function ProductImmersiveGallery({
               onClick={() => goTo(i)}
             >
               {slide.type === "video" ? (
-                <video
-                  src={slide.url}
-                  muted
-                  loop
-                  autoPlay
-                  playsInline
-                  preload="metadata"
-                />
+                <VideoStill src={slide.url} adjust={slide.adjust} />
               ) : (
                 <Image
                   src={slide.url}
@@ -298,11 +294,11 @@ export default function ProductImmersiveGallery({
             {slides.map((slide, i) => (
               <figure className="pdp-lightbox-slide" key={`lb-${slide.url}-${i}`}>
                 {slide.type === "video" ? (
-                  <video
+                  <VideoStill
                     src={slide.url}
-                    controls
-                    playsInline
+                    adjust={slide.adjust}
                     autoPlay={i === lightboxIndex}
+                    className="h-full w-full"
                   />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element

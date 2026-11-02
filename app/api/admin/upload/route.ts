@@ -18,6 +18,8 @@ import {
 } from "@/lib/mediaUploadKind";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 type CropPayload = {
   x: number; // 0–1 relative to source
