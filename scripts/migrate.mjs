@@ -100,6 +100,11 @@ const migrations = [
     description: "Sew in 14 days availability flag",
     file: "database/migrations/2026-04-30_lc_made_to_order.sql",
   },
+  {
+    id: "2026-11-02_lc_garment_measures",
+    description: "Actual garment measurements JSON",
+    file: "database/migrations/2026-11-02_lc_garment_measures.sql",
+  },
 ];
 
 async function main() {

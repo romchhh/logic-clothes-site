@@ -448,10 +448,10 @@ export default function CategoriesTable() {
               )}
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="sticky bottom-0 -mx-5 mt-6 flex gap-2 border-t border-gray-100 bg-white px-5 py-3 dark:border-white/10 dark:bg-gray-900 sm:-mx-6 sm:px-6">
               <button
                 type="button"
-                className="admin-btn-secondary"
+                className="admin-btn-secondary flex-1 sm:flex-none"
                 onClick={closeModal}
                 disabled={saving}
               >
@@ -459,7 +459,7 @@ export default function CategoriesTable() {
               </button>
               <button
                 type="button"
-                className="admin-btn-primary"
+                className="admin-btn-primary flex-1 sm:flex-none"
                 onClick={() => void save()}
                 disabled={saving || uploading}
               >
@@ -538,7 +538,7 @@ function CategoryRows({
               <div className="flex shrink-0 flex-col items-center gap-0.5 pt-1">
                 <button
                   type="button"
-                  className="admin-btn-icon !h-7 !w-7 text-[10px]"
+                  className="admin-btn-icon !h-9 !w-9 text-xs"
                   disabled={idx <= 0}
                   onClick={() => onMove(c.id, -1)}
                   aria-label="Вище"
@@ -547,7 +547,7 @@ function CategoryRows({
                 </button>
                 <button
                   type="button"
-                  className="admin-btn-icon !h-7 !w-7 text-[10px]"
+                  className="admin-btn-icon !h-9 !w-9 text-xs"
                   disabled={idx < 0 || idx >= allIds.length - 1}
                   onClick={() => onMove(c.id, 1)}
                   aria-label="Нижче"

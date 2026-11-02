@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import ProductCard from "@/components/catalog/ProductCard";
+import ProductCustomBuilder from "@/components/product/ProductCustomBuilder";
+import ProductDiscussOrder from "@/components/product/ProductDiscussOrder";
 import ProductImmersiveGallery from "@/components/product/ProductImmersiveGallery";
 import { useAppContext } from "@/lib/GeneralProvider";
 import { useBasket } from "@/lib/BasketProvider";
 import { useWishlist } from "@/lib/WishlistProvider";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { GARMENT_MEASURE_FIELDS, hasGarmentMeasures } from "@/lib/garmentMeasures";
 import type { Locale } from "@/lib/i18n/config";
 import ProductColorPalette from "@/components/product/ProductColorPalette";
 import {
@@ -16,7 +19,7 @@ import {
 } from "@/lib/catalogProduct";
 import { formatDualPrice } from "@/lib/format";
 import { MADE_TO_ORDER_SIZE_GRID } from "@/lib/productSizes";
-import { CUSTOM_SIZE_VALUE, SIZE_CHART_ROWS } from "@/lib/sizeChart";
+import { SIZE_CHART_ROWS } from "@/lib/sizeChart";
 import {
   productDescription,
   productName,
@@ -47,6 +50,9 @@ export default function ProductClient({
     materialOptions.length === 1 ? materialOptions[0] : null
   );
   const [sizeHint, setSizeHint] = useState(false);
+  const [sizeChartOpen, setSizeChartOpen] = useState(false);
+  const [measuresOpen, setMeasuresOpen] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
   const [lengthHint, setLengthHint] = useState(false);
   const [materialHint, setMaterialHint] = useState(false);
   const sizeBlockRef = useRef<HTMLDivElement>(null);
@@ -57,7 +63,14 @@ export default function ProductClient({
   const displayName = productName(product, lang);
   const displayDesc = productDescription(product, lang);
   const images = product.images;
-  const galleryImages = images;
+  const slides =
+    product.media && product.media.length > 0
+      ? product.media.map((m) => ({
+          url: m.url,
+          type: m.type === "video" ? ("video" as const) : ("image" as const),
+        }))
+      : images.map((url) => ({ url, type: "image" as const }));
+  const showMeasures = hasGarmentMeasures(product.garmentMeasures);
   const stockSizes = normalizeSizeOptions(product.sizeOptions);
   const inStockSizeSet = new Set(
     product.inStock && stockSizes.length > 0 ? stockSizes : []
@@ -153,12 +166,31 @@ export default function ProductClient({
     setIsBasketOpen(true);
   }
 
+  function addCustom(size: string, note: string) {
+    const colorLabel = (product.color || "").trim() || undefined;
+    addItem({
+      id: product.id,
+      name: displayName,
+      price: product.price,
+      priceNum: product.priceNum,
+      size: [size, note, colorLabel].filter(Boolean).join(" · "),
+      sizeLabel: size,
+      ...(colorLabel ? { color: colorLabel } : {}),
+      ...(note ? { material: note } : {}),
+      quantity: 1,
+      image: images[0],
+    });
+    setIsBasketOpen(true);
+  }
+
+  const missingSizes = displaySizes.some((sz) => !inStockSizeSet.has(sz));
+
   return (
     <div className="pdp pdp--immersive">
       <div className="pdp-immersive-shell">
         <div className="pdp-immersive-media">
           <ProductImmersiveGallery
-            images={galleryImages}
+            slides={slides}
             alt={displayName}
             prevLabel={t.a11y.prevPhoto}
             nextLabel={t.a11y.nextPhoto}
@@ -171,7 +203,7 @@ export default function ProductClient({
           {t.product.catalog}
         </Link>
 
-        <header className="pdp-intro pdp-intro--immersive">
+        <header className="pdp-intro pdp-intro--row">
           <h1 className="pdp-title">{displayName}</h1>
           <div className="pdp-price">
             {onSale && product.compareAtPriceNum != null && (
@@ -280,97 +312,157 @@ export default function ProductClient({
                 </div>
               )}
 
-              <div
-                className={`pdp-option pdp-option--size${sizeHint ? " is-hint" : ""}`}
-                ref={sizeBlockRef}
-              >
-                <div className="pdp-option-top">
-                  <p className="pdp-label">{t.product.size}</p>
-                  <a className="pdp-size-help" href="#pdp-size-chart">
-                    {t.product.sizeGuide}
-                  </a>
-                </div>
-                <div
-                  className="pdp-sizes pdp-sizes--all"
-                  role="listbox"
-                  aria-label={t.product.size}
-                  aria-invalid={sizeHint}
-                >
-                  {displaySizes.map((sz) => (
-                    <button
-                      key={sz}
-                      className={`pdp-size${
-                        selectedSize === sz ? " is-active" : ""
-                      }${inStockSizeSet.has(sz) ? " is-in-stock" : ""}`}
-                      type="button"
-                      role="option"
-                      aria-selected={selectedSize === sz}
-                      title={
-                        inStockSizeSet.has(sz)
-                          ? t.product.sizeTooltipInStock
-                          : t.product.sizeTooltipMadeToOrder
-                      }
-                      onClick={() => selectSize(sz)}
-                    >
-                      {sz}
-                    </button>
-                  ))}
-                  <button
-                    className={`pdp-size pdp-size--custom${selectedSize === CUSTOM_SIZE_VALUE ? " is-active" : ""}`}
-                    type="button"
-                    role="option"
-                    aria-selected={selectedSize === CUSTOM_SIZE_VALUE}
-                    title={t.product.sizeTooltipMadeToOrder}
-                    onClick={() => selectSize(CUSTOM_SIZE_VALUE)}
-                  >
-                    {t.product.sizeCustom}
-                  </button>
-                </div>
-                {sizeHint && (
-                  <p className="pdp-inline-hint" role="status">
-                    {t.product.pickSize}
-                  </p>
-                )}
-              </div>
         </div>
 
+        {displayDesc ? (
+          <p className="pdp-desc pdp-desc--lead">{displayDesc}</p>
+        ) : null}
+
+        {(materialOptions.length > 0 || product.material) && (
+          <dl className="pdp-fabric-grid">
+            {materialOptions.length > 0 ? (
+              <div>
+                <dt>{t.product.fabricKind}</dt>
+                <dd>{materialOptions.join(" · ")}</dd>
+              </div>
+            ) : null}
+            {product.material ? (
+              <div>
+                <dt>{t.product.fabric}</dt>
+                <dd>{product.material}</dd>
+              </div>
+            ) : null}
+          </dl>
+        )}
+
         {(product.inStock || product.madeToOrder) && (
-          <div className="pdp-block pdp-availability pdp-availability--immersive">
-            <p className="pdp-label">{t.product.availability}</p>
-            <ul className="pdp-availability-list">
-              {product.inStock ? (
-                <li>{t.product.inStock}</li>
-              ) : null}
-              {product.madeToOrder ? (
-                <li>{t.product.sewIn14Days}</li>
-              ) : null}
-            </ul>
+          <div className="pdp-status-row">
+            {product.inStock ? <span>{t.product.inStock}</span> : null}
+            {product.madeToOrder ? <span>{t.product.sewIn14Days}</span> : null}
           </div>
         )}
 
-        {displayDesc && (
-          <div className="pdp-block pdp-desc-block pdp-desc-block--immersive">
-            <p className="pdp-desc">{displayDesc}</p>
+        <div
+          className={`pdp-option pdp-option--size${sizeHint ? " is-hint" : ""}`}
+          ref={sizeBlockRef}
+        >
+          <div
+            className="pdp-sizes pdp-sizes--all"
+            role="listbox"
+            aria-label={t.product.size}
+            aria-invalid={sizeHint}
+          >
+            {displaySizes.map((sz) => {
+              const stocked = inStockSizeSet.has(sz);
+              return (
+                <button
+                  key={sz}
+                  className={`pdp-size${selectedSize === sz ? " is-active" : ""}${
+                    stocked ? "" : " is-off"
+                  }`}
+                  type="button"
+                  role="option"
+                  aria-selected={selectedSize === sz}
+                  disabled={!stocked}
+                  onClick={() => selectSize(sz)}
+                >
+                  {sz}
+                </button>
+              );
+            })}
           </div>
-        )}
-
-        {product.material && (
-          <div className="pdp-block pdp-fabric pdp-fabric--immersive">
-            <p className="pdp-label">{t.product.fabric}</p>
-            <p>{product.material}</p>
-          </div>
-        )}
+          {missingSizes ? (
+            <ProductDiscussOrder
+              lang={lang}
+              productId={product.id}
+              productName={displayName}
+              shadeLabel={product.color || ""}
+              label={t.product.orderMySize}
+              intent="size"
+            />
+          ) : null}
+          <button
+            type="button"
+            className="pdp-disclosure"
+            aria-expanded={sizeChartOpen}
+            onClick={() => setSizeChartOpen((v) => !v)}
+          >
+            {t.product.openSizeChart}
+          </button>
+          {sizeChartOpen ? (
+            <div className="pdp-size-chart pdp-size-chart--inline" id="pdp-size-chart">
+              <table className="pdp-size-table pdp-size-table--brand">
+                <thead>
+                  <tr>
+                    <th scope="col">{t.product.sizeCol}</th>
+                    <th scope="col">{t.product.bust}</th>
+                    <th scope="col">{t.product.waist}</th>
+                    <th scope="col">{t.product.hips}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SIZE_CHART_ROWS.map((row) => (
+                    <tr key={row.size}>
+                      <th scope="row">{row.size}</th>
+                      <td>{row.bust}</td>
+                      <td>{row.waist}</td>
+                      <td>{row.hips}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+          {sizeHint && (
+            <p className="pdp-inline-hint" role="status">
+              {t.product.pickSize}
+            </p>
+          )}
+        </div>
 
         {(product.photoSize || product.modelParams) && (
-          <div className="pdp-block pdp-model--immersive">
-            {product.photoSize && (
+          <div className="pdp-model-facts">
+            {product.photoSize ? (
               <p>
-                {lang === "uk" ? "На фото" : "On photo"}: {product.photoSize}
+                <span>{t.product.photoSizeLabel}: </span>
+                {product.photoSize}
               </p>
-            )}
-            {product.modelParams && <p>{product.modelParams}</p>}
+            ) : null}
+            {product.modelParams ? (
+              <p>
+                <span>{t.product.modelParamsLabel}: </span>
+                {product.modelParams}
+              </p>
+            ) : null}
           </div>
         )}
+
+        {showMeasures ? (
+          <div className="pdp-measures">
+            <button
+              type="button"
+              className="pdp-disclosure"
+              aria-expanded={measuresOpen}
+              onClick={() => setMeasuresOpen((v) => !v)}
+            >
+              {t.product.actualMeasures}
+            </button>
+            {measuresOpen ? (
+              <dl className="pdp-measures-list">
+                {GARMENT_MEASURE_FIELDS.map((field) => {
+                  const value = product.garmentMeasures?.[field.key];
+                  if (!value) return null;
+                  return (
+                    <div key={field.key}>
+                      <dt>{lang === "en" ? field.labelEn : field.label}</dt>
+                      <dd>{value}</dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="pdp-actions pdp-actions--immersive">
           {!canBuy && (
@@ -402,85 +494,40 @@ export default function ProductClient({
           >
             {wished ? t.product.inWish : t.product.addWish}
           </button>
+          <button
+            type="button"
+            className={`pdp-custom-order-cta${builderOpen ? " is-open" : ""}`}
+            aria-expanded={builderOpen}
+            onClick={() => setBuilderOpen((v) => !v)}
+          >
+            {t.product.orderMyColorSize}
+          </button>
         </div>
+
+        {builderOpen ? (
+          <ProductCustomBuilder
+            product={product}
+            lang={lang}
+            sizes={displaySizes}
+            onAdd={addCustom}
+          />
+        ) : null}
+
+        {related.length > 0 && (
+          <section className="pdp-related" aria-label={t.product.lookTitle}>
+            <h2 className="pdp-section-title">{t.product.lookTitle}</h2>
+            <div className="pdp-related-grid">
+              {related.map((p) => (
+                <ProductCard key={p.id} product={p} lang={lang} />
+              ))}
+            </div>
+          </section>
+        )}
         </div>
       </div>
 
       <div className="pdp-immersive-tail">
       <div className="pdp-below pdp-below--immersive">
-          <section
-            className="pdp-size-chart"
-            id="pdp-size-chart"
-            aria-labelledby="pdp-size-chart-title"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              className="brush-art pdp-size-chart-brush"
-              src="/assets/brush-mint.png"
-              alt=""
-              aria-hidden="true"
-            />
-            <div className="pdp-size-chart-body">
-              <header className="pdp-size-chart-head">
-                <h2 id="pdp-size-chart-title">{t.product.sizeChartTitle}</h2>
-                <p>{t.product.sizeChartSubtitle}</p>
-              </header>
-              <div className="pdp-size-chart-scroll">
-                <table className="pdp-size-table pdp-size-table--brand">
-                  <thead>
-                    <tr>
-                      <th scope="col">{t.product.sizeCol}</th>
-                      <th scope="col">{t.product.bust}</th>
-                      <th scope="col">{t.product.waist}</th>
-                      <th scope="col">{t.product.hips}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {SIZE_CHART_ROWS.map((row) => (
-                      <tr key={row.size}>
-                        <th scope="row">{row.size}</th>
-                        <td>{row.bust}</td>
-                        <td>{row.waist}</td>
-                        <td>{row.hips}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="pdp-size-chart-also">
-                <span>{t.product.sizeChartAlso}</span>{" "}
-                <strong>{t.product.sizeChartCustom}</strong>
-              </p>
-            </div>
-            <div className="pdp-size-chart-media" aria-hidden="true">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="pdp-size-chart-tape"
-                src="/assets/measuring-tape.png"
-                alt=""
-                width={420}
-                height={420}
-              />
-            </div>
-          </section>
-
-          <p className="pdp-model-note">{t.product.modelOnPhoto}</p>
-
-          {related.length > 0 && (
-            <section className="pdp-related" aria-label={t.product.lookTitle}>
-              <div className="pdp-related-inner">
-                <div className="pdp-related-head">
-                  <h2 className="pdp-section-title">{t.product.lookTitle}</h2>
-                </div>
-                <div className="pdp-related-grid">
-                  {related.map((p) => (
-                    <ProductCard key={p.id} product={p} lang={lang} />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
           <div className="pdp-service">
             <section className="pdp-service-block">
               <h2 className="pdp-section-title">{t.product.deliveryTitle}</h2>

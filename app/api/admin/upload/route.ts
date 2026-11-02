@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { spawn } from "child_process";
 import { promises as fs } from "fs";
+import os from "os";
 import path from "path";
 import sharp from "sharp";
 import { requireAdmin } from "@/lib/adminAuth";
@@ -25,6 +27,59 @@ type CropPayload = {
   w: number;
   h: number;
 };
+
+function looksLikeVideo(buf: Buffer): boolean {
+  if (buf.length < 12) return false;
+  const head = buf.subarray(0, 16).toString("latin1");
+  if (head.includes("ftyp")) return true;
+  if (
+    buf.subarray(0, 4).toString("latin1") === "RIFF" &&
+    buf.subarray(8, 12).toString("latin1") === "WEBM"
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/** Browsers play mp4 reliably. MOV/HEVC from phones often will not. */
+async function transcodeToMp4(input: Buffer): Promise<Uint8Array> {
+  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const tmpIn = path.join(os.tmpdir(), `lc-vid-${id}`);
+  const tmpOut = path.join(os.tmpdir(), `lc-vid-${id}.mp4`);
+  await fs.writeFile(tmpIn, input);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const ff = spawn("ffmpeg", [
+        "-y",
+        "-i",
+        tmpIn,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "23",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-movflags",
+        "+faststart",
+        "-vf",
+        "scale='min(1280,iw)':-2",
+        tmpOut,
+      ]);
+      ff.on("error", reject);
+      ff.on("close", (code) =>
+        code === 0 ? resolve() : reject(new Error(`ffmpeg ${code}`))
+      );
+    });
+    return new Uint8Array(await fs.readFile(tmpOut));
+  } finally {
+    await fs.unlink(tmpIn).catch(() => {});
+    await fs.unlink(tmpOut).catch(() => {});
+  }
+}
 
 function parseCrop(raw: FormDataEntryValue | null): CropPayload | null {
   if (typeof raw !== "string" || !raw.trim()) return null;
@@ -82,12 +137,20 @@ export async function POST(request: NextRequest) {
       const base = `${Date.now().toString(36)}-${Math.random()
         .toString(36)
         .slice(2, 8)}`;
-      const isVideo = isVideoUpload(file.name, file.type);
+      const isVideo =
+        isVideoUpload(file.name, file.type) || looksLikeVideo(buf);
 
       if (isVideo) {
-        const ext = sanitizeVideoExtension(file.name);
+        let videoBuf: Uint8Array = buf;
+        let ext = "mp4";
+        try {
+          videoBuf = await transcodeToMp4(buf);
+        } catch (err) {
+          console.error("[upload] ffmpeg failed, storing original:", err);
+          ext = sanitizeVideoExtension(file.name);
+        }
         const filename = `${base}.${ext}`;
-        await fs.writeFile(path.join(dir, filename), buf);
+        await fs.writeFile(path.join(dir, filename), videoBuf);
         items.push({
           url: productMediaPublicUrl(filename),
           type: "video",

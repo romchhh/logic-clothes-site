@@ -356,6 +356,20 @@ export function getPaletteGroups(): PaletteGroup[] {
   return PALETTE_GROUPS;
 }
 
+/** Which paint family a shade belongs to (pink, beige, …). */
+export function groupForPaletteId(
+  id: string | null | undefined
+): PaletteGroup | null {
+  if (!id) return null;
+  return PALETTE_GROUPS.find((g) => g.shades.some((s) => s.id === id)) ?? null;
+}
+
+/** A representative dab colour for a family when no SKU is linked. */
+export function paintGroupPreviewHex(group: PaletteGroup): string {
+  const mid = group.shades[Math.floor(group.shades.length / 2)];
+  return mid?.hex || group.shades[0]?.hex || "#ccc";
+}
+
 export type PaletteSlotVariant = {
   id: string;
   name: string;

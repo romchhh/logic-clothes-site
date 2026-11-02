@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n/config";
+import type { GarmentMeasures } from "@/lib/garmentMeasures";
 import type { MediaAdjust } from "@/lib/mediaAdjust";
 
 export interface ProductSwatch {
@@ -59,6 +60,8 @@ export interface Product {
   photoSize?: string;
   /** Free-text model params (height, measurements…). */
   modelParams?: string;
+  /** Filled garment measurements. Hidden on PDP when empty. */
+  garmentMeasures?: GarmentMeasures;
   images: string[];
   media?: ProductMedia[];
   swatches: ProductSwatch[];

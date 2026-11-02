@@ -203,7 +203,7 @@ const AppSidebar: React.FC = () => {
               ? "w-[248px]"
               : "w-[72px]"
         }
-        ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
+        ${isMobileOpen ? "is-mobile-open translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

@@ -104,11 +104,15 @@ export default function OrdersTable() {
     }
   }
 
-  const statusSelect = (o: StoredOrder) => (
+  const statusSelect = (o: StoredOrder, wide = false) => (
     <select
       value={o.status}
       onChange={(e) => handleStatusChange(o.id, e.target.value)}
-      className="rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+      className={
+        wide
+          ? "admin-input w-full"
+          : "rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+      }
     >
       {ORDER_STATUS_OPTIONS.map((opt) => (
         <option key={opt.value} value={opt.value}>
@@ -291,7 +295,7 @@ export default function OrdersTable() {
                     ? "помилка"
                     : "очікує"}
               </div>
-              {statusSelect(o)}
+              {statusSelect(o, true)}
               <div className="flex gap-2">
                 <Link
                   href={`/admin/orders/${encodeURIComponent(o.id)}/edit`}

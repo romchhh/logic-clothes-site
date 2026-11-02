@@ -1,3 +1,4 @@
+import { parseGarmentMeasures } from "@/lib/garmentMeasures";
 import { normalizeMediaAdjust } from "@/lib/mediaAdjust";
 import { formatPriceLabel } from "@/lib/sql";
 import type { Product, ProductMedia } from "@/lib/types";
@@ -138,6 +139,10 @@ export function productFromBody(
       body.modelParams != null
         ? String(body.modelParams)
         : base.modelParams || "",
+    garmentMeasures:
+      body.garmentMeasures != null
+        ? parseGarmentMeasures(body.garmentMeasures)
+        : base.garmentMeasures,
     images: imageUrls,
     media,
     swatches: Array.isArray(body.swatches)

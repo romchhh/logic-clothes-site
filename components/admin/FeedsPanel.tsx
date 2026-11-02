@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 type FeedRow = {
   platform: string;
@@ -44,9 +44,9 @@ const FEEDS: FeedRow[] = [
 export default function FeedsPanel() {
   const [copied, setCopied] = useState<string | null>(null);
 
-  const origin = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    return window.location.origin;
+  const [origin, setOrigin] = useState("");
+  useEffect(() => {
+    setOrigin(window.location.origin);
   }, []);
 
   const copy = async (url: string) => {

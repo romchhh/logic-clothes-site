@@ -380,7 +380,7 @@ export default function ProductsTable() {
             {" · "}фільтри не зберігаються
           </p>
         </div>
-        <div className="admin-mobile-scroll flex w-full flex-wrap items-center gap-2 sm:w-auto">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
           <Link
             href="/admin/products/stock"
             className="admin-btn-secondary !h-9 !px-3 !text-xs"
@@ -504,7 +504,7 @@ export default function ProductsTable() {
                   <div className="flex shrink-0 flex-col items-center gap-0.5 pt-0.5 sm:pt-1">
                     <button
                       type="button"
-                      className="admin-btn-icon !h-7 !w-7 text-xs"
+                      className="admin-btn-icon !h-9 !w-9 text-xs"
                       disabled={idx <= 0 || busy || sort !== "default"}
                       onClick={() => moveProduct(p.id, -1)}
                       title="Вище в каталозі"
@@ -517,7 +517,7 @@ export default function ProductsTable() {
                     </span>
                     <button
                       type="button"
-                      className="admin-btn-icon !h-7 !w-7 text-xs"
+                      className="admin-btn-icon !h-9 !w-9 text-xs"
                       disabled={
                         idx < 0 ||
                         idx >= products.length - 1 ||
@@ -559,11 +559,11 @@ export default function ProductsTable() {
                             : ""}
                         </div>
                       </Link>
-                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-gray-500 dark:text-gray-400">
-                        <span>{categoryLabel(p.category)}</span>
-                        <span className="text-gray-300 dark:text-gray-600">
-                          ·
+                      <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-[12px] text-gray-500 dark:text-gray-400">
+                        <span className="max-w-full truncate">
+                          {categoryLabel(p.category)}
                         </span>
+                        <div className="flex basis-full items-center gap-1.5 sm:basis-auto">
                         <label
                           className="inline-flex items-center gap-1"
                           onClick={(e) => e.stopPropagation()}
@@ -647,6 +647,7 @@ export default function ProductsTable() {
                           />
                           <span>€</span>
                         </label>
+                        </div>
                         {p.isNew ? (
                           <span className="rounded bg-[#B7E1DF]/50 px-1.5 py-0.5 text-[10px] font-semibold text-gray-800 dark:bg-[#B7E1DF]/20 dark:text-[#B7E1DF]">
                             New
@@ -662,14 +663,14 @@ export default function ProductsTable() {
                   </div>
                 </div>
 
-                <div className="admin-mobile-scroll flex flex-wrap items-center gap-2 pl-9 sm:ml-auto sm:pl-0 sm:shrink-0">
+                <div className="flex flex-wrap items-center gap-2 pl-9 sm:ml-auto sm:pl-0 sm:shrink-0">
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() =>
                       void patchProduct(p.id, { inStock: !p.inStock })
                     }
-                    className={`inline-flex h-8 shrink-0 items-center rounded-lg px-2.5 text-[12px] font-semibold transition ${
+                    className={`inline-flex h-10 shrink-0 items-center rounded-lg px-2.5 text-[12px] font-semibold transition sm:h-8 ${
                       p.inStock
                         ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
                         : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-400"
@@ -686,7 +687,7 @@ export default function ProductsTable() {
                         madeToOrder: !p.madeToOrder,
                       })
                     }
-                    className={`inline-flex h-8 shrink-0 items-center rounded-lg px-2.5 text-[12px] font-semibold transition ${
+                    className={`inline-flex h-10 shrink-0 items-center rounded-lg px-2.5 text-[12px] font-semibold transition sm:h-8 ${
                       p.madeToOrder
                         ? "bg-sky-50 text-sky-800 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300"
                         : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-400"
@@ -698,7 +699,7 @@ export default function ProductsTable() {
 
                   <Link
                     href={`/admin/products/${encodeURIComponent(p.id)}/edit`}
-                    className="admin-btn-secondary !h-8 shrink-0 !px-3 !text-xs"
+                    className="admin-btn-secondary !h-10 shrink-0 !px-3 !text-xs sm:!h-8"
                   >
                     Редагувати
                   </Link>
@@ -706,7 +707,7 @@ export default function ProductsTable() {
                   <div className="relative">
                     <button
                       type="button"
-                      className="admin-btn-icon !h-8 !w-8"
+                      className="admin-btn-icon !h-10 !w-10 sm:!h-8 sm:!w-8"
                       aria-label="Ще дії"
                       disabled={busy}
                       onClick={(e) => {
@@ -748,7 +749,7 @@ export default function ProductsTable() {
       </div>
 
       {!loading && filtered.length > PER_PAGE && (
-        <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-4 dark:border-white/[0.05]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-3 py-3 dark:border-white/[0.05] sm:px-5 sm:py-4">
           <p className="text-[12px] text-gray-400">
             {(currentPage - 1) * PER_PAGE + 1}–
             {Math.min(currentPage * PER_PAGE, filtered.length)} з{" "}

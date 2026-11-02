@@ -18,7 +18,7 @@ let touchBlockerAttached = false;
 let restoreRaf = 0;
 
 const SCROLLABLE_SEL =
-  ".side-panel, .side-panel-body, .mobile-menu, .mobile-menu-panel, .pdp-lightbox, .pdp-lightbox-track, [data-scroll-lock-allow], [role='dialog'], .filter-body";
+  ".side-panel, .side-panel-body, .mobile-menu, .mobile-menu-panel, .pdp-lightbox, .pdp-lightbox-track, [data-scroll-lock-allow], [role='dialog'], .filter-body, .media-editor-root, .media-editor-panel, .media-editor-frame, .media-editor-scroll";
 
 function isInsideScrollable(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;

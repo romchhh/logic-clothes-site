@@ -25,11 +25,15 @@ export default function ProductDiscussOrder({
   productId,
   productName,
   shadeLabel,
+  label,
+  intent = "order",
 }: {
   lang: Locale;
   productId: string;
   productName: string;
   shadeLabel: string;
+  label?: string;
+  intent?: "order" | "color" | "size";
 }) {
   const { t } = useI18n();
   const panelId = useId();
@@ -39,24 +43,36 @@ export default function ProductDiscussOrder({
   const [notice, setNotice] = useState<string | null>(null);
 
   const defaultBody = useMemo(() => {
+    const ask =
+      intent === "color"
+        ? lang === "uk"
+          ? "Хочу пошити цю модель у своєму кольорі."
+          : "I'd like this piece sewn in my own colour."
+        : intent === "size"
+          ? lang === "uk"
+            ? "Хочу замовити цю модель у своєму розмірі."
+            : "I'd like this piece in my own size."
+          : lang === "uk"
+            ? "Вітаю! Хочу обговорити замовлення."
+            : "Hi! I'd like to discuss an order.";
     const lines =
       lang === "uk"
         ? [
-            "Вітаю! Хочу обговорити замовлення.",
+            ask,
             productName ? `Модель: ${productName} (${productId})` : `Модель: ${productId}`,
             shadeLabel ? `Колір: ${shadeLabel}` : "",
             "",
             "Мій запит:",
           ]
         : [
-            "Hi! I'd like to discuss an order.",
+            ask,
             productName ? `Item: ${productName} (${productId})` : `Item: ${productId}`,
             shadeLabel ? `Colour: ${shadeLabel}` : "",
             "",
             "My request:",
           ];
     return lines.filter(Boolean).join("\n");
-  }, [lang, productId, productName, shadeLabel]);
+  }, [intent, lang, productId, productName, shadeLabel]);
 
   const draft = message.trim() ? message : defaultBody;
 
@@ -83,7 +99,7 @@ export default function ProductDiscussOrder({
     <div className="pdp-discuss">
       <button
         type="button"
-        className="pdp-custom-order-cta"
+        className={`pdp-custom-order-cta${intent === "order" ? "" : " pdp-chat-link"}`}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => {
@@ -94,7 +110,7 @@ export default function ProductDiscussOrder({
           }
         }}
       >
-        {t.product.customOrderCta}
+        {label || t.product.customOrderCta}
       </button>
 
       {open ? (

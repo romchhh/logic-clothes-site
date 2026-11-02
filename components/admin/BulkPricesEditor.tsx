@@ -255,15 +255,15 @@ export default function BulkPricesEditor() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-end gap-3 sm:shrink-0">
-                  <label className="flex flex-col gap-1">
+                <div className="grid grid-cols-3 gap-2 sm:flex sm:shrink-0 sm:flex-wrap sm:items-end sm:gap-3">
+                  <label className="flex min-w-0 flex-col gap-1">
                     <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                       Ціна, ₴
                     </span>
                     <input
                       type="text"
                       inputMode="decimal"
-                      className="admin-input !h-9 !w-[100px] tabular-nums"
+                      className="admin-input !h-10 w-full tabular-nums sm:!h-9 sm:!w-[100px]"
                       value={r.priceUah}
                       onChange={(e) =>
                         setRow(p.id, { priceUah: e.target.value })
@@ -271,14 +271,14 @@ export default function BulkPricesEditor() {
                       onBlur={() => fillEurFromUah(p.id)}
                     />
                   </label>
-                  <label className="flex flex-col gap-1">
+                  <label className="flex min-w-0 flex-col gap-1">
                     <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                       EUR
                     </span>
                     <input
                       type="text"
                       inputMode="decimal"
-                      className="admin-input !h-9 !w-[72px] tabular-nums"
+                      className="admin-input !h-10 w-full tabular-nums sm:!h-9 sm:!w-[72px]"
                       value={r.priceEur}
                       onChange={(e) =>
                         setRow(p.id, { priceEur: e.target.value })
@@ -286,14 +286,14 @@ export default function BulkPricesEditor() {
                       placeholder="—"
                     />
                   </label>
-                  <label className="flex flex-col gap-1">
+                  <label className="flex min-w-0 flex-col gap-1">
                     <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                       USD
                     </span>
                     <input
                       type="text"
                       inputMode="decimal"
-                      className="admin-input !h-9 !w-[72px] tabular-nums"
+                      className="admin-input !h-10 w-full tabular-nums sm:!h-9 sm:!w-[72px]"
                       value={r.priceUsd}
                       onChange={(e) =>
                         setRow(p.id, { priceUsd: e.target.value })

@@ -68,6 +68,14 @@ export type Messages = {
     addToCart: string;
     cardAdd: string;
     addWish: string;
+    sewMyColor: string;
+    orderMySize: string;
+    orderMyColorSize: string;
+    openSizeChart: string;
+    actualMeasures: string;
+    fabricKind: string;
+    photoSizeLabel: string;
+    modelParamsLabel: string;
     inWish: string;
     description: string;
     fabric: string;
@@ -322,9 +330,17 @@ const uk: Messages = {
     color: "Колір",
     sewForYou: "Зшиємо для вас",
     checkStores: "Перевірити наявність в офлайн магазинах",
-    addToCart: "Додати до кошика",
+    addToCart: "Додати в кошик",
     cardAdd: "До кошика",
-    addWish: "Додати у вішлист",
+    addWish: "додати в wishlist",
+    sewMyColor: "хочу пошити у своєму кольорі",
+    orderMySize: "хочу замовити в своєму розмірі",
+    orderMyColorSize: "хочу замовити в своєму кольорі в своєму розмірі",
+    openSizeChart: "відкрити розмірну сітку",
+    actualMeasures: "фактичні заміри виробу",
+    fabricKind: "матеріал",
+    photoSizeLabel: "на фото розмір",
+    modelParamsLabel: "параметри моделі на фото",
     inWish: "У вішлисті",
     description: "Опис",
     fabric: "Склад",
@@ -598,7 +614,15 @@ const en: Messages = {
     checkStores: "Check availability in offline stores",
     addToCart: "Add to bag",
     cardAdd: "Add to bag",
-    addWish: "Add to wishlist",
+    addWish: "add to wishlist",
+    sewMyColor: "I want it sewn in my colour",
+    orderMySize: "I want my size",
+    orderMyColorSize: "I want my colour and my size",
+    openSizeChart: "open size chart",
+    actualMeasures: "actual garment measurements",
+    fabricKind: "fabric",
+    photoSizeLabel: "size on photo",
+    modelParamsLabel: "model on photo",
     inWish: "In wishlist",
     description: "Description",
     fabric: "Composition",

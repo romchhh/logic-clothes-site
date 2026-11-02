@@ -11,8 +11,9 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "20mb",
+      bodySizeLimit: "80mb",
     },
+    middlewareClientMaxBodySize: "80mb",
     optimizePackageImports: ["tailwind-merge"],
   },
   compress: true,

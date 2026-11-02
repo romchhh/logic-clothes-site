@@ -1,4 +1,8 @@
 import { normalizeSizeOptions } from "@/lib/catalogProduct";
+import {
+  hasGarmentMeasures,
+  parseGarmentMeasures,
+} from "@/lib/garmentMeasures";
 import { normalizeMediaAdjust } from "@/lib/mediaAdjust";
 import { ensureDbReady, query, withTransaction } from "@/lib/db";
 import { bustProductCache } from "@/lib/productCache";
@@ -56,6 +60,7 @@ type ProductRow = {
   short_description: string | null;
   photo_size: string | null;
   model_params: string | null;
+  garment_measures: string | null;
   in_stock: boolean;
   made_to_order?: boolean | null;
   is_visible: boolean;
@@ -171,6 +176,9 @@ function mapProduct(row: ProductRow): Product {
       : {}),
     ...(row.photo_size ? { photoSize: row.photo_size } : {}),
     ...(row.model_params ? { modelParams: row.model_params } : {}),
+    ...(hasGarmentMeasures(parseGarmentMeasures(row.garment_measures))
+      ? { garmentMeasures: parseGarmentMeasures(row.garment_measures) }
+      : {}),
     images,
     media: mediaResolved,
     swatches,
@@ -217,6 +225,7 @@ const PRODUCT_SELECT = `
     p.short_description,
     p.photo_size,
     p.model_params,
+    p.garment_measures,
     p.in_stock,
     COALESCE(p.made_to_order, FALSE) AS made_to_order,
     COALESCE(p.is_visible, TRUE) AS is_visible,
@@ -415,7 +424,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         price_eur, price_usd, compare_at_price_num,
         color, color_hex, material,
         description, description_en, long_description, long_description_en,
-        short_description, photo_size, model_params,
+        short_description, photo_size, model_params, garment_measures,
         in_stock, made_to_order, is_visible, sku, category, is_new, is_popular, is_sale, color_group,
         sort_order, updated_at
       ) VALUES (
@@ -423,9 +432,9 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         $7,$8,$9,
         $10,$11,$12,
         $13,$14,$15,$16,
-        $17,$18,$19,
-        $20,$21,$22,$23,$24,$25,$26,$27,$28,
-        $29, NOW()
+        $17,$18,$19,$20,
+        $21,$22,$23,$24,$25,$26,$27,$28,$29,
+        $30, NOW()
       )
       ON CONFLICT (slug) DO UPDATE SET
         name = EXCLUDED.name,
@@ -446,6 +455,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         short_description = EXCLUDED.short_description,
         photo_size = EXCLUDED.photo_size,
         model_params = EXCLUDED.model_params,
+        garment_measures = EXCLUDED.garment_measures,
         in_stock = EXCLUDED.in_stock,
         made_to_order = EXCLUDED.made_to_order,
         is_visible = EXCLUDED.is_visible,
@@ -478,6 +488,9 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         product.shortDescription ?? null,
         product.photoSize || "",
         product.modelParams || "",
+        hasGarmentMeasures(product.garmentMeasures)
+          ? JSON.stringify(product.garmentMeasures)
+          : null,
         product.inStock,
         Boolean(product.madeToOrder),
         product.isVisible !== false,

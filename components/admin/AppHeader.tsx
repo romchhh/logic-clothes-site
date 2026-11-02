@@ -79,7 +79,7 @@ const AppHeader: React.FC = () => {
               requestAdminTour();
               router.push("/admin");
             }}
-            className="admin-btn-icon sm:hidden"
+            className="admin-btn-icon sm:!hidden"
             title="Інструкції"
             aria-label="Інструкції"
           >
@@ -100,14 +100,14 @@ const AppHeader: React.FC = () => {
               requestAdminTour();
               router.push("/admin");
             }}
-            className="admin-btn-secondary !h-9 !px-3.5 !text-[13px] hidden sm:inline-flex"
+            className="admin-btn-secondary !hidden !h-9 !px-3.5 !text-[13px] sm:!inline-flex"
           >
             Інструкції
           </button>
           <Link
             href="/"
             target="_blank"
-            className="admin-btn-icon sm:hidden"
+            className="admin-btn-icon sm:!hidden"
             title="Відкрити сайт"
             aria-label="Відкрити сайт"
           >
@@ -124,7 +124,7 @@ const AppHeader: React.FC = () => {
           <Link
             href="/"
             target="_blank"
-            className="admin-btn-secondary !h-9 hidden !px-3.5 !text-[13px] sm:inline-flex"
+            className="admin-btn-secondary !hidden !h-9 !px-3.5 !text-[13px] sm:!inline-flex"
           >
             Відкрити сайт
           </Link>

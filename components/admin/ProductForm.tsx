@@ -35,6 +35,11 @@ import {
   rememberFromProduct,
 } from "@/lib/adminProductPresets";
 import { ADMIN_SIZE_PRESETS } from "@/lib/productSizes";
+import {
+  emptyGarmentMeasures,
+  GARMENT_MEASURE_FIELDS,
+  type GarmentMeasureKey,
+} from "@/lib/garmentMeasures";
 import type { Product, ProductMedia } from "@/lib/types";
 
 const PRESET_LENGTHS = ["Mini", "Midi", "Maxi", "Crop", "Long"];
@@ -64,6 +69,7 @@ type FormState = {
   material: string;
   photoSize: string;
   modelParams: string;
+  garmentMeasures: Record<GarmentMeasureKey, string>;
   sizeOptions: string[];
   lengthOptions: string[];
   materialOptions: string[];
@@ -103,6 +109,7 @@ const EMPTY: FormState = {
   material: "",
   photoSize: "",
   modelParams: "",
+  garmentMeasures: emptyGarmentMeasures(),
   sizeOptions: ["S", "M", "L"],
   lengthOptions: [],
   materialOptions: [],
@@ -292,6 +299,10 @@ export default function ProductForm({ productId }: Props) {
           material: p.material ?? "",
           photoSize: p.photoSize ?? "",
           modelParams: p.modelParams ?? "",
+          garmentMeasures: {
+            ...emptyGarmentMeasures(),
+            ...(p.garmentMeasures ?? {}),
+          },
           sizeOptions: Array.isArray(p.sizeOptions) ? p.sizeOptions : [],
           lengthOptions: Array.isArray(p.lengthOptions) ? p.lengthOptions : [],
           materialOptions: Array.isArray(p.materialOptions)
@@ -468,6 +479,7 @@ export default function ProductForm({ productId }: Props) {
       material: form.material.trim(),
       photoSize: form.photoSize.trim(),
       modelParams: form.modelParams.trim(),
+      garmentMeasures: form.garmentMeasures,
       sizeOptions: form.sizeOptions,
       lengthOptions: form.lengthOptions,
       materialOptions: form.materialOptions,
@@ -580,12 +592,12 @@ export default function ProductForm({ productId }: Props) {
       )}
 
       {isEdit && (
-        <div className="flex justify-end">
+        <div className="flex sm:justify-end">
           <button
             type="button"
             onClick={() => void handleDuplicate()}
             disabled={duplicating || saving}
-            className="admin-btn-secondary"
+            className="admin-btn-secondary w-full sm:w-auto"
           >
             {duplicating ? "Копіювання…" : "Копіювати товар"}
           </button>
@@ -930,6 +942,36 @@ export default function ProductForm({ productId }: Props) {
               setForm((prev) => ({ ...prev, photoSize, modelParams }))
             }
           />
+          <div className="space-y-3">
+            <p className="text-[13px] font-medium text-gray-700 dark:text-gray-300">
+              Фактичні заміри виробу
+            </p>
+            <p className="text-[12px] text-gray-500">
+              Порожні поля на сайті не показуються. Для старих товарів блок
+              зʼявиться лише після заповнення.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {GARMENT_MEASURE_FIELDS.map((field) => (
+                <div key={field.key}>
+                  <Label htmlFor={`gm-${field.key}`}>{field.label}</Label>
+                  <Input
+                    id={`gm-${field.key}`}
+                    value={form.garmentMeasures[field.key]}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        garmentMeasures: {
+                          ...prev.garmentMeasures,
+                          [field.key]: e.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="см"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </ComponentCard>
 

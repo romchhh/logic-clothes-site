@@ -225,7 +225,6 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       }
 
       if (images.length === 0) {
-        abortQueues();
         if (videoCount > 0) {
           setUploadNotice(
             videoCount === 1
@@ -242,17 +241,22 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       }));
       setQueueTotal(images.length);
       setQueueIndex(1);
-      setUploadProgress(`Кадр фото 1 / ${images.length}`);
       if (videoCount > 0) {
         setUploadNotice(
           `Відео (${videoCount}) уже в галереї — відкриється лише кадрування фото.`
         );
       }
+      // Clear busy BEFORE opening editor — busy was disabling Застосувати / tabs
+      setUploading(false);
+      setUploadProgress(null);
       await openImageEdit(images[0], null);
     } catch (e) {
       console.error(e);
       setError("Не вдалося завантажити частину файлів");
       abortQueues();
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -552,7 +556,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         session={editSession}
         queueIndex={queueIndex}
         queueTotal={queueTotal}
-        busy={uploading}
+        busy={uploading && !editSession}
         onClose={cancelAll}
         onSkip={skipEdit}
         onSaveImage={onSaveImage}

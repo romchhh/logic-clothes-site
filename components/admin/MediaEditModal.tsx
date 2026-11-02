@@ -76,6 +76,7 @@ export default function MediaEditModal({
 }: Props) {
   const [adjust, setAdjust] = useState<MediaAdjust>(DEFAULT_MEDIA_ADJUST);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [tab, setTab] = useState<EditorTab>("fine");
   const [compare, setCompare] = useState(false);
 
@@ -101,6 +102,7 @@ export default function MediaEditModal({
     setAdjust(session.initialAdjust ?? DEFAULT_MEDIA_ADJUST);
     setTab(session.mode === "image" ? "crop" : "fine");
     setCompare(false);
+    setSaveError(null);
     cropReadyRef.current = false;
     panRef.current = { x: 0, y: 0 };
     setVideoPlaying(true);
@@ -131,40 +133,69 @@ export default function MediaEditModal({
     const scale = Math.max(frameW / naturalW, frameH / naturalH);
     const dispW = naturalW * scale;
     const dispH = naturalH * scale;
-    const minX = frameW - dispW;
-    const minY = frameH - dispH;
+    const minX = Math.min(0, frameW - dispW);
+    const minY = Math.min(0, frameH - dispH);
     return { frameW, frameH, scale, dispW, dispH, minX, minY };
   }, []);
 
-  const centerPan = useCallback(
-    (naturalW: number, naturalH: number) => {
+  const applyCoverSize = useCallback(
+    (naturalW: number, naturalH: number, recenter: boolean) => {
       const layout = coverLayout(naturalW, naturalH);
       if (!layout) {
-        panRef.current = { x: 0, y: 0 };
-        return;
+        if (recenter) panRef.current = { x: 0, y: 0 };
+        return false;
       }
-      panRef.current = {
-        x: (layout.frameW - layout.dispW) / 2,
-        y: (layout.frameH - layout.dispH) / 2,
-      };
-      applyPanToDom();
       const img = cropImgRef.current;
       if (img) {
         img.style.width = `${layout.dispW}px`;
         img.style.height = `${layout.dispH}px`;
+        img.style.maxWidth = "none";
+        img.style.maxHeight = "none";
       }
+      if (recenter || !cropReadyRef.current) {
+        panRef.current = {
+          x: (layout.frameW - layout.dispW) / 2,
+          y: (layout.frameH - layout.dispH) / 2,
+        };
+      } else {
+        panRef.current = {
+          x: clamp(panRef.current.x, layout.minX, 0),
+          y: clamp(panRef.current.y, layout.minY, 0),
+        };
+      }
+      applyPanToDom();
       cropReadyRef.current = true;
+      return true;
     },
     [applyPanToDom, coverLayout]
   );
 
+  const centerPan = useCallback(
+    (naturalW: number, naturalH: number) =>
+      applyCoverSize(naturalW, naturalH, true),
+    [applyCoverSize]
+  );
+
   useEffect(() => {
     if (!session || session.mode !== "image") return;
+    cropReadyRef.current = false;
+    const run = (recenter: boolean) =>
+      applyCoverSize(session.naturalW, session.naturalH, recenter);
     const img = cropImgRef.current;
-    if (img?.complete && img.naturalWidth) {
-      centerPan(session.naturalW, session.naturalH);
+    if (img?.complete && img.naturalWidth) run(true);
+    const frame = frameRef.current;
+    if (!frame || typeof ResizeObserver === "undefined") {
+      const t = window.setTimeout(() => run(true), 50);
+      return () => window.clearTimeout(t);
     }
-  }, [session, centerPan, tab]);
+    const ro = new ResizeObserver(() => run(false));
+    ro.observe(frame);
+    const t = window.setTimeout(() => run(true), 50);
+    return () => {
+      ro.disconnect();
+      window.clearTimeout(t);
+    };
+  }, [session, applyCoverSize, tab]);
 
   const getCropRect = useCallback(() => {
     if (!session || session.mode !== "image") {
@@ -192,8 +223,15 @@ export default function MediaEditModal({
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (!session || session.mode !== "image" || tab !== "crop") return;
+    // Ignore secondary buttons; allow touch + pen + primary mouse
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
-    frameRef.current?.setPointerCapture(e.pointerId);
+    e.stopPropagation();
+    try {
+      frameRef.current?.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
     dragRef.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
@@ -212,16 +250,25 @@ export default function MediaEditModal({
     if (!layout) return;
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
+    const maxX = 0;
+    const maxY = 0;
     panRef.current = {
-      x: clamp(drag.originX + dx, layout.minX, 0),
-      y: clamp(drag.originY + dy, layout.minY, 0),
+      x: clamp(drag.originX + dx, layout.minX, maxX),
+      y: clamp(drag.originY + dy, layout.minY, maxY),
     };
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(applyPanToDom);
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
-    if (dragRef.current?.pointerId === e.pointerId) dragRef.current = null;
+    if (dragRef.current?.pointerId === e.pointerId) {
+      dragRef.current = null;
+      try {
+        frameRef.current?.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
   };
 
   const previewAdjust = compare ? DEFAULT_MEDIA_ADJUST : adjust;
@@ -234,8 +281,12 @@ export default function MediaEditModal({
   async function handleSaveWithoutTone() {
     if (!session || session.mode !== "video" || !session.replaceUrl) return;
     setSaving(true);
+    setSaveError(null);
     try {
       await onSaveVideo(session.replaceUrl, DEFAULT_MEDIA_ADJUST);
+    } catch (err) {
+      console.error(err);
+      setSaveError("Не вдалося зберегти відео");
     } finally {
       setSaving(false);
     }
@@ -244,27 +295,58 @@ export default function MediaEditModal({
   async function handleSave() {
     if (!session) return;
     setSaving(true);
+    setSaveError(null);
     try {
       if (session.mode === "video") {
-        if (!session.replaceUrl) return;
+        if (!session.replaceUrl) {
+          setSaveError("Немає URL відео");
+          return;
+        }
         await onSaveVideo(session.replaceUrl, adjust);
         return;
       }
+      if (!session.file) {
+        setSaveError("Файл фото недоступний — закрийте й оберіть знову");
+        return;
+      }
       const img = cropImgRef.current;
-      if (!img || !session.file) return;
+      if (!img) {
+        setSaveError("Прев’ю ще не готове — зачекайте секунду");
+        return;
+      }
       if (!cropReadyRef.current) {
         centerPan(session.naturalW, session.naturalH);
       }
+      // Prefer decoding from the original file (CORS-safe) when possible
+      let source: CanvasImageSource = img;
+      let sourceW = session.naturalW;
+      let sourceH = session.naturalH;
+      try {
+        const bmp = await createImageBitmap(session.file);
+        source = bmp;
+        sourceW = bmp.width;
+        sourceH = bmp.height;
+      } catch {
+        /* fall back to <img> */
+      }
       const crop = getCropRect();
       const blob = await renderAdjustedImageBlob(
-        img,
-        session.naturalW,
-        session.naturalH,
+        source,
+        sourceW,
+        sourceH,
         crop,
         adjust
       );
+      if ("close" in source && typeof (source as ImageBitmap).close === "function") {
+        (source as ImageBitmap).close();
+      }
       const file = new File([blob], "catalog.webp", { type: "image/webp" });
       await onSaveImage(file, session.replaceUrl, adjust);
+    } catch (err) {
+      console.error(err);
+      setSaveError(
+        err instanceof Error ? err.message : "Не вдалося зберегти фото"
+      );
     } finally {
       setSaving(false);
     }
@@ -276,12 +358,12 @@ export default function MediaEditModal({
   const disabled = saving || busy;
   const showCropLayer = !isVideo && tab === "crop";
   const showFilteredPreview = !showCropLayer;
-  const showSkip = isVideo || (Boolean(onSkip) && queueTotal > 1);
+  const showSkip = Boolean(onSkip) && (isVideo || queueTotal > 1);
   const fileLabel = session.label?.trim();
 
   const tabs: { id: EditorTab; label: string; hide?: boolean }[] = [
-    { id: "fine", label: "Тон" },
     { id: "crop", label: "Кадр 3:5", hide: isVideo },
+    { id: "fine", label: "Тон" },
   ];
 
   return (
@@ -300,13 +382,13 @@ export default function MediaEditModal({
         data-scroll-lock-allow
       >
         <header className="media-editor-head">
-          <div>
+          <div className="min-w-0">
             <p className="media-editor-eyebrow">
               {isVideo ? "Відео · тон на сайті" : "Фото"}
               {queueTotal > 1 ? ` · ${queueIndex} з ${queueTotal}` : ""}
             </p>
             <h2 id="media-editor-title" className="media-editor-title">
-              {isVideo ? "Налаштування відео" : "Редактор медіа"}
+              {isVideo ? "Налаштування відео" : "Кадр і тон"}
             </h2>
             {fileLabel ? (
               <p className="media-editor-file-label" title={fileLabel}>
@@ -318,6 +400,7 @@ export default function MediaEditModal({
             type="button"
             className="media-editor-close"
             aria-label="Закрити"
+            disabled={disabled}
             onClick={onClose}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -332,7 +415,7 @@ export default function MediaEditModal({
               ref={frameRef}
               className={`media-editor-frame${
                 isVideo ? " media-editor-frame--video" : ""
-              }`}
+              }${showCropLayer ? " is-cropping" : ""}`}
               style={{
                 cursor: showCropLayer ? "grab" : "default",
                 touchAction: "none",
@@ -380,6 +463,11 @@ export default function MediaEditModal({
                     className={`media-editor-crop-layer${
                       showCropLayer ? " is-visible" : ""
                     }`}
+                    style={
+                      showCropLayer && previewFilter
+                        ? { filter: previewFilter }
+                        : undefined
+                    }
                     onLoad={() =>
                       centerPan(session.naturalW, session.naturalH)
                     }
@@ -407,6 +495,10 @@ export default function MediaEditModal({
                 >
                   {videoPlaying ? "Пауза" : "Грати"}
                 </button>
+              ) : showCropLayer ? (
+                <p className="media-editor-drag-hint">
+                  Посуньте фото пальцем або мишею
+                </p>
               ) : (
                 <button
                   type="button"
@@ -440,7 +532,7 @@ export default function MediaEditModal({
                 ))}
             </nav>
 
-            <div className="media-editor-scroll">
+            <div className="media-editor-scroll" data-scroll-lock-allow>
               {tab === "fine" && (
                 <div className="media-editor-fine">
                   {isVideo ? (
@@ -489,22 +581,38 @@ export default function MediaEditModal({
               {tab === "crop" && !isVideo && (
                 <div className="media-editor-crop-help">
                   <p className="media-editor-hint">
-                    Посуньте фото пальцем або мишею — рамка 3:5 як у каталозі.
+                    Рамка — як у каталозі (3:5). Перетягніть фото, потім
+                    натисніть «Додати в галерею».
                   </p>
                   <ul className="media-editor-crop-tips">
                     <li>Центруйте модель або виріз</li>
-                    <li>Тон зі вкладки «Тон» застосується після збереження</li>
+                    <li>Тон — на вкладці поруч, застосується при збереженні</li>
                   </ul>
+                  <button
+                    type="button"
+                    className="media-editor-reset"
+                    onClick={() =>
+                      centerPan(session.naturalW, session.naturalH)
+                    }
+                  >
+                    Центрувати знову
+                  </button>
                 </div>
               )}
             </div>
           </div>
         </div>
 
+        {saveError ? (
+          <p className="media-editor-save-error" role="alert">
+            {saveError}
+          </p>
+        ) : null}
+
         <footer className="media-editor-foot">
           <button
             type="button"
-            className="admin-btn-ghost"
+            className="admin-btn-ghost media-editor-cancel"
             disabled={disabled}
             onClick={onClose}
           >
@@ -534,7 +642,9 @@ export default function MediaEditModal({
                 ? "Збереження…"
                 : isVideo
                   ? "Зберегти тон"
-                  : "Застосувати"}
+                  : session.replaceUrl
+                    ? "Застосувати"
+                    : "Додати в галерею"}
             </button>
           </div>
         </footer>

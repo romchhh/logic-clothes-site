@@ -10,14 +10,16 @@ import {
 } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
+export type GallerySlide = { url: string; type: "image" | "video" };
+
 export default function ProductImmersiveGallery({
-  images,
+  slides,
   alt,
   prevLabel,
   nextLabel,
   closeLabel = "Close",
 }: {
-  images: string[];
+  slides: GallerySlide[];
   alt: string;
   prevLabel: string;
   nextLabel: string;
@@ -38,15 +40,15 @@ export default function ProductImmersiveGallery({
 
   const goTo = useCallback(
     (i: number) => {
-      const next = Math.max(0, Math.min(images.length - 1, i));
+      const next = Math.max(0, Math.min(slides.length - 1, i));
       setIndex(next);
     },
-    [images.length]
+    [slides.length]
   );
 
   useEffect(() => {
     setIndex(0);
-  }, [images]);
+  }, [slides]);
 
   useScrollLock(lightboxOpen);
 
@@ -68,12 +70,12 @@ export default function ProductImmersiveGallery({
       }
       if (e.key === "ArrowRight") {
         e.preventDefault();
-        setLightboxIndex((i) => Math.min(images.length - 1, i + 1));
+        setLightboxIndex((i) => Math.min(slides.length - 1, i + 1));
       }
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [lightboxOpen, images.length]);
+  }, [lightboxOpen, slides.length]);
 
   function openLightbox(i: number) {
     setLightboxIndex(i);
@@ -118,9 +120,10 @@ export default function ProductImmersiveGallery({
     drag.moved = false;
   }
 
-  if (!images.length) return null;
+  if (!slides.length) return null;
 
-  const multi = images.length > 1;
+  const multi = slides.length > 1;
+  const current = slides[index] ?? slides[0];
 
   return (
     <div className="pdp-immerse-root">
@@ -144,17 +147,30 @@ export default function ProductImmersiveGallery({
           }}
           aria-label={`${alt} — ${index + 1}`}
         >
-          <Image
-            src={images[index]}
-            alt={`${alt} — ${index + 1}`}
-            fill
-            priority
-            sizes="(max-width: 1023px) 100vw, (min-width: 1024px) 42vw, 58vw"
-            quality={90}
-            draggable={false}
-            className="pdp-immerse-hero-img"
-            style={{ objectFit: "cover", objectPosition: "center" }}
-          />
+          {current.type === "video" ? (
+            <video
+              key={current.url}
+              src={current.url}
+              className="pdp-immerse-hero-img"
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls
+            />
+          ) : (
+            <Image
+              src={current.url}
+              alt={`${alt} — ${index + 1}`}
+              fill
+              priority
+              sizes="(max-width: 1023px) 100vw, (min-width: 1024px) 42vw, 58vw"
+              quality={90}
+              draggable={false}
+              className="pdp-immerse-hero-img"
+              style={{ objectFit: "cover", objectPosition: "center" }}
+            />
+          )}
         </button>
         {multi && (
           <>
@@ -173,7 +189,7 @@ export default function ProductImmersiveGallery({
               type="button"
               className="pdp-immerse-hero-nav pdp-immerse-hero-nav--next"
               aria-label={nextLabel}
-              disabled={index >= images.length - 1}
+              disabled={index >= slides.length - 1}
               onClick={() => goTo(index + 1)}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -184,31 +200,42 @@ export default function ProductImmersiveGallery({
         )}
       </section>
 
-      {multi && (
-        <section className="pdp-immerse-angles" aria-label={alt}>
-          <div className="pdp-immerse-thumbs" role="tablist">
-            {images.map((src, i) => (
-              <button
-                key={`${src}-thumb-${i}`}
-                type="button"
-                role="tab"
-                aria-selected={i === index}
-                className={`pdp-immerse-thumb${i === index ? " is-active" : ""}`}
-                onClick={() => goTo(i)}
-              >
+      <section className="pdp-immerse-angles" aria-label={alt}>
+        <div className="pdp-immerse-thumbs" role="tablist">
+          {slides.map((slide, i) => (
+            <button
+              key={`${slide.url}-thumb-${i}`}
+              type="button"
+              role="tab"
+              aria-selected={i === index}
+              className={`pdp-immerse-thumb${i === index ? " is-active" : ""}${
+                slide.type === "video" ? " is-video" : ""
+              }`}
+              onClick={() => goTo(i)}
+            >
+              {slide.type === "video" ? (
+                <video
+                  src={slide.url}
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                  preload="metadata"
+                />
+              ) : (
                 <Image
-                  src={src}
+                  src={slide.url}
                   alt=""
                   fill
-                  sizes="64px"
+                  sizes="72px"
                   draggable={false}
                   style={{ objectFit: "cover" }}
                 />
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+              )}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {lightboxOpen && (
         <div
@@ -253,12 +280,12 @@ export default function ProductImmersiveGallery({
               <button
                 type="button"
                 className={`pdp-lightbox-nav pdp-lightbox-nav--next${
-                  lightboxIndex >= images.length - 1 ? " is-disabled" : ""
+                  lightboxIndex >= slides.length - 1 ? " is-disabled" : ""
                 }`}
                 aria-label={nextLabel}
-                disabled={lightboxIndex >= images.length - 1}
+                disabled={lightboxIndex >= slides.length - 1}
                 onClick={() =>
-                  setLightboxIndex((i) => Math.min(images.length - 1, i + 1))
+                  setLightboxIndex((i) => Math.min(slides.length - 1, i + 1))
                 }
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -268,21 +295,30 @@ export default function ProductImmersiveGallery({
             </>
           )}
           <div className="pdp-lightbox-track" ref={lightboxTrackRef}>
-            {images.map((src, i) => (
-              <figure className="pdp-lightbox-slide" key={`lb-${src}-${i}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={src}
-                  alt={`${alt} — ${i + 1}`}
-                  referrerPolicy="no-referrer"
-                  draggable={false}
-                />
+            {slides.map((slide, i) => (
+              <figure className="pdp-lightbox-slide" key={`lb-${slide.url}-${i}`}>
+                {slide.type === "video" ? (
+                  <video
+                    src={slide.url}
+                    controls
+                    playsInline
+                    autoPlay={i === lightboxIndex}
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={slide.url}
+                    alt={`${alt} — ${i + 1}`}
+                    referrerPolicy="no-referrer"
+                    draggable={false}
+                  />
+                )}
               </figure>
             ))}
           </div>
           {multi && (
             <p className="pdp-lightbox-count" aria-live="polite">
-              {lightboxIndex + 1} / {images.length}
+              {lightboxIndex + 1} / {slides.length}
             </p>
           )}
         </div>
