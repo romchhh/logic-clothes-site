@@ -107,11 +107,13 @@ export default function CatalogClient({
 
   const sortedProducts = useMemo(() => {
     const list = [...filteredProducts];
-    if (sortOrder === "newest") {
+    if (sortOrder === "newest" || sortOrder === "oldest") {
       return list.sort((a, b) => {
         const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        if (ta !== tb) return tb - ta;
+        let cmp = tb - ta;
+        if (sortOrder === "oldest") cmp = -cmp;
+        if (cmp !== 0) return cmp;
         if (Boolean(a.isNew) !== Boolean(b.isNew)) {
           return a.isNew ? -1 : 1;
         }
@@ -384,6 +386,31 @@ export default function CatalogClient({
               aria-label={t.catalog.sortDesc}
               aria-pressed={sortOrder === "desc"}
               onClick={() => setSortOrder("desc")}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          </div>
+          <div className="cat-sort" role="group" aria-label={t.catalog.sortAdded}>
+            <span className="cat-sort-prefix">{t.catalog.sortAdded}</span>
+            <button
+              type="button"
+              className={`cat-sort-arrow${sortOrder === "newest" ? " is-active" : ""}`}
+              aria-label={t.catalog.sortAddedNew}
+              aria-pressed={sortOrder === "newest"}
+              onClick={() => setSortOrder("newest")}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 15l6-6 6 6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={`cat-sort-arrow${sortOrder === "oldest" ? " is-active" : ""}`}
+              aria-label={t.catalog.sortAddedOld}
+              aria-pressed={sortOrder === "oldest"}
+              onClick={() => setSortOrder("oldest")}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 9l6 6 6-6" />

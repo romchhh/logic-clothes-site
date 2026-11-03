@@ -6,7 +6,7 @@ import type { Category, CategoryId } from "@/lib/categories";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 
-export type SortOrder = "newest" | "asc" | "desc";
+export type SortOrder = "newest" | "oldest" | "asc" | "desc";
 
 interface SidebarFilterProps {
   isOpen: boolean;
@@ -108,7 +108,7 @@ export default function SidebarFilter({
                     key={cat.id}
                     href={
                       cat.id === "all"
-                        ? `/${lang}/catalog`
+                        ? `/${lang}/catalog?category=all`
                         : `/${lang}/catalog?category=${cat.id}`
                     }
                     className={`filter-option${category === cat.id ? " is-active" : ""}`}

@@ -271,24 +271,34 @@ export default function MediaEditModal({
       session.mode === "video"
         ? naturalRef.current.h || session.naturalH
         : session.naturalH;
+    const t = window.setTimeout(() => {
+      applyCoverSize(nw, nh, true);
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [session, applyCoverSize]);
+
+  useEffect(() => {
+    if (!session || (session.mode !== "image" && session.mode !== "video"))
+      return;
+    const nw =
+      session.mode === "video"
+        ? naturalRef.current.w || session.naturalW
+        : session.naturalW;
+    const nh =
+      session.mode === "video"
+        ? naturalRef.current.h || session.naturalH
+        : session.naturalH;
     const run = (recenter: boolean) => applyCoverSize(nw, nh, recenter);
     if (session.mode === "image") {
       const img = cropImgRef.current;
-      if (img?.complete && img.naturalWidth) run(true);
+      if (img?.complete && img.naturalWidth) run(false);
     }
     const frame = frameRef.current;
-    if (!frame || typeof ResizeObserver === "undefined") {
-      const t = window.setTimeout(() => run(true), 50);
-      return () => window.clearTimeout(t);
-    }
+    if (!frame || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(() => run(false));
     ro.observe(frame);
-    const t = window.setTimeout(() => run(true), 50);
-    return () => {
-      ro.disconnect();
-      window.clearTimeout(t);
-    };
-  }, [session, applyCoverSize, tab]);
+    return () => ro.disconnect();
+  }, [session, applyCoverSize]);
 
   const getCropRect = useCallback(() => {
     if (!session || session.mode !== "image") {
@@ -455,7 +465,13 @@ export default function MediaEditModal({
   const previewFilter = mediaAdjustCssFilter(previewAdjust);
 
   function onFineChange(key: ToneKey, value: number) {
-    setAdjust((prev) => ({ ...prev, [key]: value }));
+    setAdjust((prev) => {
+      const frame = currentFrame();
+      const next: MediaAdjust = { ...prev, [key]: value };
+      if (frame) next.frame = frame;
+      else delete next.frame;
+      return next;
+    });
   }
 
   function currentFrame(): MediaFrame | undefined {

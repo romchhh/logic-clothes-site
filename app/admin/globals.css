@@ -942,9 +942,17 @@
   padding: 12px 14px 16px;
   -webkit-overflow-scrolling: touch;
 }
-@media (min-width: 900px) {
+@media (max-width: 899px) {
   .media-editor-scroll {
-    padding: 14px 16px 20px;
+    padding-right: 36%;
+    touch-action: pan-y;
+  }
+  .media-editor-fine,
+  .media-editor-crop-help {
+    max-width: 64%;
+  }
+  .media-editor-range {
+    touch-action: none;
   }
 }
 .media-editor-hint {

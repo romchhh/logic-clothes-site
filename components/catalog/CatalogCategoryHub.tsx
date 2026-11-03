@@ -2,49 +2,36 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { Category } from "@/lib/categories";
 import type { Locale } from "@/lib/i18n/config";
 import { useI18n } from "@/lib/i18n/I18nProvider";
-
-type PhotoOrient = "landscape" | "portrait" | "square";
 
 function categoryHref(lang: Locale, id: string) {
   if (id === "all") return `/${lang}/catalog?category=all`;
   return `/${lang}/catalog?category=${encodeURIComponent(id)}`;
 }
 
-function orientFromSize(w: number, h: number): PhotoOrient {
-  if (!w || !h) return "square";
-  const ratio = w / h;
-  if (ratio > 1.12) return "landscape";
-  if (ratio < 0.88) return "portrait";
-  return "square";
-}
+/** Positions measured from the catalog collage reference (382×959). */
+const COLLAGE_SLOTS: { l: number; t: number; w: number; h: number; focus: string }[] =
+  [
+    { l: 16.23, t: 0, w: 45.03, h: 19.92, focus: "center 18%" },
+    { l: 61.78, t: 6.47, w: 34.82, h: 14.91, focus: "center 22%" },
+    { l: 10.21, t: 21.48, w: 87.44, h: 17.21, focus: "center 42%" },
+    { l: 1.57, t: 39.1, w: 37.96, h: 36.39, focus: "center 28%" },
+    { l: 41.1, t: 39.0, w: 47.12, h: 20.75, focus: "center 16%" },
+    { l: 40.84, t: 59.85, w: 59.16, h: 25.76, focus: "center 20%" },
+    { l: 0, t: 76.64, w: 39.53, h: 18.04, focus: "center 18%" },
+    { l: 42.15, t: 85.92, w: 52.36, h: 14.08, focus: "center 30%" },
+  ];
 
-/** Asymmetric collage: orientation first, index breaks ties. */
-function hubCardMods(
-  index: number,
-  orient: PhotoOrient | undefined,
-  isAll: boolean
-): string[] {
-  const mods: string[] = [];
-  const o = orient ?? "square";
-  const bump = (index * 7 + (isAll ? 3 : 0)) % 5;
+const COLLAGE_W = 382;
+const COLLAGE_H = 959;
 
-  if (o === "landscape") {
-    mods.push("catalog-hub-card--wide");
-    if (bump === 2) mods.push("catalog-hub-card--tall");
-  } else if (o === "portrait") {
-    mods.push("catalog-hub-card--tall");
-    if (bump === 1 || bump === 4) mods.push("catalog-hub-card--wide");
-  } else {
-    if (bump === 0 || bump === 3) mods.push("catalog-hub-card--tall");
-    else if (bump === 1) mods.push("catalog-hub-card--wide");
-  }
-
-  if (isAll) mods.push("catalog-hub-card--all");
-  return mods;
+function chunk<T>(list: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+  return out;
 }
 
 export default function CatalogCategoryHub({
@@ -55,14 +42,6 @@ export default function CatalogCategoryHub({
   categories: Category[];
 }) {
   const { t } = useI18n();
-  const [orientations, setOrientations] = useState<Record<string, PhotoOrient>>(
-    {}
-  );
-
-  const noteOrient = useCallback((id: string, w: number, h: number) => {
-    const next = orientFromSize(w, h);
-    setOrientations((prev) => (prev[id] === next ? prev : { ...prev, [id]: next }));
-  }, []);
 
   const items = useMemo(() => {
     const apparel = categories.filter(
@@ -76,6 +55,7 @@ export default function CatalogCategoryHub({
     const collections = categories.filter(
       (c) =>
         c.isVisible &&
+        c.id !== "all" &&
         (c.id === "new" || c.id === "sale" || c.kind === "collection")
     );
 
@@ -101,41 +81,56 @@ export default function CatalogCategoryHub({
 
   if (!items.length) return null;
 
-  return (
-    <div className="cat-shell">
-      <div className="catalog-hub">
-        <h1 className="cat-title catalog-hub-title">{t.catalog.title}</h1>
-        <div className="catalog-hub-grid" aria-label={t.catalog.title}>
-          {items.map((cat, i) => {
-            const orient = orientations[cat.id];
-            const className = [
-              "catalog-hub-card",
-              ...hubCardMods(i, orient, cat.id === "all"),
-            ].join(" ");
+  const groups = chunk(items, COLLAGE_SLOTS.length);
 
-            return (
-              <Link
-                key={cat.id}
-                href={categoryHref(lang, cat.id)}
-                className={className}
-                data-orient={orient ?? "pending"}
-              >
-                <Image
-                  src={cat.image || "/assets/hero.png"}
-                  alt={cat.label[lang]}
-                  fill
-                  sizes="(max-width: 899px) 50vw, (max-width: 1399px) 33vw, 25vw"
-                  quality={75}
-                  style={{ objectFit: "cover" }}
-                  onLoadingComplete={(img) =>
-                    noteOrient(cat.id, img.naturalWidth, img.naturalHeight)
-                  }
-                />
-                <span className="catalog-hub-label">{cat.label[lang]}</span>
-              </Link>
-            );
-          })}
-        </div>
+  return (
+    <div className="cat-shell catalog-hub-shell">
+      <div className="catalog-hub">
+        <h1 className="catalog-hub-title">{t.catalog.title}</h1>
+        {groups.map((group, gi) => {
+          const bottom = Math.max(
+            ...group.map((_, i) => {
+              const slot = COLLAGE_SLOTS[i];
+              return slot.t + slot.h;
+            })
+          );
+          const ratio = COLLAGE_W / (COLLAGE_H * (bottom / 100));
+          return (
+            <div
+              key={gi}
+              className="catalog-hub-canvas"
+              style={{ aspectRatio: String(ratio) }}
+              aria-label={t.catalog.title}
+            >
+              {group.map((cat, i) => {
+                const slot = COLLAGE_SLOTS[i];
+                return (
+                  <Link
+                    key={cat.id}
+                    href={categoryHref(lang, cat.id)}
+                    className={`catalog-hub-card${cat.id === "all" ? " catalog-hub-card--all" : ""}`}
+                    style={{
+                      left: `${slot.l}%`,
+                      top: `${slot.t}%`,
+                      width: `${slot.w}%`,
+                      height: `${slot.h}%`,
+                    }}
+                  >
+                    <Image
+                      src={cat.image || "/assets/hero.png"}
+                      alt={cat.label[lang]}
+                      fill
+                      sizes="240px"
+                      quality={80}
+                      style={{ objectFit: "cover", objectPosition: slot.focus }}
+                    />
+                    <span className="catalog-hub-label">{cat.label[lang]}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

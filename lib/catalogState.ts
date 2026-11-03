@@ -1,4 +1,4 @@
-export type CatalogSortOrder = "newest" | "asc" | "desc";
+export type CatalogSortOrder = "newest" | "oldest" | "asc" | "desc";
 
 export type CatalogPersistedState = {
   sortOrder: CatalogSortOrder;
@@ -28,7 +28,8 @@ export function loadCatalogState(
     const sortOrder: CatalogSortOrder | null =
       data.sortOrder === "asc" ||
       data.sortOrder === "desc" ||
-      data.sortOrder === "newest"
+      data.sortOrder === "newest" ||
+      data.sortOrder === "oldest"
         ? data.sortOrder
         : null;
     if (!sortOrder) return null;

@@ -8,7 +8,7 @@ import type { Locale } from "@/lib/i18n/config";
 import { getMessages } from "@/lib/i18n/messages";
 
 function categoryHref(lang: Locale, id: string) {
-  if (id === "all") return `/${lang}/catalog`;
+  if (id === "all") return `/${lang}/catalog?category=all`;
   return `/${lang}/catalog?category=${id}`;
 }
 

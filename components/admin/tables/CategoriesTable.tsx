@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import MediaEditModal, {
+  type MediaEditSession,
+} from "@/components/admin/MediaEditModal";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import type { MediaAdjust } from "@/lib/mediaAdjust";
 import type { Category } from "@/lib/categories";
+import { prepareImageUploadFile } from "@/lib/prepareUploadImage";
 import { slugFromLabels } from "@/lib/slug";
 
 type Draft = {
@@ -48,6 +53,8 @@ export default function CategoriesTable() {
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [formError, setFormError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [cropSession, setCropSession] = useState<MediaEditSession | null>(null);
+  const cropObjectUrlsRef = useRef<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,6 +78,14 @@ export default function CategoriesTable() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const urls = cropObjectUrlsRef.current;
+    return () => {
+      for (const u of urls) URL.revokeObjectURL(u);
+      urls.clear();
+    };
+  }, []);
 
   useScrollLock(modalOpen);
 
@@ -115,29 +130,91 @@ export default function CategoriesTable() {
   const closeModal = () => {
     if (saving) return;
     setModalOpen(false);
+    setCropSession(null);
   };
 
-  const uploadImage = async (file: File) => {
+  const trackCropObjectUrl = (url: string) => {
+    cropObjectUrlsRef.current.add(url);
+    return url;
+  };
+
+  const openImageCrop = async (file: File, replaceUrl: string | null) => {
+    setFormError(null);
+    try {
+      const prepared = await prepareImageUploadFile(file);
+      const objectUrl = trackCropObjectUrl(URL.createObjectURL(prepared));
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("img"));
+        img.src = objectUrl;
+      });
+      setCropSession({
+        mode: "image",
+        file: prepared,
+        previewUrl: objectUrl,
+        replaceUrl,
+        naturalW: img.naturalWidth,
+        naturalH: img.naturalHeight,
+        label: file.name,
+      });
+    } catch (e) {
+      console.error(e);
+      setFormError("Не вдалося відкрити зображення для кадрування");
+    }
+  };
+
+  const openCropFromUrl = async (url: string) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("fetch");
+      const blob = await res.blob();
+      const file = new File([blob], "category-cover.jpg", {
+        type: blob.type || "image/jpeg",
+      });
+      await openImageCrop(file, url);
+    } catch (e) {
+      console.error(e);
+      setFormError("Не вдалося відкрити зображення");
+    }
+  };
+
+  const onSaveCategoryCrop = async (
+    file: File,
+    _replaceUrl: string | null,
+    _adjust: MediaAdjust
+  ) => {
     setUploading(true);
     setFormError(null);
     try {
       const fd = new FormData();
       fd.append("images", file);
+      fd.append("ready", "1");
       const res = await fetch("/api/admin/upload", {
         method: "POST",
         credentials: "include",
         body: fd,
       });
       if (!res.ok) throw new Error("Upload failed");
-      const data = (await res.json()) as { urls?: string[] };
-      const url = data.urls?.[0];
+      const data = (await res.json()) as {
+        urls?: string[];
+        items?: { url: string }[];
+      };
+      const url = data.items?.[0]?.url ?? data.urls?.[0];
       if (!url) throw new Error("No url");
       setDraft((d) => ({ ...d, image: url }));
-    } catch {
-      setFormError("Не вдалося завантажити зображення");
+      setCropSession(null);
+    } catch (e) {
+      console.error(e);
+      setFormError("Не вдалося зберегти кадр");
+      throw e;
     } finally {
       setUploading(false);
     }
+  };
+
+  const uploadImage = async (file: File) => {
+    await openImageCrop(file, draft.image || null);
   };
 
   const save = async () => {
@@ -411,13 +488,13 @@ export default function CategoriesTable() {
                     />
                     <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                       <span className="admin-btn-secondary !py-1.5 !px-3 text-xs">
-                        {uploading ? "Завантаження…" : "Завантажити файл"}
+                        {uploading ? "Збереження…" : "Завантажити й кадрувати"}
                       </span>
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        disabled={uploading}
+                        disabled={uploading || saving}
                         onChange={(e) => {
                           const f = e.target.files?.[0];
                           if (f) void uploadImage(f);
@@ -425,6 +502,16 @@ export default function CategoriesTable() {
                         }}
                       />
                     </label>
+                    {draft.image ? (
+                      <button
+                        type="button"
+                        className="admin-btn-ghost !py-1.5 !px-3 text-xs"
+                        disabled={uploading || saving}
+                        onClick={() => void openCropFromUrl(draft.image)}
+                      >
+                        Кадрувати обкладинку
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               </Field>
@@ -469,6 +556,14 @@ export default function CategoriesTable() {
           </div>
         </div>
       )}
+
+      <MediaEditModal
+        session={cropSession}
+        busy={uploading}
+        onClose={() => setCropSession(null)}
+        onSaveImage={onSaveCategoryCrop}
+        onSaveVideo={async () => {}}
+      />
     </div>
   );
 }

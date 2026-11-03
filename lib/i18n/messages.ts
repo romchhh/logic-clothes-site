@@ -40,6 +40,9 @@ export type Messages = {
     sortNewest: string;
     sortAsc: string;
     sortDesc: string;
+    sortAdded: string;
+    sortAddedNew: string;
+    sortAddedOld: string;
     size: string;
     color: string;
     price: string;
@@ -305,6 +308,9 @@ const uk: Messages = {
     sortNewest: "За пріоритетом",
     sortAsc: "Ціна: від низької",
     sortDesc: "Ціна: від високої",
+    sortAdded: "Додано",
+    sortAddedNew: "Спочатку нові",
+    sortAddedOld: "Спочатку старі",
     size: "Розмір",
     color: "Колір",
     price: "Ціна",
@@ -587,6 +593,9 @@ const en: Messages = {
     sortNewest: "By priority",
     sortAsc: "Price: low to high",
     sortDesc: "Price: high to low",
+    sortAdded: "Added",
+    sortAddedNew: "Newest first",
+    sortAddedOld: "Oldest first",
     size: "Size",
     color: "Color",
     price: "Price",
