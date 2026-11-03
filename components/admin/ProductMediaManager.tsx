@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import AdminUploadPreloader from "@/components/admin/AdminUploadPreloader";
 import MediaEditModal, {
   type MediaEditSession,
+  type VideoPosterSave,
 } from "@/components/admin/MediaEditModal";
 import { mediaAdjustProps } from "@/components/shared/MediaWithAdjust";
 import AdminVideoThumb from "@/components/admin/AdminVideoThumb";
@@ -63,7 +64,15 @@ export default function ProductMediaManager({ media, onChange }: Props) {
 
   useEffect(() => {
     for (const m of media) {
-      if (m.type !== "video" || posterRequestedRef.current.has(m.url)) continue;
+      if (m.type !== "video") continue;
+      if (m.poster) {
+        setVideoPosters((prev) =>
+          prev[m.url] === m.poster ? prev : { ...prev, [m.url]: m.poster! }
+        );
+        posterRequestedRef.current.add(m.url);
+        continue;
+      }
+      if (posterRequestedRef.current.has(m.url)) continue;
       posterRequestedRef.current.add(m.url);
       void captureVideoPosterFromUrl(m.url)
         .then((poster) => {
@@ -156,7 +165,8 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       file: File | null,
       initialAdjust?: MediaAdjust,
       naturalW = 1080,
-      naturalH = 1920
+      naturalH = 1920,
+      initialPoster?: string | null
     ) => {
       const previewUrl = file
         ? trackObjectUrl(URL.createObjectURL(file))
@@ -169,6 +179,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         naturalW,
         naturalH,
         initialAdjust,
+        initialPoster: initialPoster ?? null,
         label: file?.name ?? url.split("/").pop()?.split("?")[0],
       });
     },
@@ -402,21 +413,64 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     }
   };
 
-  const onSaveVideo = async (replaceUrl: string, adjust: MediaAdjust) => {
-    const next = mediaRef.current.map((m) =>
-      m.url === replaceUrl
-        ? isDefaultAdjust(adjust)
-          ? { ...m, adjust: undefined }
-          : { ...m, adjust }
-        : m
+  const onSaveVideo = async (
+    replaceUrl: string,
+    adjust: MediaAdjust,
+    poster: VideoPosterSave
+  ) => {
+    setUploading(true);
+    setUploadProgress(
+      poster.kind === "file" ? "Збереження обкладинки…" : "Збереження відео…"
     );
-    mediaRef.current = next;
-    onChange(next);
-    closeEdit();
-    if (imageQueueRef.current.length) {
-      await advanceImageQueue();
-    } else {
-      abortQueues();
+    setError(null);
+    try {
+      let posterUrl: string | undefined;
+      if (poster.kind === "file") {
+        const items = await uploadOne(poster.file, { ready: true });
+        posterUrl = items[0]?.url;
+        if (!posterUrl) throw new Error("poster_upload");
+      } else if (poster.kind === "keep") {
+        posterUrl = poster.url;
+      }
+
+      const next = mediaRef.current.map((m) => {
+        if (m.url !== replaceUrl) return m;
+        const base: ProductMedia = {
+          ...m,
+          ...(isDefaultAdjust(adjust)
+            ? { adjust: undefined }
+            : { adjust }),
+        };
+        if (posterUrl) base.poster = posterUrl;
+        else delete base.poster;
+        return base;
+      });
+      mediaRef.current = next;
+      onChange(next);
+      if (posterUrl) {
+        setVideoPosters((prev) => ({ ...prev, [replaceUrl]: posterUrl! }));
+      } else {
+        setVideoPosters((prev) => {
+          const copy = { ...prev };
+          delete copy[replaceUrl];
+          return copy;
+        });
+        posterRequestedRef.current.delete(replaceUrl);
+      }
+      closeEdit();
+      if (imageQueueRef.current.length) {
+        await advanceImageQueue();
+      } else {
+        abortQueues();
+      }
+    } catch (e) {
+      console.error(e);
+      setError(
+        e instanceof Error ? e.message : "Не вдалося зберегти обкладинку відео"
+      );
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -454,7 +508,14 @@ export default function ProductMediaManager({ media, onChange }: Props) {
     if (item.type === "video") {
       const original = originalsRef.current.get(item.url);
       if (original) {
-        openVideoEdit(item.url, original, item.adjust);
+        openVideoEdit(
+          item.url,
+          original,
+          item.adjust,
+          1080,
+          1920,
+          item.poster
+        );
         return;
       }
       try {
@@ -464,11 +525,12 @@ export default function ProductMediaManager({ media, onChange }: Props) {
           null,
           item.adjust,
           dims.w,
-          dims.h
+          dims.h,
+          item.poster
         );
       } catch (e) {
         console.error(e);
-        openVideoEdit(item.url, null, item.adjust);
+        openVideoEdit(item.url, null, item.adjust, 1080, 1920, item.poster);
       }
       return;
     }
@@ -554,7 +616,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
                 <AdminVideoThumb
                   src={m.url}
                   adjust={m.adjust}
-                  poster={videoPosters[m.url] ?? null}
+                  poster={m.poster || videoPosters[m.url] || null}
                 />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -628,7 +690,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
                 disabled={uploading || Boolean(editSession)}
                 onClick={() => void startEditFor(idx)}
               >
-                {m.type === "video" ? "Кадр" : "Редагувати"}
+                {m.type === "video" ? "Кадр / обкладинка" : "Редагувати"}
               </button>
             </div>
           </div>

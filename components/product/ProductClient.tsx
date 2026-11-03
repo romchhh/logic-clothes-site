@@ -69,6 +69,7 @@ export default function ProductClient({
           url: m.url,
           type: m.type === "video" ? ("video" as const) : ("image" as const),
           adjust: m.adjust,
+          ...(m.poster ? { poster: m.poster } : {}),
         }))
       : images.map((url) => ({ url, type: "image" as const }));
   const showMeasures = hasGarmentMeasures(product.garmentMeasures);

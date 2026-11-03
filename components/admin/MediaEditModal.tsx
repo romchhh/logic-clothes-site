@@ -4,6 +4,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import AdminUploadPreloader from "@/components/admin/AdminUploadPreloader";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import {
+  captureVideoPosterFile,
+  seekVideo,
+} from "@/lib/captureVideoPoster";
+import {
   DEFAULT_MEDIA_ADJUST,
   type MediaAdjust,
   type MediaFrame,
@@ -19,11 +23,18 @@ export type MediaEditSession = {
   naturalW: number;
   naturalH: number;
   initialAdjust?: MediaAdjust;
+  /** Saved video cover URL, if any */
+  initialPoster?: string | null;
   /** Original filename for UI */
   label?: string;
 };
 
-type EditorTab = "fine" | "crop";
+export type VideoPosterSave =
+  | { kind: "keep"; url: string }
+  | { kind: "file"; file: File }
+  | { kind: "none" };
+
+type EditorTab = "fine" | "crop" | "poster";
 
 type Props = {
   session: MediaEditSession | null;
@@ -37,7 +48,11 @@ type Props = {
     replaceUrl: string | null,
     adjust: MediaAdjust
   ) => Promise<void>;
-  onSaveVideo: (replaceUrl: string, adjust: MediaAdjust) => Promise<void>;
+  onSaveVideo: (
+    replaceUrl: string,
+    adjust: MediaAdjust,
+    poster: VideoPosterSave
+  ) => Promise<void>;
 };
 
 function clamp(n: number, min: number, max: number) {
@@ -88,6 +103,12 @@ export default function MediaEditModal({
   const [tab, setTab] = useState<EditorTab>("fine");
   const [compare, setCompare] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [videoTime, setVideoTime] = useState(0);
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterCleared, setPosterCleared] = useState(false);
+  const [posterBusy, setPosterBusy] = useState(false);
 
   const frameRef = useRef<HTMLDivElement>(null);
   const cropImgRef = useRef<HTMLImageElement>(null);
@@ -97,6 +118,7 @@ export default function MediaEditModal({
   const zoomRef = useRef(1);
   const naturalRef = useRef({ w: 0, h: 0 });
   const cropReadyRef = useRef(false);
+  const posterObjectUrlRef = useRef<string | null>(null);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -122,7 +144,7 @@ export default function MediaEditModal({
   useEffect(() => {
     if (!session) return;
     setAdjust(session.initialAdjust ?? DEFAULT_MEDIA_ADJUST);
-    setTab("crop");
+    setTab(session.mode === "video" ? "poster" : "crop");
     setCompare(false);
     setSaveError(null);
     cropReadyRef.current = false;
@@ -130,6 +152,16 @@ export default function MediaEditModal({
     zoomRef.current = 1;
     setZoom(1);
     setVideoPlaying(false);
+    setVideoDuration(0);
+    setVideoTime(0);
+    if (posterObjectUrlRef.current) {
+      URL.revokeObjectURL(posterObjectUrlRef.current);
+      posterObjectUrlRef.current = null;
+    }
+    setPosterFile(null);
+    setPosterCleared(false);
+    setPosterPreview(session.initialPoster?.trim() || null);
+    setPosterBusy(false);
     naturalRef.current = {
       w: session.naturalW,
       h: session.naturalH,
@@ -139,14 +171,28 @@ export default function MediaEditModal({
   }, [session]);
 
   useEffect(() => {
+    return () => {
+      if (posterObjectUrlRef.current) {
+        URL.revokeObjectURL(posterObjectUrlRef.current);
+        posterObjectUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const v = videoRef.current;
     if (!v || session?.mode !== "video") return;
+    if (tab === "poster") {
+      v.pause();
+      setVideoPlaying(false);
+      return;
+    }
     if (videoPlaying) {
       void v.play().catch(() => setVideoPlaying(false));
     } else {
       v.pause();
     }
-  }, [session, videoPlaying]);
+  }, [session, videoPlaying, tab]);
 
   const cropNode = useCallback((): HTMLElement | null => {
     return cropImgRef.current ?? videoRef.current;
@@ -498,12 +544,63 @@ export default function MediaEditModal({
     return next;
   }
 
+  function currentPosterSave(): VideoPosterSave {
+    if (posterFile) return { kind: "file", file: posterFile };
+    if (posterCleared) return { kind: "none" };
+    const keep = posterPreview?.trim() || session?.initialPoster?.trim();
+    if (keep) return { kind: "keep", url: keep };
+    return { kind: "none" };
+  }
+
+  async function pickPosterFromCurrentFrame() {
+    const v = videoRef.current;
+    if (!v || !session || session.mode !== "video") return;
+    setPosterBusy(true);
+    setSaveError(null);
+    try {
+      v.pause();
+      setVideoPlaying(false);
+      const file = await captureVideoPosterFile(v, 960, "video-poster.jpg");
+      if (posterObjectUrlRef.current) {
+        URL.revokeObjectURL(posterObjectUrlRef.current);
+      }
+      const preview = URL.createObjectURL(file);
+      posterObjectUrlRef.current = preview;
+      setPosterFile(file);
+      setPosterPreview(preview);
+      setPosterCleared(false);
+    } catch (err) {
+      console.error(err);
+      setSaveError("Не вдалося зняти кадр для обкладинки");
+    } finally {
+      setPosterBusy(false);
+    }
+  }
+
+  async function scrubVideoTo(time: number) {
+    const v = videoRef.current;
+    if (!v) return;
+    v.pause();
+    setVideoPlaying(false);
+    setVideoTime(time);
+    try {
+      await seekVideo(v, time);
+      setVideoTime(v.currentTime);
+    } catch {
+      /* ignore seek errors */
+    }
+  }
+
   async function handleSaveWithoutTone() {
     if (!session || session.mode !== "video" || !session.replaceUrl) return;
     setSaving(true);
     setSaveError(null);
     try {
-      await onSaveVideo(session.replaceUrl, withFrame(DEFAULT_MEDIA_ADJUST));
+      await onSaveVideo(
+        session.replaceUrl,
+        withFrame(DEFAULT_MEDIA_ADJUST),
+        currentPosterSave()
+      );
     } catch (err) {
       console.error(err);
       setSaveError("Не вдалося зберегти відео");
@@ -522,7 +619,11 @@ export default function MediaEditModal({
           setSaveError("Немає URL відео");
           return;
         }
-        await onSaveVideo(session.replaceUrl, withFrame(adjust));
+        await onSaveVideo(
+          session.replaceUrl,
+          withFrame(adjust),
+          currentPosterSave()
+        );
         return;
       }
       if (!session.file) {
@@ -560,15 +661,21 @@ export default function MediaEditModal({
   if (!session) return null;
 
   const isVideo = session.mode === "video";
-  const disabled = saving || busy;
-  const showCropLayer = true;
+  const disabled = saving || busy || posterBusy;
+  const showCropLayer = tab === "crop";
   const showSkip = Boolean(onSkip) && (isVideo || queueTotal > 1);
   const fileLabel = session.label?.trim();
 
-  const tabs: { id: EditorTab; label: string }[] = [
-    { id: "crop", label: "Кадр 3:5" },
-    { id: "fine", label: "Тон" },
-  ];
+  const tabs: { id: EditorTab; label: string }[] = isVideo
+    ? [
+        { id: "poster", label: "Обкладинка" },
+        { id: "crop", label: "Кадр 3:5" },
+        { id: "fine", label: "Тон" },
+      ]
+    : [
+        { id: "crop", label: "Кадр 3:5" },
+        { id: "fine", label: "Тон" },
+      ];
 
   return (
     <div className="media-editor-root" role="presentation">
@@ -600,7 +707,7 @@ export default function MediaEditModal({
         <header className="media-editor-head">
           <div className="min-w-0">
             <p className="media-editor-eyebrow">
-              {isVideo ? "Відео · тон на сайті" : "Фото"}
+              {isVideo ? "Відео · обкладинка й тон" : "Фото"}
               {queueTotal > 1 ? ` · ${queueIndex} з ${queueTotal}` : ""}
             </p>
             <h2 id="media-editor-title" className="media-editor-title">
@@ -658,6 +765,11 @@ export default function MediaEditModal({
                     const w = v.videoWidth || session.naturalW;
                     const h = v.videoHeight || session.naturalH;
                     naturalRef.current = { w, h };
+                    setVideoDuration(
+                      Number.isFinite(v.duration) && v.duration > 0
+                        ? v.duration
+                        : 0
+                    );
                     const saved = session.initialAdjust?.frame;
                     centerPan(w, h);
                     if (saved && saved.zoom > 1) {
@@ -681,12 +793,22 @@ export default function MediaEditModal({
                       };
                       applyPanToDom();
                     }
+                    const start =
+                      Number.isFinite(v.duration) && v.duration > 0.4
+                        ? Math.min(0.35, v.duration * 0.08)
+                        : 0.15;
                     try {
-                      v.currentTime = 0.15;
+                      v.currentTime = start;
+                      setVideoTime(start);
                     } catch {
                       /* keep first frame */
                     }
                     v.pause();
+                  }}
+                  onTimeUpdate={(e) => {
+                    if (tab !== "poster") {
+                      setVideoTime(e.currentTarget.currentTime);
+                    }
                   }}
                   onError={() =>
                     setSaveError(
@@ -716,7 +838,16 @@ export default function MediaEditModal({
             </div>
 
             <div className="media-editor-preview-actions">
-              {isVideo && tab !== "crop" ? (
+              {isVideo && tab === "poster" ? (
+                <button
+                  type="button"
+                  className="media-editor-chip is-active"
+                  disabled={disabled || posterBusy}
+                  onClick={() => void pickPosterFromCurrentFrame()}
+                >
+                  {posterBusy ? "Знімаю…" : "Взяти цей кадр"}
+                </button>
+              ) : isVideo && tab === "fine" ? (
                 <button
                   type="button"
                   className={`media-editor-chip${videoPlaying ? " is-active" : ""}`}
@@ -847,18 +978,99 @@ export default function MediaEditModal({
                   <button
                     type="button"
                     className="media-editor-reset"
-                    onClick={() => setAdjust(DEFAULT_MEDIA_ADJUST)}
+                    onClick={() =>
+                      setAdjust((prev) => {
+                        const frame = prev.frame ?? currentFrame();
+                        const next: MediaAdjust = { ...DEFAULT_MEDIA_ADJUST };
+                        if (frame) next.frame = frame;
+                        return next;
+                      })
+                    }
                   >
-                    Скинути все
+                    Скинути тон
                   </button>
                 </div>
               )}
 
+              {tab === "poster" && isVideo ? (
+                <div className="media-editor-crop-help media-editor-poster-help">
+                  <p className="media-editor-hint">
+                    Обкладинка видно в мініатюрах і до запуску відео. Прокрутіть
+                    таймлайн і натисніть «Взяти цей кадр», якщо перший кадр
+                    поганий.
+                  </p>
+                  <label className="media-editor-slider">
+                    <div className="media-editor-slider-top">
+                      <span className="media-editor-slider-label">Кадр</span>
+                      <span className="media-editor-slider-value">
+                        {videoDuration > 0
+                          ? `${videoTime.toFixed(1)} / ${videoDuration.toFixed(1)} с`
+                          : "—"}
+                      </span>
+                    </div>
+                    <span className="media-editor-slider-hint">
+                      Тягніть, щоб знайти вдалий момент
+                    </span>
+                    <input
+                      type="range"
+                      className="media-editor-range"
+                      min={0}
+                      max={Math.max(videoDuration || 1, 0.1)}
+                      step={0.05}
+                      value={Math.min(videoTime, videoDuration || 0)}
+                      disabled={disabled || videoDuration <= 0}
+                      onChange={(e) =>
+                        void scrubVideoTo(Number(e.target.value))
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="admin-btn-secondary media-editor-poster-pick"
+                    disabled={disabled || posterBusy}
+                    onClick={() => void pickPosterFromCurrentFrame()}
+                  >
+                    {posterBusy ? "Знімаю кадр…" : "Взяти цей кадр як обкладинку"}
+                  </button>
+                  {posterPreview ? (
+                    <div className="media-editor-poster-preview">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={posterPreview} alt="" draggable={false} />
+                      <p className="media-editor-hint" style={{ margin: 0 }}>
+                        Обрана обкладинка
+                      </p>
+                      <button
+                        type="button"
+                        className="media-editor-reset"
+                        disabled={disabled}
+                        onClick={() => {
+                          if (posterObjectUrlRef.current) {
+                            URL.revokeObjectURL(posterObjectUrlRef.current);
+                            posterObjectUrlRef.current = null;
+                          }
+                          setPosterFile(null);
+                          setPosterPreview(null);
+                          setPosterCleared(true);
+                        }}
+                      >
+                        Прибрати обкладинку
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="media-editor-hint">
+                      Поки без обкладинки — на сайті покажеться ранній кадр
+                      відео.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+
               {tab === "crop" && (
                 <div className="media-editor-crop-help">
                   <p className="media-editor-hint">
-                    Рамка — як у каталозі (3:5). Перетягніть фото, наблизьте
-                    коліщатком / щипком, потім «Додати в галерею».
+                    {isVideo
+                      ? "Рамка 3:5 — як у каталозі. Перетягніть і наблизьте відео."
+                      : "Рамка — як у каталозі (3:5). Перетягніть фото, наблизьте коліщатком / щипком, потім «Додати в галерею»."}
                   </p>
                   <ul className="media-editor-crop-tips">
                     <li>− / + або слайдер під кадром — масштаб</li>
@@ -949,7 +1161,7 @@ export default function MediaEditModal({
               {saving
                 ? "Збереження…"
                 : isVideo
-                  ? "Зберегти тон"
+                  ? "Зберегти"
                   : session.replaceUrl
                     ? "Застосувати"
                     : "Додати в галерею"}

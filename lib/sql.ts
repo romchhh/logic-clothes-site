@@ -81,6 +81,7 @@ type ProductRow = {
     width?: number | null;
     height?: number | null;
     adjust?: unknown;
+    poster?: string | null;
   }> | null;
   swatches: Array<{ img: string; label: string; hex?: string | null }> | null;
   created_at?: Date | string | null;
@@ -108,6 +109,7 @@ function mapProduct(row: ProductRow): Product {
           ...(normalizeMediaAdjust(m.adjust)
             ? { adjust: normalizeMediaAdjust(m.adjust) }
             : {}),
+          ...(m.poster ? { poster: String(m.poster) } : {}),
         }))
     : [];
 
@@ -122,6 +124,9 @@ function mapProduct(row: ProductRow): Product {
   const mediaResolved: ProductMedia[] = media.map((m) => ({
     ...m,
     url: resolveProductAssetUrl(m.url, slug),
+    ...(m.poster
+      ? { poster: resolveProductAssetUrl(m.poster, slug) }
+      : {}),
   }));
   const fallbackImg = images[0] || "";
 
@@ -277,7 +282,8 @@ const PRODUCT_SELECT = `
             'media_type', i.media_type,
             'width', i.width,
             'height', i.height,
-            'adjust', i.adjust_json
+            'adjust', i.adjust_json,
+            'poster', i.poster_url
           )
           ORDER BY i.sort_order, i.id
         )
@@ -375,8 +381,8 @@ async function replaceProductChildren(
   for (let i = 0; i < mediaList.length; i++) {
     const m = mediaList[i];
     await client.query(
-      `INSERT INTO product_images (product_slug, url, sort_order, media_type, width, height, adjust_json)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO product_images (product_slug, url, sort_order, media_type, width, height, adjust_json, poster_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         product.id,
         m.url,
@@ -385,6 +391,7 @@ async function replaceProductChildren(
         m.width ?? null,
         m.height ?? null,
         m.adjust ? JSON.stringify(m.adjust) : null,
+        m.poster ?? null,
       ]
     );
   }

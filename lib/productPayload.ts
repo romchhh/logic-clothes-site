@@ -31,6 +31,8 @@ function parseMedia(body: Record<string, unknown>, images: string[]): ProductMed
         const row = m as Record<string, unknown>;
         const url = cleanAssetUrl(String(row.url || ""));
         if (!url) return null;
+        const posterRaw =
+          typeof row.poster === "string" ? cleanAssetUrl(row.poster) : "";
         return {
           url,
           type: row.type === "video" ? ("video" as const) : ("image" as const),
@@ -39,6 +41,7 @@ function parseMedia(body: Record<string, unknown>, images: string[]): ProductMed
           ...(normalizeMediaAdjust(row.adjust)
             ? { adjust: normalizeMediaAdjust(row.adjust) }
             : {}),
+          ...(posterRaw ? { poster: posterRaw } : {}),
         };
       })
       .filter((m): m is ProductMedia => Boolean(m));

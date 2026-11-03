@@ -27,6 +27,8 @@ export interface ProductMedia {
   width?: number;
   height?: number;
   adjust?: MediaAdjust;
+  /** Still image shown before play / in thumbs (videos). */
+  poster?: string;
 }
 
 export interface Product {

@@ -16,6 +16,7 @@ export type GallerySlide = {
   url: string;
   type: "image" | "video";
   adjust?: MediaAdjust;
+  poster?: string;
 };
 
 export default function ProductImmersiveGallery({
@@ -158,6 +159,7 @@ export default function ProductImmersiveGallery({
               key={current.url}
               src={current.url}
               adjust={current.adjust}
+              poster={current.poster}
               autoPlay
               className="pdp-immerse-hero-img"
             />
@@ -217,7 +219,11 @@ export default function ProductImmersiveGallery({
               onClick={() => goTo(i)}
             >
               {slide.type === "video" ? (
-                <VideoStill src={slide.url} adjust={slide.adjust} />
+                <VideoStill
+                  src={slide.url}
+                  adjust={slide.adjust}
+                  poster={slide.poster}
+                />
               ) : (
                 <Image
                   src={slide.url}
@@ -297,6 +303,7 @@ export default function ProductImmersiveGallery({
                   <VideoStill
                     src={slide.url}
                     adjust={slide.adjust}
+                    poster={slide.poster}
                     autoPlay={i === lightboxIndex}
                     className="h-full w-full"
                   />

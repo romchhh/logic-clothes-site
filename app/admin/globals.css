@@ -948,12 +948,31 @@
     touch-action: pan-y;
   }
   .media-editor-fine,
-  .media-editor-crop-help {
+  .media-editor-crop-help,
+  .media-editor-poster-help {
     max-width: 64%;
   }
   .media-editor-range {
     touch-action: none;
   }
+}
+.media-editor-poster-pick {
+  width: 100%;
+  margin: 4px 0 12px;
+}
+.media-editor-poster-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.media-editor-poster-preview img {
+  width: 100%;
+  max-width: 160px;
+  aspect-ratio: 3 / 5;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #111;
 }
 .media-editor-hint {
   margin: 0 0 14px;

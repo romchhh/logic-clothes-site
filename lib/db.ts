@@ -84,7 +84,8 @@ async function ensureSchemaPatches(pool: Pool): Promise<void> {
   `);
   await pool.query(`
     ALTER TABLE product_images
-      ADD COLUMN IF NOT EXISTS adjust_json JSONB
+      ADD COLUMN IF NOT EXISTS adjust_json JSONB,
+      ADD COLUMN IF NOT EXISTS poster_url TEXT
   `);
 }
 
