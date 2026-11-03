@@ -120,8 +120,8 @@ export default function CatalogCategoryHub({
                       src={cat.image || "/assets/hero.png"}
                       alt={cat.label[lang]}
                       fill
-                      sizes="240px"
-                      quality={80}
+                      sizes="(max-width: 767px) 92vw, (max-width: 1199px) 74vw, 820px"
+                      quality={85}
                       style={{ objectFit: "cover", objectPosition: slot.focus }}
                     />
                     <span className="catalog-hub-label">{cat.label[lang]}</span>

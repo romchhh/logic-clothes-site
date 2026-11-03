@@ -1198,9 +1198,16 @@
     padding-top:12px;
   }
   .catalog-hub{
-    width:min(68vw, 480px);
+    /* Larger tiles, white side margins like the reference */
+    width:min(92vw, 640px);
     margin:0 auto;
     padding:4px 0 96px;
+  }
+  @media (min-width:768px){
+    .catalog-hub{width:min(74vw, 760px);}
+  }
+  @media (min-width:1200px){
+    .catalog-hub{width:min(58vw, 820px);}
   }
   .catalog-hub-title{
     position:absolute;
@@ -1219,7 +1226,7 @@
     margin:0;
   }
   .catalog-hub-canvas + .catalog-hub-canvas{
-    margin-top:18px;
+    margin-top:22px;
   }
   .catalog-hub-card{
     position:absolute;
@@ -1237,12 +1244,12 @@
   }
   .catalog-hub-label{
     position:absolute;
-    left:10px;
-    right:10px;
-    bottom:10px;
+    left:12px;
+    right:12px;
+    bottom:12px;
     z-index:1;
     color:#fff;
-    font-size:clamp(8px, 2.2vw, 11px);
+    font-size:clamp(10px, 1.55vw, 13px);
     font-weight:var(--weight-medium);
     letter-spacing:.14em;
     text-transform:uppercase;
