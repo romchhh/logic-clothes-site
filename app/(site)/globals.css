@@ -42,7 +42,7 @@
     --text-body:1.125rem;
     --text-meta:0.8125rem;
     --text-eyebrow:0.75rem;
-    /* Jost ExtraLight/Light only — same thin feel as the menu everywhere */
+    /* Manrope ExtraLight/Light — thin geometric UI, even Cyrillic */
     --weight-regular:200;
     --weight-medium:300;
     --weight-semi:300;
@@ -73,21 +73,8 @@
     overflow-x:hidden;
     max-width:100%;
   }
-  /*
-   * Jost’s native є/і/ї/ґ glyphs are poorly drawn / optically heavier.
-   * Overlay Manrope ExtraLight ONLY for those codepoints (same stem weight).
-   * Both faces use font-display:block + preload so they don’t flash/dance.
-   */
-  @font-face{
-    font-family:"UA Soft Letters";
-    font-style:normal;
-    font-weight:200 500;
-    font-display:block;
-    src:url("/fonts/manrope-ua.woff2") format("woff2");
-    unicode-range:U+0404,U+0406,U+0407,U+0454,U+0456,U+0457,U+0490,U+0491;
-  }
   body{
-    font-family:"UA Soft Letters",var(--font-jost),"Jost","Helvetica Neue",Arial,sans-serif;
+    font-family:var(--font-sans),"Manrope","Helvetica Neue",Arial,sans-serif;
     font-size:var(--text-body);
     font-weight:var(--weight-regular);
     letter-spacing:.015em;

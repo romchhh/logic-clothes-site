@@ -5,7 +5,7 @@ import SidebarMenu from "@/components/layout/SidebarMenu";
 import SidebarSearch from "@/components/layout/SidebarSearch";
 import JsonLd from "@/components/shared/JsonLd";
 import RegisterSW from "@/components/shared/RegisterSW";
-import { jost } from "@/lib/fonts/jost";
+import { siteFont } from "@/lib/fonts/manrope";
 import { AppProvider } from "@/lib/GeneralProvider";
 import { BasketProvider } from "@/lib/BasketProvider";
 import { WishlistProvider } from "@/lib/WishlistProvider";
@@ -28,7 +28,7 @@ export default function SiteHtmlShell({
   const baseUrl = getSiteUrl();
 
   return (
-    <html lang={HTML_LANG[lang]} className={jost.variable}>
+    <html lang={HTML_LANG[lang]} className={siteFont.variable}>
       {/* eslint-disable-next-line @next/next/no-head-element */}
       <head>
         <meta name="format-detection" content="telephone=no" />
@@ -39,38 +39,30 @@ export default function SiteHtmlShell({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="author" href="/humans.txt" />
-        {/* Soft UA glyphs + Jost body — preload together to avoid fallback flash */}
         <link
           rel="preload"
-          href="/fonts/manrope-ua.woff2"
+          href="/fonts/manrope/manrope-cyrillic-200-normal.woff2"
           as="font"
           type="font/woff2"
           crossOrigin="anonymous"
         />
         <link
           rel="preload"
-          href="/fonts/jost/jost-cyrillic-200-normal.woff2"
+          href="/fonts/manrope/manrope-latin-200-normal.woff2"
           as="font"
           type="font/woff2"
           crossOrigin="anonymous"
         />
         <link
           rel="preload"
-          href="/fonts/jost/jost-latin-200-normal.woff2"
+          href="/fonts/manrope/manrope-cyrillic-300-normal.woff2"
           as="font"
           type="font/woff2"
           crossOrigin="anonymous"
         />
         <link
           rel="preload"
-          href="/fonts/jost/jost-cyrillic-300-normal.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/jost/jost-latin-300-normal.woff2"
+          href="/fonts/manrope/manrope-latin-300-normal.woff2"
           as="font"
           type="font/woff2"
           crossOrigin="anonymous"
@@ -79,7 +71,7 @@ export default function SiteHtmlShell({
         <link rel="preload" href="/assets/hero.png" as="image" />
         <link rel="dns-prefetch" href={baseUrl} />
       </head>
-      <body className={jost.className}>
+      <body className={siteFont.className}>
         <JsonLd data={generateOrganizationStructuredData(baseUrl)} />
         <JsonLd data={generateStoreStructuredData(baseUrl)} />
         <JsonLd data={generateWebsiteStructuredData(baseUrl)} />

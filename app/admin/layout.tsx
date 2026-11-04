@@ -1,7 +1,7 @@
 // /app/admin/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
-import { jost } from "@/lib/fonts/jost";
+import { siteFont } from "@/lib/fonts/manrope";
 import { SidebarProvider } from "@/lib/SidebarContext";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import ClientLayoutShell from "@/components/admin/ClientLayoutShell";
@@ -17,8 +17,8 @@ export default function AdminLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk" className={jost.variable}>
-      <body className={`${jost.className} dark:bg-gray-900`}>
+    <html lang="uk" className={siteFont.variable}>
+      <body className={`${siteFont.className} dark:bg-gray-900`}>
         <ThemeProvider>
           <SidebarProvider>
             <ClientLayoutShell>{children}</ClientLayoutShell>
