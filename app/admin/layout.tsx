@@ -1,15 +1,10 @@
 // /app/admin/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts/jost";
 import { SidebarProvider } from "@/lib/SidebarContext";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import ClientLayoutShell from "@/components/admin/ClientLayoutShell";
-
-const jost = Jost({
-  subsets: ["latin", "cyrillic"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Logic Clothes — Admin",

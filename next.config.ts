@@ -13,11 +13,11 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "100mb",
     },
-    // Next proxy aborts the socket (ECONNRESET) above the default ~10mb.
-    proxyClientMaxBodySize: "100mb",
+    // Next 15.5+ — raise buffered body limit for large admin uploads (~10mb default).
+    // (proxyClientMaxBodySize is Next 16 only; keep middleware* here.)
     middlewareClientMaxBodySize: "100mb",
     optimizePackageImports: ["tailwind-merge"],
-  } as NextConfig["experimental"],
+  } satisfies NextConfig["experimental"],
   compress: true,
   poweredByHeader: false,
   trailingSlash: false,

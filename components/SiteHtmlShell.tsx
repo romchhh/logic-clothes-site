@@ -1,4 +1,3 @@
-import { Jost } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import SidebarBasket from "@/components/layout/SidebarBasket";
@@ -6,6 +5,7 @@ import SidebarMenu from "@/components/layout/SidebarMenu";
 import SidebarSearch from "@/components/layout/SidebarSearch";
 import JsonLd from "@/components/shared/JsonLd";
 import RegisterSW from "@/components/shared/RegisterSW";
+import { jost } from "@/lib/fonts/jost";
 import { AppProvider } from "@/lib/GeneralProvider";
 import { BasketProvider } from "@/lib/BasketProvider";
 import { WishlistProvider } from "@/lib/WishlistProvider";
@@ -17,17 +17,6 @@ import {
   generateStoreStructuredData,
   generateWebsiteStructuredData,
 } from "@/lib/seo";
-
-const jost = Jost({
-  subsets: ["latin", "latin-ext", "cyrillic"],
-  weight: ["200", "300"],
-  style: ["normal", "italic"],
-  display: "swap",
-  preload: true,
-  variable: "--font-jost",
-  adjustFontFallback: true,
-  fallback: ["Helvetica Neue", "Arial", "sans-serif"],
-});
 
 export default function SiteHtmlShell({
   lang,
