@@ -39,6 +39,42 @@ export default function SiteHtmlShell({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="author" href="/humans.txt" />
+        {/* Soft UA glyphs + Jost body — preload together to avoid fallback flash */}
+        <link
+          rel="preload"
+          href="/fonts/manrope-ua.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/jost/jost-cyrillic-200-normal.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/jost/jost-latin-200-normal.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/jost/jost-cyrillic-300-normal.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/jost/jost-latin-300-normal.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
         <link rel="preload" href="/assets/logo-header.png" as="image" />
         <link rel="preload" href="/assets/hero.png" as="image" />
         <link rel="dns-prefetch" href={baseUrl} />

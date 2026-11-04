@@ -17,7 +17,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk">
+    <html lang="uk" className={jost.variable}>
       <body className={`${jost.className} dark:bg-gray-900`}>
         <ThemeProvider>
           <SidebarProvider>
