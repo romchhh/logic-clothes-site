@@ -757,12 +757,32 @@ export default function ProductForm({ productId }: Props) {
               <ToggleSwitch
                 label="В наявності"
                 enabled={form.inStock}
-                setEnabled={(v) => set("inStock", v)}
+                setEnabled={(v) => {
+                  if (v) {
+                    setForm((prev) => ({
+                      ...prev,
+                      inStock: true,
+                      madeToOrder: false,
+                    }));
+                  } else {
+                    set("inStock", false);
+                  }
+                }}
               />
               <ToggleSwitch
                 label="Зшиємо за 14 днів"
                 enabled={form.madeToOrder}
-                setEnabled={(v) => set("madeToOrder", v)}
+                setEnabled={(v) => {
+                  if (v) {
+                    setForm((prev) => ({
+                      ...prev,
+                      madeToOrder: true,
+                      inStock: false,
+                    }));
+                  } else {
+                    set("madeToOrder", false);
+                  }
+                }}
               />
             </div>
             <div className="admin-toggle-row">

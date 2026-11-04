@@ -41,16 +41,8 @@ export default function ProductCard({
             priority={priority}
             style={{ objectFit: "cover", objectPosition: "center" }}
           />
-          {(product.isNew ||
-            onSale ||
-            product.isPopular ||
-            product.inStock === false) && (
+          {(product.isNew || onSale || product.isPopular) && (
             <div className="product-badges">
-              {product.inStock === false && (
-                <span className="product-badge is-oos">
-                  {t.product.outOfStock}
-                </span>
-              )}
               {product.isNew && (
                 <span className="product-badge is-new">New</span>
               )}
@@ -83,7 +75,16 @@ export default function ProductCard({
           </button>
         </div>
         <div className="product-info">
-          <div className="product-name">{title}</div>
+          <div className="product-info-text">
+            {product.inStock === false ? (
+              <p className="product-avail">
+                {product.madeToOrder
+                  ? t.product.sewIn14Days
+                  : t.product.outOfStock}
+              </p>
+            ) : null}
+            <div className="product-name">{title}</div>
+          </div>
           <div className="product-price">
             {onSale && product.compareAtPriceNum != null && (
               <span className="product-price-old">

@@ -732,7 +732,11 @@ export default function MediaEditModal({
           </button>
         </header>
 
-        <div className="media-editor-layout">
+        <div
+          className={`media-editor-layout${
+            tab === "fine" ? " is-tone" : tab === "crop" ? " is-crop" : ""
+          }`}
+        >
           <div className="media-editor-preview-wrap">
             <div
               ref={frameRef}

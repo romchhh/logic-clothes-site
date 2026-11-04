@@ -674,7 +674,12 @@ export default function ProductsTable() {
                     type="button"
                     disabled={busy}
                     onClick={() =>
-                      void patchProduct(p.id, { inStock: !p.inStock })
+                      void patchProduct(
+                        p.id,
+                        p.inStock
+                          ? { inStock: false }
+                          : { inStock: true, madeToOrder: false }
+                      )
                     }
                     className={`inline-flex h-10 shrink-0 items-center rounded-lg px-2.5 text-[12px] font-semibold transition sm:h-8 ${
                       p.inStock
@@ -689,9 +694,12 @@ export default function ProductsTable() {
                     type="button"
                     disabled={busy}
                     onClick={() =>
-                      void patchProduct(p.id, {
-                        madeToOrder: !p.madeToOrder,
-                      })
+                      void patchProduct(
+                        p.id,
+                        p.madeToOrder
+                          ? { madeToOrder: false }
+                          : { madeToOrder: true, inStock: false }
+                      )
                     }
                     className={`inline-flex h-10 shrink-0 items-center rounded-lg px-2.5 text-[12px] font-semibold transition sm:h-8 ${
                       p.madeToOrder

@@ -219,9 +219,15 @@ export default function BulkStockEditor() {
                       type="checkbox"
                       className="h-4 w-4 rounded border-gray-300"
                       checked={r.inStock}
-                      onChange={(e) =>
-                        setRow(p.id, { inStock: e.target.checked })
-                      }
+                      onChange={(e) => {
+                        const on = e.target.checked;
+                        setRow(
+                          p.id,
+                          on
+                            ? { inStock: true, madeToOrder: false }
+                            : { inStock: false }
+                        );
+                      }}
                     />
                     В наявності
                   </label>
@@ -230,9 +236,15 @@ export default function BulkStockEditor() {
                       type="checkbox"
                       className="h-4 w-4 rounded border-gray-300"
                       checked={r.madeToOrder}
-                      onChange={(e) =>
-                        setRow(p.id, { madeToOrder: e.target.checked })
-                      }
+                      onChange={(e) => {
+                        const on = e.target.checked;
+                        setRow(
+                          p.id,
+                          on
+                            ? { madeToOrder: true, inStock: false }
+                            : { madeToOrder: false }
+                        );
+                      }}
                     />
                     Зшиємо за 14 днів
                   </label>
