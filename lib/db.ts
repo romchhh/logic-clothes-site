@@ -70,6 +70,19 @@ async function ensureSchemaPatches(pool: Pool): Promise<void> {
       ADD COLUMN IF NOT EXISTS garment_measures TEXT
   `);
   await pool.query(`
+    ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS season text
+  `);
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE products
+        ADD CONSTRAINT products_season_check
+        CHECK (season IS NULL OR season IN ('summer', 'winter'));
+    EXCEPTION
+      WHEN duplicate_object THEN NULL;
+    END $$;
+  `);
+  await pool.query(`
     ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS payment_type text NOT NULL DEFAULT 'pay_after',
       ADD COLUMN IF NOT EXISTS payment_status text NOT NULL DEFAULT 'pending',

@@ -40,6 +40,10 @@ import {
   GARMENT_MEASURE_FIELDS,
   type GarmentMeasureKey,
 } from "@/lib/garmentMeasures";
+import {
+  categorySupportsSeasonFilter,
+  normalizeProductSeason,
+} from "@/lib/productSeason";
 import type { Product, ProductMedia } from "@/lib/types";
 
 const PRESET_LENGTHS = ["Mini", "Midi", "Maxi", "Crop", "Long"];
@@ -78,6 +82,8 @@ type FormState = {
   sortOrder: string;
   inStock: boolean;
   madeToOrder: boolean;
+  /** Apparel season — mutually exclusive summer/winter. */
+  season: "summer" | "winter" | null;
   isNew: boolean;
   isPopular: boolean;
   isSale: boolean;
@@ -118,6 +124,7 @@ const EMPTY: FormState = {
   sortOrder: "",
   inStock: true,
   madeToOrder: false,
+  season: null,
   isNew: false,
   isPopular: false,
   isSale: false,
@@ -316,6 +323,7 @@ export default function ProductForm({ productId }: Props) {
             p.sortOrder != null ? String(p.sortOrder) : "0",
           inStock: p.inStock !== false,
           madeToOrder: Boolean(p.madeToOrder),
+          season: normalizeProductSeason(p.season),
           isNew: Boolean(p.isNew),
           isPopular: Boolean(p.isPopular),
           isSale: Boolean(p.isSale),
@@ -495,6 +503,9 @@ export default function ProductForm({ productId }: Props) {
       })(),
       inStock: form.inStock,
       madeToOrder: form.madeToOrder,
+      season: categorySupportsSeasonFilter(form.category)
+        ? form.season
+        : null,
       isVisible: true,
       isNew: form.isNew,
       isPopular: form.isPopular,
@@ -736,7 +747,15 @@ export default function ProductForm({ productId }: Props) {
                 options={categoryOptions}
                 placeholder="Оберіть категорію"
                 value={form.category}
-                onChange={(v) => set("category", v)}
+                onChange={(v) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    category: v,
+                    season: categorySupportsSeasonFilter(v)
+                      ? prev.season
+                      : null,
+                  }));
+                }}
               />
             </div>
             <div>
@@ -802,6 +821,30 @@ export default function ProductForm({ productId }: Props) {
                 setEnabled={(v) => set("isPopular", v)}
               />
             </div>
+            {categorySupportsSeasonFilter(form.category) ? (
+              <div className="admin-toggle-row">
+                <ToggleSwitch
+                  label="Літо"
+                  enabled={form.season === "summer"}
+                  setEnabled={(v) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      season: v ? "summer" : null,
+                    }))
+                  }
+                />
+                <ToggleSwitch
+                  label="Зима"
+                  enabled={form.season === "winter"}
+                  setEnabled={(v) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      season: v ? "winter" : null,
+                    }))
+                  }
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       </ComponentCard>

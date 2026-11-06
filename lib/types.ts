@@ -70,6 +70,8 @@ export interface Product {
   inStock: boolean;
   /** «Зшиємо за 14 днів» — shown on PDP with in-stock status. */
   madeToOrder?: boolean;
+  /** Apparel season for catalog filter. Null/absent = not tagged. */
+  season?: "summer" | "winter" | null;
   /** When false, product is hidden from catalog / search / home rails (PDP still works). */
   isVisible?: boolean;
   sku: number | string;

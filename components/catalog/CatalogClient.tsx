@@ -23,6 +23,11 @@ import {
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
+import {
+  categorySupportsSeasonFilter,
+  productMatchesSeasonFilter,
+  type SeasonFilter,
+} from "@/lib/productSeason";
 import type { Product } from "@/lib/types";
 
 const PAGE_STEP = 16;
@@ -51,6 +56,7 @@ export default function CatalogClient({
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [season, setSeason] = useState<SeasonFilter>("all");
   const [minPrice, setMinPrice] = useState<number | null>(null);
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_STEP);
@@ -59,10 +65,12 @@ export default function CatalogClient({
   const pendingProductId = useRef<string | null>(null);
   const restoreDoneRef = useRef(false);
   const filterKeyRef = useRef<string | null>(null);
+  const showSeasonFilter = categorySupportsSeasonFilter(category, categories);
   const persistRef = useRef({
     sortOrder,
     selectedSizes,
     selectedColors,
+    season,
     minPrice,
     maxPrice,
     visibleCount,
@@ -73,6 +81,7 @@ export default function CatalogClient({
     sortOrder,
     selectedSizes,
     selectedColors,
+    season,
     minPrice,
     maxPrice,
     visibleCount,
@@ -81,6 +90,10 @@ export default function CatalogClient({
 
   const activeLabel =
     categories.find((c) => c.id === category)?.label[lang] || t.catalog.title;
+
+  useEffect(() => {
+    if (!showSeasonFilter && season !== "all") setSeason("all");
+  }, [showSeasonFilter, season]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -97,13 +110,31 @@ export default function CatalogClient({
         selectedColors.length === 0 ||
         selectedColors.some((c) => colorValues.includes(c));
 
+      const matchesSeason =
+        !showSeasonFilter ||
+        productMatchesSeasonFilter(product.season, season);
+
       const price = Number(product.priceNum) || 0;
       const matchesMin = minPrice == null || price >= minPrice;
       const matchesMax = maxPrice == null || price <= maxPrice;
 
-      return matchesSize && matchesColor && matchesMin && matchesMax;
+      return (
+        matchesSize &&
+        matchesColor &&
+        matchesSeason &&
+        matchesMin &&
+        matchesMax
+      );
     });
-  }, [products, selectedSizes, selectedColors, minPrice, maxPrice]);
+  }, [
+    products,
+    selectedSizes,
+    selectedColors,
+    season,
+    showSeasonFilter,
+    minPrice,
+    maxPrice,
+  ]);
 
   const sortedProducts = useMemo(() => {
     const list = [...filteredProducts];
@@ -137,10 +168,19 @@ export default function CatalogClient({
         sortOrder,
         selectedSizes,
         selectedColors,
+        season,
         minPrice,
         maxPrice,
       }),
-    [category, sortOrder, selectedSizes, selectedColors, minPrice, maxPrice]
+    [
+      category,
+      sortOrder,
+      selectedSizes,
+      selectedColors,
+      season,
+      minPrice,
+      maxPrice,
+    ]
   );
 
   // Restore filters + scroll after back-navigation from a product page.
@@ -151,6 +191,11 @@ export default function CatalogClient({
       setSortOrder(saved.sortOrder);
       setSelectedSizes(saved.selectedSizes);
       setSelectedColors(saved.selectedColors);
+      setSeason(
+        categorySupportsSeasonFilter(category, categories)
+          ? saved.season
+          : "all"
+      );
       setMinPrice(saved.minPrice);
       setMaxPrice(saved.maxPrice);
       setVisibleCount(saved.visibleCount);
@@ -182,7 +227,7 @@ export default function CatalogClient({
         /* ignore */
       }
     };
-  }, [lang, category]);
+  }, [lang, category, categories]);
 
   useLayoutEffect(() => {
     if (!ready || restoreDoneRef.current) return;
@@ -274,6 +319,7 @@ export default function CatalogClient({
         sortOrder: cur.sortOrder,
         selectedSizes: cur.selectedSizes,
         selectedColors: cur.selectedColors,
+        season: cur.season,
         minPrice: cur.minPrice,
         maxPrice: cur.maxPrice,
         visibleCount: cur.visibleCount,
@@ -297,6 +343,7 @@ export default function CatalogClient({
     sortOrder,
     selectedSizes,
     selectedColors,
+    season,
     minPrice,
     maxPrice,
     visibleCount,
@@ -344,6 +391,7 @@ export default function CatalogClient({
     (category !== "all" ? 1 : 0) +
     selectedSizes.length +
     selectedColors.length +
+    (showSeasonFilter && season !== "all" ? 1 : 0) +
     (minPrice != null ? 1 : 0) +
     (maxPrice != null ? 1 : 0);
 
@@ -351,6 +399,7 @@ export default function CatalogClient({
     setSortOrder("newest");
     setSelectedSizes([]);
     setSelectedColors([]);
+    setSeason("all");
     setMinPrice(null);
     setMaxPrice(null);
     setVisibleCount(PAGE_STEP);
@@ -474,6 +523,8 @@ export default function CatalogClient({
         setSelectedSizes={setSelectedSizes}
         selectedColors={selectedColors}
         setSelectedColors={setSelectedColors}
+        season={season}
+        setSeason={setSeason}
         minPrice={minPrice}
         maxPrice={maxPrice}
         setMinPrice={setMinPrice}

@@ -1,9 +1,12 @@
 export type CatalogSortOrder = "newest" | "oldest" | "asc" | "desc";
 
+export type CatalogSeasonFilter = "all" | "summer" | "winter";
+
 export type CatalogPersistedState = {
   sortOrder: CatalogSortOrder;
   selectedSizes: string[];
   selectedColors: string[];
+  season: CatalogSeasonFilter;
   minPrice: number | null;
   maxPrice: number | null;
   visibleCount: number;
@@ -13,7 +16,7 @@ export type CatalogPersistedState = {
 };
 
 function storageKey(lang: string, category: string) {
-  return `lc_catalog_state_v2:${lang}:${category}`;
+  return `lc_catalog_state_v3:${lang}:${category}`;
 }
 
 export function loadCatalogState(
@@ -33,6 +36,10 @@ export function loadCatalogState(
         ? data.sortOrder
         : null;
     if (!sortOrder) return null;
+    const season: CatalogSeasonFilter =
+      data.season === "summer" || data.season === "winter"
+        ? data.season
+        : "all";
     return {
       sortOrder,
       selectedSizes: Array.isArray(data.selectedSizes)
@@ -41,6 +48,7 @@ export function loadCatalogState(
       selectedColors: Array.isArray(data.selectedColors)
         ? data.selectedColors.map(String)
         : [],
+      season,
       minPrice:
         data.minPrice == null || Number.isFinite(Number(data.minPrice))
           ? data.minPrice == null
@@ -94,6 +102,7 @@ export function rememberCatalogExit(
     sortOrder: patch.sortOrder ?? current?.sortOrder ?? "newest",
     selectedSizes: patch.selectedSizes ?? current?.selectedSizes ?? [],
     selectedColors: patch.selectedColors ?? current?.selectedColors ?? [],
+    season: patch.season ?? current?.season ?? "all",
     minPrice:
       patch.minPrice !== undefined ? patch.minPrice : (current?.minPrice ?? null),
     maxPrice:
@@ -114,7 +123,7 @@ export function clearCatalogState(lang: string, category: string): void {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(storageKey(lang, category));
-    // Also drop legacy key if present
+    sessionStorage.removeItem(`lc_catalog_state_v2:${lang}:${category}`);
     sessionStorage.removeItem(`lc_catalog_state_v1:${lang}:${category}`);
   } catch {
     /* ignore */

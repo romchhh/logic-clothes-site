@@ -1,5 +1,6 @@
 import { parseGarmentMeasures } from "@/lib/garmentMeasures";
 import { normalizeMediaAdjust } from "@/lib/mediaAdjust";
+import { normalizeProductSeason } from "@/lib/productSeason";
 import { formatPriceLabel } from "@/lib/sql";
 import type { Product, ProductMedia } from "@/lib/types";
 
@@ -157,6 +158,10 @@ export function productFromBody(
       body.madeToOrder != null
         ? Boolean(body.madeToOrder)
         : Boolean(base.madeToOrder),
+    season:
+      body.season !== undefined
+        ? normalizeProductSeason(body.season)
+        : normalizeProductSeason(base.season),
     isVisible:
       body.isVisible != null
         ? Boolean(body.isVisible)

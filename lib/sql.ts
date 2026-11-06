@@ -5,6 +5,7 @@ import {
 } from "@/lib/garmentMeasures";
 import { normalizeMediaAdjust } from "@/lib/mediaAdjust";
 import { ensureDbReady, query, withTransaction } from "@/lib/db";
+import { normalizeProductSeason } from "@/lib/productSeason";
 import { bustProductCache } from "@/lib/productCache";
 import {
   resolveProductAssetUrl,
@@ -63,6 +64,7 @@ type ProductRow = {
   garment_measures: string | null;
   in_stock: boolean;
   made_to_order?: boolean | null;
+  season?: string | null;
   is_visible: boolean;
   sku: string;
   category: string | null;
@@ -189,6 +191,7 @@ function mapProduct(row: ProductRow): Product {
     swatches,
     inStock: Boolean(row.in_stock),
     madeToOrder: Boolean(row.made_to_order),
+    season: normalizeProductSeason(row.season),
     isVisible: row.is_visible !== false,
     sku: row.sku,
     ...(row.category ? { category: row.category } : {}),
@@ -233,6 +236,7 @@ const PRODUCT_SELECT = `
     p.garment_measures,
     p.in_stock,
     COALESCE(p.made_to_order, FALSE) AS made_to_order,
+    p.season,
     COALESCE(p.is_visible, TRUE) AS is_visible,
     p.sku,
     p.category,
@@ -432,7 +436,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         color, color_hex, material,
         description, description_en, long_description, long_description_en,
         short_description, photo_size, model_params, garment_measures,
-        in_stock, made_to_order, is_visible, sku, category, is_new, is_popular, is_sale, color_group,
+        in_stock, made_to_order, season, is_visible, sku, category, is_new, is_popular, is_sale, color_group,
         sort_order, updated_at
       ) VALUES (
         $1,$2,$3,$4,$5,$6,
@@ -440,8 +444,8 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         $10,$11,$12,
         $13,$14,$15,$16,
         $17,$18,$19,$20,
-        $21,$22,$23,$24,$25,$26,$27,$28,$29,
-        $30, NOW()
+        $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,
+        $31, NOW()
       )
       ON CONFLICT (slug) DO UPDATE SET
         name = EXCLUDED.name,
@@ -465,6 +469,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         garment_measures = EXCLUDED.garment_measures,
         in_stock = EXCLUDED.in_stock,
         made_to_order = EXCLUDED.made_to_order,
+        season = EXCLUDED.season,
         is_visible = EXCLUDED.is_visible,
         sku = EXCLUDED.sku,
         category = EXCLUDED.category,
@@ -500,6 +505,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
           : null,
         product.inStock,
         Boolean(product.madeToOrder),
+        normalizeProductSeason(product.season),
         product.isVisible !== false,
         String(product.sku ?? product.id),
         product.category ?? null,

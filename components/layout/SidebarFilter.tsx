@@ -5,6 +5,10 @@ import PriceRangeFilter from "@/components/catalog/PriceRangeFilter";
 import type { Category, CategoryId } from "@/lib/categories";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
+import {
+  categorySupportsSeasonFilter,
+  type SeasonFilter,
+} from "@/lib/productSeason";
 
 export type SortOrder = "newest" | "oldest" | "asc" | "desc";
 
@@ -17,6 +21,8 @@ interface SidebarFilterProps {
   setSelectedSizes: (sizes: string[] | ((prev: string[]) => string[])) => void;
   selectedColors: string[];
   setSelectedColors: (colors: string[] | ((prev: string[]) => string[])) => void;
+  season: SeasonFilter;
+  setSeason: (v: SeasonFilter) => void;
   minPrice: number | null;
   maxPrice: number | null;
   setMinPrice: (v: number | null) => void;
@@ -40,6 +46,8 @@ export default function SidebarFilter({
   setSelectedSizes,
   selectedColors,
   setSelectedColors,
+  season,
+  setSeason,
   minPrice,
   maxPrice,
   setMinPrice,
@@ -54,6 +62,7 @@ export default function SidebarFilter({
   resultCount,
 }: SidebarFilterProps) {
   const { t } = useI18n();
+  const showSeason = categorySupportsSeasonFilter(category, categories);
 
   function toggleAccordion(index: number) {
     setOpenAccordion(openAccordion === index ? null : index);
@@ -177,17 +186,53 @@ export default function SidebarFilter({
             </div>
           )}
 
+          {showSeason ? (
+            <div className="filter-acc">
+              <button
+                type="button"
+                className="filter-acc-head"
+                aria-expanded={openAccordion === 3}
+                onClick={() => toggleAccordion(3)}
+              >
+                <span>{t.catalog.season}</span>
+                <span aria-hidden="true">{openAccordion === 3 ? "−" : "+"}</span>
+              </button>
+              {openAccordion === 3 && (
+                <div className="filter-acc-body">
+                  {(
+                    [
+                      { id: "summer", label: t.catalog.seasonWarm },
+                      { id: "winter", label: t.catalog.seasonCold },
+                      { id: "all", label: t.catalog.seasonAll },
+                    ] as const
+                  ).map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`filter-option${
+                        season === opt.id ? " is-active" : ""
+                      }`}
+                      onClick={() => setSeason(opt.id)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
+
           <div className="filter-acc">
             <button
               type="button"
               className="filter-acc-head"
-              aria-expanded={openAccordion === 3}
-              onClick={() => toggleAccordion(3)}
+              aria-expanded={openAccordion === 4}
+              onClick={() => toggleAccordion(4)}
             >
               <span>{t.catalog.price}</span>
-              <span aria-hidden="true">{openAccordion === 3 ? "−" : "+"}</span>
+              <span aria-hidden="true">{openAccordion === 4 ? "−" : "+"}</span>
             </button>
-            {openAccordion === 3 && (
+            {openAccordion === 4 && (
               <div className="filter-acc-body filter-price">
                 <PriceRangeFilter
                   bounds={priceHint}

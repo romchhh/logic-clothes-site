@@ -46,6 +46,10 @@ export type Messages = {
     size: string;
     color: string;
     price: string;
+    season: string;
+    seasonWarm: string;
+    seasonCold: string;
+    seasonAll: string;
     minPrice: string;
     maxPrice: string;
     reset: string;
@@ -314,6 +318,10 @@ const uk: Messages = {
     size: "Розмір",
     color: "Колір",
     price: "Ціна",
+    season: "Сезонність",
+    seasonWarm: "Для теплої пори року",
+    seasonCold: "Для холодної пори року",
+    seasonAll: "Дивитись усі",
     minPrice: "Від",
     maxPrice: "До",
     reset: "Скинути",
@@ -599,6 +607,10 @@ const en: Messages = {
     size: "Size",
     color: "Color",
     price: "Price",
+    season: "Season",
+    seasonWarm: "For warm weather",
+    seasonCold: "For cold weather",
+    seasonAll: "View all",
     minPrice: "From",
     maxPrice: "To",
     reset: "Reset",
