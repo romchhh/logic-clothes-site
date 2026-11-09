@@ -35,7 +35,7 @@ export async function generateMetadata({
   const { lang: raw, id } = await params;
   const lang = parseLangParam(raw);
   const product = await getProductById(id);
-  if (!product) return { title: "Not found" };
+  if (!product || product.isVisible === false) return { title: "Not found" };
 
   const base = getSiteUrl();
   const title = productName(product, lang);
@@ -86,7 +86,7 @@ export default async function ProductPage({
   const { lang: raw, id } = await params;
   const lang = parseLangParam(raw);
   const product = await getProductById(id);
-  if (!product) notFound();
+  if (!product || product.isVisible === false) notFound();
 
   const related = await getRelatedProducts(id, 4);
   const t = getMessages(lang);

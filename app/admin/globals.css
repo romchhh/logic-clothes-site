@@ -372,16 +372,125 @@
   @apply gap-2;
 }
 
+.admin-sticky-status {
+  @apply inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-semibold tracking-tight;
+}
+
+.admin-sticky-status.is-draft {
+  @apply bg-amber-100/80 text-amber-950 dark:bg-amber-950/50 dark:text-amber-100;
+}
+
+.admin-sticky-status.is-live {
+  @apply bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200;
+}
+
+.admin-sticky-status-dot {
+  @apply h-1.5 w-1.5 rounded-full bg-current;
+}
+
+.admin-sticky-actions {
+  @apply ml-auto flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2;
+}
+
+.admin-publish-bar {
+  @apply flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-3.5 py-3 sm:px-4;
+}
+
+.admin-publish-bar.is-draft {
+  @apply border-amber-200/90 bg-gradient-to-r from-amber-50/90 to-white dark:border-amber-900/40 dark:from-amber-950/35 dark:to-transparent;
+}
+
+.admin-publish-bar.is-live {
+  @apply border-emerald-200/80 bg-gradient-to-r from-emerald-50/70 to-white dark:border-emerald-900/35 dark:from-emerald-950/30 dark:to-transparent;
+}
+
+.admin-publish-bar-main {
+  @apply flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4;
+}
+
+.admin-publish-switch {
+  @apply inline-flex shrink-0 rounded-full border border-black/5 bg-white/90 p-0.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:border-white/10 dark:bg-black/20;
+}
+
+.admin-publish-switch-btn {
+  @apply rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold tracking-tight text-gray-500 transition duration-200 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white;
+}
+
+.admin-publish-switch-btn.is-active {
+  @apply bg-amber-500 text-white shadow-sm dark:bg-amber-500 dark:text-white;
+}
+
+.admin-publish-switch-btn.is-active.is-live {
+  @apply bg-emerald-600 text-white dark:bg-emerald-500;
+}
+
+.admin-publish-hint {
+  @apply text-[12.5px] leading-snug text-gray-600 dark:text-gray-400;
+}
+
+.admin-filter-tabs {
+  @apply inline-flex max-w-full overflow-x-auto rounded-full border border-gray-200/90 bg-gray-50/80 p-0.5 dark:border-white/10 dark:bg-white/[0.03];
+}
+
+.admin-filter-tab {
+  @apply inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium text-gray-600 transition duration-200 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white;
+}
+
+.admin-filter-tab.is-active {
+  @apply bg-white text-gray-900 shadow-[0_1px_2px_rgba(16,24,40,0.08)] dark:bg-white/10 dark:text-white;
+}
+
+.admin-filter-tab-count {
+  @apply rounded-full bg-black/5 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-gray-500 dark:bg-white/10 dark:text-gray-300;
+}
+
+.admin-filter-tab.is-active .admin-filter-tab-count {
+  @apply bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100;
+}
+
+.admin-draft-badge {
+  @apply inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-amber-950 dark:bg-amber-900/45 dark:text-amber-100;
+}
+
+.admin-draft-badge::before {
+  content: "";
+  @apply h-1.5 w-1.5 rounded-full bg-amber-500;
+}
+
+.admin-table-row.is-draft {
+  @apply relative bg-amber-50/25 dark:bg-amber-950/10;
+}
+
+.admin-table-row.is-draft::before {
+  content: "";
+  @apply absolute bottom-2 left-0 top-2 w-0.5 rounded-full bg-amber-400/90 dark:bg-amber-500/70;
+}
+
 @media (max-width: 639px) {
   .admin-sticky-bar--form {
-    display: grid;
-    grid-template-columns: 1fr 1.4fr;
+    display: flex;
+    flex-direction: column;
     align-items: stretch;
   }
+  .admin-sticky-status {
+    width: fit-content;
+  }
+  .admin-sticky-actions {
+    margin-left: 0;
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+  }
   .admin-sticky-bar--form .admin-sticky-cancel,
-  .admin-sticky-bar--form .admin-sticky-save {
+  .admin-sticky-bar--form .admin-sticky-save,
+  .admin-sticky-bar--form .admin-sticky-publish {
     width: 100%;
     min-height: 44px;
+  }
+  .admin-sticky-bar--form:has(.admin-sticky-publish) .admin-sticky-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+  .admin-sticky-bar--form:has(.admin-sticky-publish) .admin-sticky-save {
+    grid-column: 1 / -1;
   }
 }
 

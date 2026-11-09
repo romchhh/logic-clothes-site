@@ -13,7 +13,7 @@ export default function ProductsPage() {
     <div>
       <AdminPageHeader
         title="Товари"
-        description="Завжди всі товари. Пошук, сортування й категорія — лише на цю сесію."
+        description="Чернетки можна дозаповнювати по черзі. Фільтри — лише на цю сесію."
         crumbs={[{ label: "Товари" }]}
         actions={
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
@@ -45,7 +45,7 @@ export default function ProductsPage() {
               href="/admin/products/add"
               className="admin-btn-primary w-full sm:w-auto"
             >
-              Додати товар
+              Нова чернетка
             </Link>
           </div>
         }

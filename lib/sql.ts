@@ -898,6 +898,7 @@ export async function sqlDuplicateProduct(
     colorVariants: undefined,
     lookProductIds: [],
     isNew: true,
+    isVisible: false,
     sortOrder: undefined,
   };
 

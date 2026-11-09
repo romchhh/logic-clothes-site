@@ -25,7 +25,7 @@ export default function AdminDashboard() {
               href="/admin/products/add"
               className="admin-btn-primary w-full sm:w-auto"
             >
-              Додати товар
+              Нова чернетка
             </Link>
             <Link
               href="/admin/hero"

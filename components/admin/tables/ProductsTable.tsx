@@ -52,6 +52,9 @@ export default function ProductsTable() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [visibilityFilter, setVisibilityFilter] = useState<
+    "all" | "draft" | "published"
+  >("all");
   const [sort, setSort] = useState<AdminProductsSort>("default");
   const [page, setPage] = useState(1);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -130,11 +133,13 @@ export default function ProductsTable() {
   const counts = useMemo(() => {
     const out = products.filter((p) => !p.inStock && !p.madeToOrder).length;
     const made = products.filter((p) => p.madeToOrder).length;
+    const drafts = products.filter((p) => p.isVisible === false).length;
     return {
       total: products.length,
       inStock: products.filter((p) => p.inStock).length,
       made,
       out,
+      drafts,
     };
   }, [products]);
 
@@ -142,6 +147,9 @@ export default function ProductsTable() {
     const q = search.trim().toLowerCase();
     const list = products.filter((p) => {
       if (categoryId && p.category !== categoryId) return false;
+      if (visibilityFilter === "draft" && p.isVisible !== false) return false;
+      if (visibilityFilter === "published" && p.isVisible === false)
+        return false;
       if (!q) return true;
       return (
         p.name.toLowerCase().includes(q) ||
@@ -153,7 +161,7 @@ export default function ProductsTable() {
       );
     });
     return sortProducts(list, sort);
-  }, [products, search, categoryId, sort, categoryLabel]);
+  }, [products, search, categoryId, visibilityFilter, sort, categoryLabel]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const currentPage = Math.min(page, totalPages);
@@ -181,6 +189,7 @@ export default function ProductsTable() {
         Product,
         | "inStock"
         | "madeToOrder"
+        | "isVisible"
         | "priceNum"
         | "priceEur"
         | "priceUsd"
@@ -350,6 +359,7 @@ export default function ProductsTable() {
   function resetFilters() {
     setSearch("");
     setCategoryId("");
+    setVisibilityFilter("all");
     setSort("default");
     setPage(1);
   }
@@ -357,6 +367,7 @@ export default function ProductsTable() {
   const hasActiveFilters =
     Boolean(search.trim()) ||
     Boolean(categoryId) ||
+    visibilityFilter !== "all" ||
     sort !== "default";
 
   return (
@@ -417,6 +428,38 @@ export default function ProductsTable() {
       </div>
 
       <div className="flex flex-col gap-2.5 border-b border-gray-100 px-3 py-3 dark:border-white/[0.05] sm:gap-3 sm:px-5">
+        <div
+          className="admin-filter-tabs"
+          role="tablist"
+          aria-label="Статус публікації"
+        >
+          {(
+            [
+              { id: "all", label: "Усі", count: counts.total },
+              { id: "draft", label: "Чернетки", count: counts.drafts },
+              {
+                id: "published",
+                label: "На сайті",
+                count: counts.total - counts.drafts,
+              },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={visibilityFilter === tab.id}
+              className={`admin-filter-tab ${visibilityFilter === tab.id ? "is-active" : ""}`}
+              onClick={() => {
+                setVisibilityFilter(tab.id);
+                setPage(1);
+              }}
+            >
+              {tab.label}
+              <span className="admin-filter-tab-count">{tab.count}</span>
+            </button>
+          ))}
+        </div>
         <input
           type="search"
           value={search}
@@ -493,18 +536,23 @@ export default function ProductsTable() {
           </div>
         ) : paginated.length === 0 ? (
           <div className="px-5 py-10 text-center text-sm text-gray-500">
-            {hasActiveFilters
-              ? "Нічого не знайдено за цими фільтрами"
-              : "Товарів ще немає"}
+            {visibilityFilter === "draft" && !search.trim() && !categoryId
+              ? "Чернеток немає — усі товари вже на сайті"
+              : hasActiveFilters
+                ? "Нічого не знайдено за цими фільтрами"
+                : "Товарів ще немає"}
           </div>
         ) : (
           paginated.map((p) => {
             const idx = products.findIndex((x) => x.id === p.id);
             const busy = busyId === p.id;
+            const isDraft = p.isVisible === false;
             return (
               <div
                 key={p.id}
-                className="admin-table-row flex flex-col gap-2.5 px-3 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-5 sm:py-3.5"
+                className={`admin-table-row flex flex-col gap-2.5 px-3 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-5 sm:py-3.5 ${
+                  isDraft ? "is-draft" : ""
+                }`}
               >
                 <div className="flex items-start gap-2.5 sm:min-w-0 sm:flex-1 sm:gap-3">
                   <div className="flex shrink-0 flex-col items-center gap-0.5 pt-0.5 sm:pt-1">
@@ -555,8 +603,13 @@ export default function ProductsTable() {
                         href={`/admin/products/${encodeURIComponent(p.id)}/edit`}
                         className="group block min-w-0"
                       >
-                        <div className="truncate text-[14px] font-semibold text-gray-900 group-hover:underline dark:text-white">
-                          {p.name}
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-[14px] font-semibold text-gray-900 group-hover:underline dark:text-white">
+                            {p.name}
+                          </span>
+                          {isDraft ? (
+                            <span className="admin-draft-badge">Чернетка</span>
+                          ) : null}
                         </div>
                         <div className="mt-0.5 truncate text-[12px] text-gray-400">
                           {p.id}
@@ -670,6 +723,19 @@ export default function ProductsTable() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 pl-9 sm:ml-auto sm:pl-0 sm:shrink-0">
+                  {isDraft ? (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        void patchProduct(p.id, { isVisible: true })
+                      }
+                      className="admin-btn-mint !h-10 shrink-0 sm:!h-8"
+                      title="Показати товар у каталозі"
+                    >
+                      Опублікувати
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     disabled={busy}
@@ -735,9 +801,32 @@ export default function ProductsTable() {
                     </button>
                     {menuOpenId === p.id ? (
                       <div
-                        className="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+                        className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
                         onClick={(e) => e.stopPropagation()}
                       >
+                        {isDraft ? (
+                          <button
+                            type="button"
+                            className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                            onClick={() => {
+                              setMenuOpenId(null);
+                              void patchProduct(p.id, { isVisible: true });
+                            }}
+                          >
+                            Опублікувати
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                            onClick={() => {
+                              setMenuOpenId(null);
+                              void patchProduct(p.id, { isVisible: false });
+                            }}
+                          >
+                            У чернетку
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"

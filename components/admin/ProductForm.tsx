@@ -84,6 +84,8 @@ type FormState = {
   madeToOrder: boolean;
   /** Apparel season — mutually exclusive summer/winter. */
   season: "summer" | "winter" | null;
+  /** Draft = not published to the storefront. */
+  isDraft: boolean;
   isNew: boolean;
   isPopular: boolean;
   isSale: boolean;
@@ -125,6 +127,7 @@ const EMPTY: FormState = {
   inStock: true,
   madeToOrder: false,
   season: null,
+  isDraft: true,
   isNew: false,
   isPopular: false,
   isSale: false,
@@ -324,6 +327,7 @@ export default function ProductForm({ productId }: Props) {
           inStock: p.inStock !== false,
           madeToOrder: Boolean(p.madeToOrder),
           season: normalizeProductSeason(p.season),
+          isDraft: p.isVisible === false,
           isNew: Boolean(p.isNew),
           isPopular: Boolean(p.isPopular),
           isSale: Boolean(p.isSale),
@@ -416,9 +420,9 @@ export default function ProductForm({ productId }: Props) {
     clear();
   };
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function saveProduct(opts?: { asDraft?: boolean }) {
     setError(null);
+    const asDraft = opts?.asDraft ?? form.isDraft;
 
     if (!form.nameUk.trim()) {
       setError("Вкажіть назву (UK)");
@@ -427,6 +431,10 @@ export default function ProductForm({ productId }: Props) {
     const priceNum = Number(form.priceUah);
     if (!Number.isFinite(priceNum) || priceNum < 0) {
       setError("Вкажіть коректну ціну в грн");
+      return;
+    }
+    if (!asDraft && priceNum <= 0) {
+      setError("Щоб опублікувати, вкажіть ціну більше 0");
       return;
     }
     const priceEur = Number(form.priceEur);
@@ -506,7 +514,7 @@ export default function ProductForm({ productId }: Props) {
       season: categorySupportsSeasonFilter(form.category)
         ? form.season
         : null,
-      isVisible: true,
+      isVisible: !asDraft,
       isNew: form.isNew,
       isPopular: form.isPopular,
       isSale: form.isSale || (compareAt != null && compareAt > priceNum),
@@ -538,6 +546,7 @@ export default function ProductForm({ productId }: Props) {
             : `HTTP ${res.status}`
         );
       }
+      set("isDraft", asDraft);
       rememberFromProduct({
         material: form.material.trim(),
         materialOptions: form.materialOptions,
@@ -559,6 +568,11 @@ export default function ProductForm({ productId }: Props) {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await saveProduct();
   }
 
   async function handleDuplicate() {
@@ -602,18 +616,49 @@ export default function ProductForm({ productId }: Props) {
         </div>
       )}
 
-      {isEdit && (
-        <div className="flex sm:justify-end">
+      <div
+        className={`admin-publish-bar ${form.isDraft ? "is-draft" : "is-live"}`}
+      >
+        <div className="admin-publish-bar-main">
+          <div
+            className="admin-publish-switch"
+            role="group"
+            aria-label="Статус публікації"
+          >
+            <button
+              type="button"
+              className={`admin-publish-switch-btn ${form.isDraft ? "is-active" : ""}`}
+              onClick={() => set("isDraft", true)}
+              aria-pressed={form.isDraft}
+            >
+              Чернетка
+            </button>
+            <button
+              type="button"
+              className={`admin-publish-switch-btn ${!form.isDraft ? "is-active is-live" : ""}`}
+              onClick={() => set("isDraft", false)}
+              aria-pressed={!form.isDraft}
+            >
+              На сайті
+            </button>
+          </div>
+          <p className="admin-publish-hint">
+            {form.isDraft
+              ? "Приховано з магазину — зручно, коли фото й ціну заповнюють різні люди."
+              : "Товар видно в каталозі після збереження."}
+          </p>
+        </div>
+        {isEdit ? (
           <button
             type="button"
             onClick={() => void handleDuplicate()}
             disabled={duplicating || saving}
-            className="admin-btn-secondary w-full sm:w-auto"
+            className="admin-btn-ghost shrink-0 !h-9"
           >
-            {duplicating ? "Копіювання…" : "Копіювати товар"}
+            {duplicating ? "Копіювання…" : "Копія"}
           </button>
-        </div>
-      )}
+        ) : null}
+      </div>
 
       <AdminSectionNav sections={[...PRODUCT_FORM_SECTIONS]} />
 
@@ -1131,23 +1176,45 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       <div className="admin-sticky-bar admin-sticky-bar--form">
-        <Link
-          href={getAdminProductsListHref()}
-          className="admin-btn-secondary admin-sticky-cancel"
+        <div
+          className={`admin-sticky-status ${form.isDraft ? "is-draft" : "is-live"}`}
         >
-          Скасувати
-        </Link>
-        <button
-          type="submit"
-          disabled={saving}
-          className="admin-btn-primary admin-sticky-save"
-        >
-          {saving
-            ? "Збереження…"
-            : isEdit
-              ? "Зберегти"
-              : "Створити"}
-        </button>
+          <span className="admin-sticky-status-dot" aria-hidden />
+          <span>{form.isDraft ? "Чернетка" : "На сайті"}</span>
+        </div>
+        <div className="admin-sticky-actions">
+          <Link
+            href={getAdminProductsListHref()}
+            className="admin-btn-secondary admin-sticky-cancel"
+          >
+            Скасувати
+          </Link>
+          {form.isDraft ? (
+            <button
+              type="button"
+              disabled={saving}
+              className="admin-btn-mint admin-sticky-publish"
+              onClick={() => void saveProduct({ asDraft: false })}
+            >
+              {saving ? "…" : "Опублікувати"}
+            </button>
+          ) : null}
+          <button
+            type="submit"
+            disabled={saving}
+            className="admin-btn-primary admin-sticky-save"
+          >
+            {saving
+              ? "Збереження…"
+              : form.isDraft
+                ? isEdit
+                  ? "Зберегти"
+                  : "Створити чернетку"
+                : isEdit
+                  ? "Зберегти"
+                  : "Створити"}
+          </button>
+        </div>
       </div>
     </form>
   );

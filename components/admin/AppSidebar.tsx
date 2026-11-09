@@ -319,7 +319,7 @@ const AppSidebar: React.FC = () => {
             onClick={closeMobile}
           >
             <span aria-hidden>+</span>
-            Новий товар
+            Нова чернетка
           </Link>
           <Link
             href="/"
@@ -335,8 +335,8 @@ const AppSidebar: React.FC = () => {
           <Link
             href="/admin/products/add"
             className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-lg font-semibold text-white dark:bg-[#B7E1DF] dark:text-gray-900"
-            title="Новий товар"
-            aria-label="Новий товар"
+            title="Нова чернетка"
+            aria-label="Нова чернетка"
           >
             +
           </Link>

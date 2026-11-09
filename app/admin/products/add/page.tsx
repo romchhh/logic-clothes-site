@@ -3,17 +3,17 @@ import ProductForm from "@/components/admin/ProductForm";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Додати товар — Logic Clothes Admin",
+  title: "Нова чернетка — Logic Clothes Admin",
 };
 
 export default function AddProductPage() {
   return (
     <div>
       <AdminPageHeader
-        title="Додати товар"
+        title="Нова чернетка"
         crumbs={[
           { label: "Товари", href: "/admin/products" },
-          { label: "Додати" },
+          { label: "Чернетка" },
         ]}
       />
       <ProductForm />

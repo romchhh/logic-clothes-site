@@ -72,7 +72,10 @@ export interface Product {
   madeToOrder?: boolean;
   /** Apparel season for catalog filter. Null/absent = not tagged. */
   season?: "summer" | "winter" | null;
-  /** When false, product is hidden from catalog / search / home rails (PDP still works). */
+  /**
+   * When false — admin «чернетка»: hidden from catalog / search / home / PDP.
+   * Collaborative edits (photo vs price) before publish.
+   */
   isVisible?: boolean;
   sku: number | string;
   category?: string;
