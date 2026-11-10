@@ -43,12 +43,33 @@ export default function ColorPalettePicker({ selection, onChange }: Props) {
     onChange({ ids, primaryId: id });
   }
 
+  const allIds = COLOR_PALETTE.map((c) => c.id);
+  const allSelected =
+    allIds.length > 0 && allIds.every((id) => ids.includes(id));
+
+  function selectAll() {
+    onChange({
+      ids: allIds,
+      primaryId: primaryId && allIds.includes(primaryId) ? primaryId : allIds[0],
+    });
+  }
+
   return (
     <div className="space-y-4">
-      <p className="hidden text-[13px] leading-snug text-gray-500 sm:block dark:text-gray-400">
-        Оберіть відтінок з палітри (8 груп × 9 кольорів). Інший колір моделі —
-        окремий товар у «Ще поля → Звʼязки».
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="hidden text-[13px] leading-snug text-gray-500 sm:block dark:text-gray-400">
+          Оберіть відтінок з палітри (8 груп × 9 кольорів). Інший колір моделі —
+          окремий товар у «Ще поля → Звʼязки».
+        </p>
+        <button
+          type="button"
+          className="admin-btn-secondary !h-8 !text-xs"
+          disabled={allSelected}
+          onClick={selectAll}
+        >
+          Обрати всі
+        </button>
+      </div>
 
       <GroupedPaletteBoard
         lang="uk"
