@@ -2390,7 +2390,7 @@
     font-size:15px;
     letter-spacing:0;
     text-transform:none;
-    border-radius:999px;
+    border-radius:0;
   }
   .pdp-custom-order{
     margin:0;
@@ -2441,7 +2441,7 @@
     width:100%;
     min-height:52px;
     padding:14px 20px;
-    border-radius:999px;
+    border-radius:0;
     text-decoration:none;
     letter-spacing:0;
     text-transform:none;
