@@ -1908,15 +1908,9 @@
     scroll-snap-type:x mandatory;
     scroll-behavior:auto;
     -webkit-overflow-scrolling:touch;
+    /* Contain horizontal overscroll (no browser-back), keep vertical page scroll. */
     overscroll-behavior-x:contain;
-    overscroll-behavior-y:none;
-    touch-action:pan-x;
     scrollbar-width:none;
-  }
-  .pdp-immerse-hero,
-  .pdp-immerse-hero-slide{
-    overscroll-behavior:none;
-    touch-action:pan-x;
   }
   .pdp-immerse-hero-track::-webkit-scrollbar{display:none;}
   .pdp-immerse-hero-slide{
