@@ -71,7 +71,7 @@ export default function AdminChipField({
           </p>
         ) : null}
       </div>
-      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+      <div className="admin-suggest-rail" role="listbox">
         {pool.map((value) => {
           const active = singleSelect
             ? activeValue === value
@@ -80,6 +80,8 @@ export default function AdminChipField({
             <button
               key={value}
               type="button"
+              role="option"
+              aria-selected={active}
               onClick={() => {
                 if (singleSelect && onSingleSelect) {
                   onSingleSelect(value);
@@ -91,7 +93,9 @@ export default function AdminChipField({
                 }
                 onToggle(value);
               }}
-              className={`admin-chip ${active ? "admin-chip-active" : ""}`}
+              className={`admin-chip admin-suggest-chip ${
+                active ? "admin-chip-active" : ""
+              }`}
               title={value}
             >
               {value.length > 36 ? `${value.slice(0, 36)}…` : value}

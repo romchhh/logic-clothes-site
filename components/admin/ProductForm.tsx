@@ -16,6 +16,7 @@ import {
 import ProductMediaManager from "@/components/admin/ProductMediaManager";
 import ProductRelationPicker from "@/components/admin/ProductRelationPicker";
 import AdminChipField from "@/components/admin/AdminChipField";
+import AdminSuggestRail from "@/components/admin/AdminSuggestRail";
 import ModelPresetPicker from "@/components/admin/ModelPresetPicker";
 import Label from "@/components/admin/form/Label";
 import Input from "@/components/admin/form/input/InputField";
@@ -33,12 +34,13 @@ import type { Category } from "@/lib/categories";
 import { CACHE_KEYS, clearCachedData } from "@/lib/cache";
 import { UAH_PER_EUR } from "@/lib/format";
 import {
-  loadCompositionSuggestions,
-  loadFabricNameSuggestions,
+  loadSuggestions,
   rememberCompositions,
   rememberFabricNames,
   rememberFromCatalog,
   rememberFromProduct,
+  rememberSuggestions,
+  type SuggestKind,
 } from "@/lib/adminProductPresets";
 import { ADMIN_SIZE_PRESETS, normalizeBrandSize } from "@/lib/productSizes";
 import {
@@ -53,17 +55,6 @@ import {
 import type { Product, ProductMedia } from "@/lib/types";
 
 const PRESET_LENGTHS = ["Mini", "Midi", "Maxi", "Crop", "Long"];
-const PRESET_FABRIC_NAMES = [
-  "Шовк",
-  "Бавовна",
-  "Льон",
-  "Вовна",
-  "Трикотаж",
-  "Віскоза",
-  "Шкіра",
-  "Екошкіра",
-  "Денім",
-];
 
 type Props = { productId?: string };
 
@@ -201,6 +192,30 @@ export default function ProductForm({ productId }: Props) {
   const [compositionSuggestions, setCompositionSuggestions] = useState<
     string[]
   >([]);
+  const [liningSuggestions, setLiningSuggestions] = useState<string[]>([]);
+  const [liningCompSuggestions, setLiningCompSuggestions] = useState<string[]>(
+    []
+  );
+  const [insulationSuggestions, setInsulationSuggestions] = useState<string[]>(
+    []
+  );
+
+  function reloadSuggestLists() {
+    setFabricSuggestions(loadSuggestions("fabricName"));
+    setCompositionSuggestions(loadSuggestions("composition"));
+    setLiningSuggestions(loadSuggestions("lining"));
+    setLiningCompSuggestions(loadSuggestions("liningComposition"));
+    setInsulationSuggestions(loadSuggestions("insulation"));
+  }
+
+  function rememberField(kind: SuggestKind, value: string) {
+    const next = rememberSuggestions(kind, [value]);
+    if (kind === "fabricName") setFabricSuggestions(next);
+    if (kind === "composition") setCompositionSuggestions(next);
+    if (kind === "lining") setLiningSuggestions(next);
+    if (kind === "liningComposition") setLiningCompSuggestions(next);
+    if (kind === "insulation") setInsulationSuggestions(next);
+  }
   const [loading, setLoading] = useState(isEdit);
   const [draftReady, setDraftReady] = useState(!isEdit);
   const [saving, setSaving] = useState(false);
@@ -263,15 +278,13 @@ export default function ProductForm({ productId }: Props) {
   }, []);
 
   useEffect(() => {
-    setFabricSuggestions(loadFabricNameSuggestions());
-    setCompositionSuggestions(loadCompositionSuggestions());
+    reloadSuggestLists();
   }, []);
 
   useEffect(() => {
     if (!catalog.length) return;
     rememberFromCatalog(catalog);
-    setFabricSuggestions(loadFabricNameSuggestions());
-    setCompositionSuggestions(loadCompositionSuggestions());
+    reloadSuggestLists();
   }, [catalog]);
 
   useEffect(() => {
@@ -651,13 +664,16 @@ export default function ProductForm({ productId }: Props) {
       set("isDraft", asDraft);
       clearAdminFormDraft(draftKey);
       rememberFromProduct({
+        fabricName: form.fabricName.trim(),
         material: form.material.trim(),
         materialOptions: form.materialOptions,
+        lining: form.lining.trim(),
+        liningComposition: form.liningComposition.trim(),
+        insulation: form.insulation.trim(),
         photoSize: form.photoSize.trim(),
         modelParams: form.modelParams.trim(),
       });
-      setFabricSuggestions(loadFabricNameSuggestions());
-      setCompositionSuggestions(loadCompositionSuggestions());
+      reloadSuggestLists();
       clearCachedData(CACHE_KEYS.PRODUCTS);
       router.push(getAdminProductsListHref());
       router.refresh();
@@ -1097,15 +1113,11 @@ export default function ProductForm({ productId }: Props) {
           </div>
 
           <AdminChipField
-            label="Тканини"
+            label="Тканини (варіанти)"
             placeholderChip="Нова тканина"
             bulkPlaceholder="Шовк, Креп, Трикотаж"
             suggestions={Array.from(
-              new Set([
-                ...PRESET_FABRIC_NAMES,
-                ...fabricSuggestions,
-                ...form.materialOptions,
-              ])
+              new Set([...fabricSuggestions, ...form.materialOptions])
             )}
             selected={form.materialOptions}
             chipMode="add"
@@ -1141,7 +1153,7 @@ export default function ProductForm({ productId }: Props) {
       {/* Composition + model */}
       <ComponentCard title="Тканини і склад" sectionId="section-material">
         <div className="space-y-8">
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
               <Label htmlFor="fabricName">Основна тканина *</Label>
               <Input
@@ -1149,6 +1161,13 @@ export default function ProductForm({ productId }: Props) {
                 value={form.fabricName}
                 onChange={(e) => set("fabricName", e.target.value)}
                 placeholder="напр. сітка, шовк, креп"
+              />
+              <AdminSuggestRail
+                suggestions={fabricSuggestions}
+                value={form.fabricName}
+                onSelect={(v) => set("fabricName", v)}
+                onRemember={(v) => rememberField("fabricName", v)}
+                addPlaceholder="Нова тканина в список"
               />
             </div>
             <div>
@@ -1159,31 +1178,15 @@ export default function ProductForm({ productId }: Props) {
                 onChange={(e) => set("material", e.target.value)}
                 placeholder="100% поліестер / 95% бавовна, 5% еластан"
               />
+              <AdminSuggestRail
+                suggestions={compositionSuggestions}
+                value={form.material}
+                onSelect={(v) => set("material", v)}
+                onRemember={(v) => rememberField("composition", v)}
+                addPlaceholder="Новий склад у список"
+              />
             </div>
-            <AdminChipField
-              label="Швидкий вибір складу"
-              placeholderChip="Новий склад"
-              bulkPlaceholder={"95% бавовна, 5% еластан"}
-              suggestions={Array.from(
-                new Set([
-                  ...compositionSuggestions,
-                  ...(form.material.trim() ? [form.material.trim()] : []),
-                ])
-              )}
-              selected={[]}
-              singleSelect
-              activeValue={form.material.trim()}
-              onToggle={() => {}}
-              onSingleSelect={(value) => set("material", value)}
-              onBulkAdd={(values) => {
-                const next = rememberCompositions(values);
-                setCompositionSuggestions(next);
-                if (!form.material.trim() && values[0]) {
-                  set("material", values[0]);
-                }
-              }}
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <Label htmlFor="lining">Підклад</Label>
                 <Input
@@ -1191,6 +1194,13 @@ export default function ProductForm({ productId }: Props) {
                   value={form.lining}
                   onChange={(e) => set("lining", e.target.value)}
                   placeholder="якщо немає — залиште порожнім"
+                />
+                <AdminSuggestRail
+                  suggestions={liningSuggestions}
+                  value={form.lining}
+                  onSelect={(v) => set("lining", v)}
+                  onRemember={(v) => rememberField("lining", v)}
+                  addPlaceholder="Новий підклад у список"
                 />
               </div>
               <div>
@@ -1200,6 +1210,13 @@ export default function ProductForm({ productId }: Props) {
                   value={form.liningComposition}
                   onChange={(e) => set("liningComposition", e.target.value)}
                   placeholder="напр. 100% віскоза"
+                />
+                <AdminSuggestRail
+                  suggestions={liningCompSuggestions}
+                  value={form.liningComposition}
+                  onSelect={(v) => set("liningComposition", v)}
+                  onRemember={(v) => rememberField("liningComposition", v)}
+                  addPlaceholder="Новий склад підкладки"
                 />
               </div>
             </div>
@@ -1211,8 +1228,16 @@ export default function ProductForm({ productId }: Props) {
                 onChange={(e) => set("insulation", e.target.value)}
                 placeholder="якщо немає — залиште порожнім"
               />
+              <AdminSuggestRail
+                suggestions={insulationSuggestions}
+                value={form.insulation}
+                onSelect={(v) => set("insulation", v)}
+                onRemember={(v) => rememberField("insulation", v)}
+                addPlaceholder="Новий утеплювач у список"
+              />
               <p className="mt-1 text-[12px] text-gray-500">
                 Підклад і утеплювач на сайті зʼявляються лише коли заповнені.
+                Списки памʼятають ваші варіанти після збереження.
               </p>
             </div>
           </div>
