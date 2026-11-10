@@ -6,7 +6,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import type { MediaAdjust } from "@/lib/mediaAdjust";
@@ -32,27 +31,38 @@ export default function ProductImmersiveGallery({
   nextLabel: string;
   closeLabel?: string;
 }) {
+  const trackRef = useRef<HTMLDivElement>(null);
   const lightboxTrackRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
-  const heroRef = useRef<HTMLElement>(null);
   const indexRef = useRef(0);
-  const suppressClickRef = useRef(false);
-  const heroDragRef = useRef({
-    active: false,
-    pointerId: null as number | null,
-    startX: 0,
-    moved: false,
+  const ignoreScrollRef = useRef(false);
+  const tapRef = useRef({
+    x: 0,
+    y: 0,
+    t: 0,
+    scrolling: false,
   });
 
   const [index, setIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
+  const multi = slides.length > 1;
+
   const goTo = useCallback(
-    (i: number) => {
+    (i: number, behavior: ScrollBehavior = "smooth") => {
       const next = Math.max(0, Math.min(slides.length - 1, i));
       indexRef.current = next;
       setIndex(next);
+      const el = trackRef.current;
+      if (!el) return;
+      const width = el.clientWidth || 0;
+      if (width <= 0) return;
+      ignoreScrollRef.current = true;
+      el.scrollTo({ left: next * width, behavior });
+      window.setTimeout(() => {
+        ignoreScrollRef.current = false;
+      }, behavior === "smooth" ? 420 : 80);
     },
     [slides.length]
   );
@@ -60,74 +70,37 @@ export default function ProductImmersiveGallery({
   useEffect(() => {
     indexRef.current = 0;
     setIndex(0);
+    const el = trackRef.current;
+    if (el) el.scrollTo({ left: 0, behavior: "auto" });
   }, [slides]);
+
+  // Keep scroll position aligned after layout / resize.
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const sync = () => {
+      const w = el.clientWidth || 0;
+      if (w <= 0) return;
+      el.scrollTo({ left: indexRef.current * w, behavior: "auto" });
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [slides.length]);
 
   useEffect(() => {
     const root = thumbsRef.current;
     if (!root) return;
-    const active = root.querySelector<HTMLElement>(".pdp-immerse-thumb.is-active");
+    const active = root.querySelector<HTMLElement>(
+      ".pdp-immerse-thumb.is-active"
+    );
     active?.scrollIntoView({
       behavior: "smooth",
       inline: "nearest",
       block: "nearest",
     });
   }, [index]);
-
-  // Non-passive touch listeners so reverse horizontal swipe is not stolen
-  // by browser back-gesture / page scroll.
-  useEffect(() => {
-    const el = heroRef.current;
-    if (!el || slides.length < 2) return;
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      suppressClickRef.current = false;
-      heroDragRef.current = {
-        active: true,
-        pointerId: -1,
-        startX: e.touches[0].clientX,
-        moved: false,
-      };
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      const drag = heroDragRef.current;
-      if (!drag.active || e.touches.length !== 1) return;
-      const dx = e.touches[0].clientX - drag.startX;
-      if (Math.abs(dx) > 8) {
-        drag.moved = true;
-        if (e.cancelable) e.preventDefault();
-      }
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      const drag = heroDragRef.current;
-      if (!drag.active) return;
-      const endX =
-        e.changedTouches[0]?.clientX ?? drag.startX;
-      const dx = endX - drag.startX;
-      const wasMoved = drag.moved;
-      drag.active = false;
-      drag.pointerId = null;
-      drag.moved = false;
-      if (!wasMoved || Math.abs(dx) < 36) return;
-      suppressClickRef.current = true;
-      const cur = indexRef.current;
-      if (dx < 0) goTo(cur + 1);
-      else goTo(cur - 1);
-    };
-
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
-    el.addEventListener("touchend", onTouchEnd, { passive: true });
-    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
-    return () => {
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchmove", onTouchMove);
-      el.removeEventListener("touchend", onTouchEnd);
-      el.removeEventListener("touchcancel", onTouchEnd);
-    };
-  }, [slides.length, goTo]);
 
   useScrollLock(lightboxOpen);
 
@@ -163,68 +136,20 @@ export default function ProductImmersiveGallery({
   const wasLightboxOpenRef = useRef(false);
   useEffect(() => {
     if (wasLightboxOpenRef.current && !lightboxOpen) {
-      goTo(lightboxIndex);
+      goTo(lightboxIndex, "auto");
     }
     wasLightboxOpenRef.current = lightboxOpen;
   }, [lightboxOpen, lightboxIndex, goTo]);
 
-  function openLightbox(i: number) {
-    setLightboxIndex(i);
-    setLightboxOpen(true);
-  }
-
-  function closeLightbox() {
-    setLightboxOpen(false);
-  }
-
-  function onHeroPointerDown(e: ReactPointerEvent<HTMLElement>) {
-    if (!multi) return;
-    // Touch is handled by non-passive listeners (avoids double-step).
-    if (e.pointerType === "touch") return;
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    suppressClickRef.current = false;
-    heroDragRef.current = {
-      active: true,
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      moved: false,
-    };
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }
-
-  function onHeroPointerMove(e: ReactPointerEvent<HTMLElement>) {
-    if (e.pointerType === "touch") return;
-    const drag = heroDragRef.current;
-    if (!drag.active || drag.pointerId !== e.pointerId) return;
-    const dx = e.clientX - drag.startX;
-    if (Math.abs(dx) > 8) {
-      drag.moved = true;
-      if (e.cancelable) e.preventDefault();
+  function onTrackScroll() {
+    const el = trackRef.current;
+    if (!el || ignoreScrollRef.current) return;
+    const w = el.clientWidth || 1;
+    const idx = Math.round(el.scrollLeft / w);
+    if (idx !== indexRef.current && idx >= 0 && idx < slides.length) {
+      indexRef.current = idx;
+      setIndex(idx);
     }
-  }
-
-  function endHeroDrag(e: ReactPointerEvent<HTMLElement>) {
-    if (e.pointerType === "touch") return;
-    const drag = heroDragRef.current;
-    if (!drag.active || drag.pointerId !== e.pointerId) return;
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-    const dx = e.clientX - drag.startX;
-    const wasMoved = drag.moved;
-    drag.active = false;
-    drag.pointerId = null;
-    drag.moved = false;
-
-    if (!wasMoved || Math.abs(dx) < 36) return;
-
-    suppressClickRef.current = true;
-    const cur = indexRef.current;
-    // Finger/mouse left → next; right → previous.
-    if (dx < 0) goTo(cur + 1);
-    else goTo(cur - 1);
   }
 
   function onLightboxScroll() {
@@ -237,58 +162,84 @@ export default function ProductImmersiveGallery({
     }
   }
 
-  if (!slides.length) return null;
+  function openLightbox(i: number) {
+    setLightboxIndex(i);
+    setLightboxOpen(true);
+  }
 
-  const multi = slides.length > 1;
-  const current = slides[index] ?? slides[0];
+  function closeLightbox() {
+    setLightboxOpen(false);
+  }
+
+  function onSlidePointerDown(e: React.PointerEvent) {
+    tapRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      t: Date.now(),
+      scrolling: false,
+    };
+  }
+
+  function onSlidePointerMove(e: React.PointerEvent) {
+    const tap = tapRef.current;
+    if (
+      Math.abs(e.clientX - tap.x) > 8 ||
+      Math.abs(e.clientY - tap.y) > 8
+    ) {
+      tap.scrolling = true;
+    }
+  }
+
+  function onSlideClick(i: number) {
+    const tap = tapRef.current;
+    if (tap.scrolling) return;
+    if (Date.now() - tap.t > 450) return;
+    openLightbox(i);
+  }
+
+  if (!slides.length) return null;
 
   return (
     <div className="pdp-immerse-root">
-      <section
-        ref={heroRef}
-        className="pdp-immerse-hero"
-        aria-label={alt}
-        onPointerDown={onHeroPointerDown}
-        onPointerMove={onHeroPointerMove}
-        onPointerUp={endHeroDrag}
-        onPointerCancel={endHeroDrag}
-      >
-        <button
-          type="button"
-          className="pdp-immerse-hero-hit"
-          onClick={(e) => {
-            if (suppressClickRef.current || heroDragRef.current.moved) {
-              e.preventDefault();
-              suppressClickRef.current = false;
-              return;
-            }
-            openLightbox(index);
-          }}
-          aria-label={`${alt} — ${index + 1}`}
+      <section className="pdp-immerse-hero" aria-label={alt}>
+        <div
+          className="pdp-immerse-hero-track"
+          ref={trackRef}
+          onScroll={onTrackScroll}
         >
-          {current.type === "video" ? (
-            <VideoStill
-              key={current.url}
-              src={current.url}
-              adjust={current.adjust}
-              poster={current.poster}
-              autoPlay
-              className="pdp-immerse-hero-img"
-            />
-          ) : (
-            <Image
-              src={current.url}
-              alt={`${alt} — ${index + 1}`}
-              fill
-              priority
-              sizes="(max-width: 1023px) 100vw, (min-width: 1024px) 42vw, 58vw"
-              quality={90}
-              draggable={false}
-              className="pdp-immerse-hero-img"
-              style={{ objectFit: "cover", objectPosition: "center" }}
-            />
-          )}
-        </button>
+          {slides.map((slide, i) => (
+            <figure
+              className="pdp-immerse-hero-slide"
+              key={`${slide.url}-hero-${i}`}
+              onPointerDown={onSlidePointerDown}
+              onPointerMove={onSlidePointerMove}
+              onClick={() => onSlideClick(i)}
+            >
+              {slide.type === "video" ? (
+                <VideoStill
+                  src={slide.url}
+                  adjust={slide.adjust}
+                  poster={slide.poster}
+                  autoPlay={i === index}
+                  className="pdp-immerse-hero-img"
+                />
+              ) : (
+                <Image
+                  src={slide.url}
+                  alt={`${alt} — ${i + 1}`}
+                  fill
+                  priority={i === 0}
+                  sizes="(max-width: 1023px) 100vw, (min-width: 1024px) 42vw, 58vw"
+                  quality={90}
+                  draggable={false}
+                  className="pdp-immerse-hero-img"
+                  style={{ objectFit: "cover", objectPosition: "center" }}
+                />
+              )}
+            </figure>
+          ))}
+        </div>
+
         {multi && (
           <>
             <button
@@ -296,7 +247,11 @@ export default function ProductImmersiveGallery({
               className="pdp-immerse-hero-nav pdp-immerse-hero-nav--prev"
               aria-label={prevLabel}
               disabled={index === 0}
-              onClick={() => goTo(index - 1)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                goTo(index - 1);
+              }}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M15 5l-7 7 7 7" />
@@ -307,7 +262,11 @@ export default function ProductImmersiveGallery({
               className="pdp-immerse-hero-nav pdp-immerse-hero-nav--next"
               aria-label={nextLabel}
               disabled={index >= slides.length - 1}
-              onClick={() => goTo(index + 1)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                goTo(index + 1);
+              }}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M9 5l7 7-7 7" />
@@ -399,7 +358,9 @@ export default function ProductImmersiveGallery({
                 aria-label={nextLabel}
                 disabled={lightboxIndex >= slides.length - 1}
                 onClick={() =>
-                  setLightboxIndex((i) => Math.min(slides.length - 1, i + 1))
+                  setLightboxIndex((i) =>
+                    Math.min(slides.length - 1, i + 1)
+                  )
                 }
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -414,7 +375,10 @@ export default function ProductImmersiveGallery({
             onScroll={onLightboxScroll}
           >
             {slides.map((slide, i) => (
-              <figure className="pdp-lightbox-slide" key={`lb-${slide.url}-${i}`}>
+              <figure
+                className="pdp-lightbox-slide"
+                key={`lb-${slide.url}-${i}`}
+              >
                 {slide.type === "video" ? (
                   <VideoStill
                     src={slide.url}
