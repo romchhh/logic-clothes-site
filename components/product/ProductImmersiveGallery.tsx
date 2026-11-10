@@ -95,10 +95,18 @@ export default function ProductImmersiveGallery({
     const active = root.querySelector<HTMLElement>(
       ".pdp-immerse-thumb.is-active"
     );
-    active?.scrollIntoView({
+    if (!active) return;
+    // Scroll only the thumbs strip horizontally — never the page
+    // (scrollIntoView was nudging the viewport down on swipe).
+    const rootRect = root.getBoundingClientRect();
+    const thumbRect = active.getBoundingClientRect();
+    const nextLeft =
+      root.scrollLeft +
+      (thumbRect.left - rootRect.left) -
+      (rootRect.width - thumbRect.width) / 2;
+    root.scrollTo({
+      left: Math.max(0, nextLeft),
       behavior: "smooth",
-      inline: "nearest",
-      block: "nearest",
     });
   }, [index]);
 
