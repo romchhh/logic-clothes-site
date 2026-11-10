@@ -129,6 +129,14 @@ export async function PATCH(
     }
 
     await upsertProduct(next);
+
+    if (Array.isArray(body.colorVariantIds)) {
+      await syncColorVariants(
+        id,
+        (body.colorVariantIds as unknown[]).map(String)
+      );
+    }
+
     const fresh = await getProductById(id);
     return NextResponse.json(fresh ?? next);
   } catch (error) {

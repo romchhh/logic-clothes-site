@@ -2539,23 +2539,17 @@
     max-width:100%;
   }
   .pdp-option--color-unified .palette-board{
-    gap:12px 18px;
-    justify-content:flex-start;
-  }
-  @media (min-width:640px){
-    .pdp-option--color-unified .palette-board{gap:14px 24px;}
-  }
-  .pdp-option--color-unified .palette-group{
-    gap:6px;
+    gap:16px 12px;
   }
   .pdp-option--color-unified .palette-group-grid{
-    --palette-dot:28px;
-    gap:5px;
+    max-width:120px;
+    padding:10px;
+    gap:6px;
   }
   @media (min-width:640px){
     .pdp-option--color-unified .palette-group-grid{
-      --palette-dot:32px;
-      gap:6px;
+      max-width:140px;
+      gap:8px;
     }
   }
   .pdp-color-unified-hint{
@@ -2913,11 +2907,12 @@
   .pdp-lightbox{
     position:fixed;
     inset:0;
-    z-index:300;
+    z-index:1000;
     display:flex;
     align-items:center;
     justify-content:center;
-    background:rgba(8,8,8,.92);
+    background:rgba(8,8,8,.96);
+    isolation:isolate;
   }
   .pdp-lightbox-backdrop{
     position:absolute;

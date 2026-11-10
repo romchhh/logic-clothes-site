@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import type { MediaAdjust } from "@/lib/mediaAdjust";
 import VideoStill from "@/components/shared/VideoStill";
@@ -46,6 +47,11 @@ export default function ProductImmersiveGallery({
   const [index, setIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const multi = slides.length > 1;
 
@@ -318,102 +324,105 @@ export default function ProductImmersiveGallery({
         </div>
       </section>
 
-      {lightboxOpen && (
-        <div
-          className="pdp-lightbox"
-          role="dialog"
-          aria-modal="true"
-          aria-label={alt}
-        >
-          <button
-            type="button"
-            className="pdp-lightbox-backdrop"
-            aria-label={closeLabel}
-            onClick={closeLightbox}
-          />
-          <button
-            type="button"
-            className="pdp-lightbox-close"
-            aria-label={closeLabel}
-            onClick={closeLightbox}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
-          {multi && (
-            <>
-              <button
-                type="button"
-                className={`pdp-lightbox-nav pdp-lightbox-nav--prev${
-                  lightboxIndex === 0 ? " is-disabled" : ""
-                }`}
-                aria-label={prevLabel}
-                disabled={lightboxIndex === 0}
-                onClick={() =>
-                  setLightboxIndex((i) => Math.max(0, i - 1))
-                }
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M15 5l-7 7 7 7" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                className={`pdp-lightbox-nav pdp-lightbox-nav--next${
-                  lightboxIndex >= slides.length - 1 ? " is-disabled" : ""
-                }`}
-                aria-label={nextLabel}
-                disabled={lightboxIndex >= slides.length - 1}
-                onClick={() =>
-                  setLightboxIndex((i) =>
-                    Math.min(slides.length - 1, i + 1)
-                  )
-                }
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </>
-          )}
+      {portalReady &&
+        lightboxOpen &&
+        createPortal(
           <div
-            className="pdp-lightbox-track"
-            ref={lightboxTrackRef}
-            onScroll={onLightboxScroll}
+            className="pdp-lightbox"
+            role="dialog"
+            aria-modal="true"
+            aria-label={alt}
           >
-            {slides.map((slide, i) => (
-              <figure
-                className="pdp-lightbox-slide"
-                key={`lb-${slide.url}-${i}`}
-              >
-                {slide.type === "video" ? (
-                  <VideoStill
-                    src={slide.url}
-                    adjust={slide.adjust}
-                    poster={slide.poster}
-                    autoPlay={i === lightboxIndex}
-                    className="h-full w-full"
-                  />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={slide.url}
-                    alt={`${alt} — ${i + 1}`}
-                    referrerPolicy="no-referrer"
-                    draggable={false}
-                  />
-                )}
-              </figure>
-            ))}
-          </div>
-          {multi && (
-            <p className="pdp-lightbox-count" aria-live="polite">
-              {lightboxIndex + 1} / {slides.length}
-            </p>
-          )}
-        </div>
-      )}
+            <button
+              type="button"
+              className="pdp-lightbox-backdrop"
+              aria-label={closeLabel}
+              onClick={closeLightbox}
+            />
+            <button
+              type="button"
+              className="pdp-lightbox-close"
+              aria-label={closeLabel}
+              onClick={closeLightbox}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+            {multi && (
+              <>
+                <button
+                  type="button"
+                  className={`pdp-lightbox-nav pdp-lightbox-nav--prev${
+                    lightboxIndex === 0 ? " is-disabled" : ""
+                  }`}
+                  aria-label={prevLabel}
+                  disabled={lightboxIndex === 0}
+                  onClick={() =>
+                    setLightboxIndex((i) => Math.max(0, i - 1))
+                  }
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M15 5l-7 7 7 7" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className={`pdp-lightbox-nav pdp-lightbox-nav--next${
+                    lightboxIndex >= slides.length - 1 ? " is-disabled" : ""
+                  }`}
+                  aria-label={nextLabel}
+                  disabled={lightboxIndex >= slides.length - 1}
+                  onClick={() =>
+                    setLightboxIndex((i) =>
+                      Math.min(slides.length - 1, i + 1)
+                    )
+                  }
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            )}
+            <div
+              className="pdp-lightbox-track"
+              ref={lightboxTrackRef}
+              onScroll={onLightboxScroll}
+            >
+              {slides.map((slide, i) => (
+                <figure
+                  className="pdp-lightbox-slide"
+                  key={`lb-${slide.url}-${i}`}
+                >
+                  {slide.type === "video" ? (
+                    <VideoStill
+                      src={slide.url}
+                      adjust={slide.adjust}
+                      poster={slide.poster}
+                      autoPlay={i === lightboxIndex}
+                      className="h-full w-full"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={slide.url}
+                      alt={`${alt} — ${i + 1}`}
+                      referrerPolicy="no-referrer"
+                      draggable={false}
+                    />
+                  )}
+                </figure>
+              ))}
+            </div>
+            {multi && (
+              <p className="pdp-lightbox-count" aria-live="polite">
+                {lightboxIndex + 1} / {slides.length}
+              </p>
+            )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

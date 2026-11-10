@@ -2,8 +2,11 @@
 @import "../../styles/grouped-palette.css";
 @import "../../lib/fonts/manrope.css";
 
+.admin-panel .palette-board{
+  max-width:720px;
+}
 .admin-panel .palette-group-grid{
-  --palette-dot:24px;
+  max-width:148px;
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -446,6 +449,27 @@
   @apply text-[12.5px] leading-snug text-gray-600 dark:text-gray-400;
 }
 
+.admin-details {
+  @apply rounded-xl border border-gray-100 bg-gray-50/60 px-3.5 py-2.5 dark:border-white/[0.06] dark:bg-white/[0.03];
+}
+
+.admin-details > summary {
+  @apply cursor-pointer list-none text-[13px] font-medium text-gray-700 marker:content-none dark:text-gray-200;
+}
+
+.admin-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-details > summary::before {
+  content: "›";
+  @apply mr-1.5 inline-block text-gray-400 transition;
+}
+
+.admin-details[open] > summary::before {
+  @apply rotate-90;
+}
+
 .admin-filter-tabs {
   @apply inline-flex max-w-full overflow-x-auto rounded-full border border-gray-200/90 bg-gray-50/80 p-0.5 dark:border-white/10 dark:bg-white/[0.03];
 }
@@ -653,14 +677,14 @@
     margin-top: 1.5rem;
   }
 
-  /* Palette board: avoid overflow / squeeze on narrow screens */
   .admin-product-form .palette-board {
-    gap: 10px 12px;
+    gap: 16px 12px;
   }
 
   .admin-product-form .palette-group-grid {
-    --palette-dot: 34px;
-    gap: 6px;
+    max-width: 132px;
+    padding: 10px;
+    gap: 7px;
   }
 
   .admin-section-nav-link {

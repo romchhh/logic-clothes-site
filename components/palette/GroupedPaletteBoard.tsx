@@ -49,7 +49,6 @@ export default function GroupedPaletteBoard({
         const groupLabel = lang === "en" ? group.labelEn : group.label;
         return (
           <div key={group.id} className="palette-group" role="listitem">
-            <p className="palette-group-label">{groupLabel}</p>
             <div className="palette-group-grid">
               {group.shades.map((c) => {
                 const label = lang === "en" ? c.labelEn : c.label;
@@ -95,6 +94,7 @@ export default function GroupedPaletteBoard({
                 );
               })}
             </div>
+            <p className="palette-group-label">{groupLabel}</p>
           </div>
         );
       })}

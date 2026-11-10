@@ -46,8 +46,8 @@ export default function ColorPalettePicker({ selection, onChange }: Props) {
   return (
     <div className="space-y-4">
       <p className="hidden text-[13px] leading-snug text-gray-500 sm:block dark:text-gray-400">
-        Відтінки на цій сторінці. Інший колір моделі — окремий товар у блоці
-        «Звʼязки».
+        Оберіть відтінок з палітри (8 груп × 9 кольорів). Інший колір моделі —
+        окремий товар у «Ще поля → Звʼязки».
       </p>
 
       <GroupedPaletteBoard

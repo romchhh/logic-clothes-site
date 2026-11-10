@@ -8,6 +8,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 export default function ProductGallery({
@@ -48,6 +49,11 @@ export default function ProductGallery({
   const [pageCount, setPageCount] = useState(1);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const getStep = useCallback(() => {
     const el = trackRef.current;
@@ -326,87 +332,90 @@ export default function ProductGallery({
         )}
       </div>
 
-      {lightboxOpen && (
-        <div
-          className="pdp-lightbox"
-          role="dialog"
-          aria-modal="true"
-          aria-label={alt}
-        >
-          <button
-            type="button"
-            className="pdp-lightbox-backdrop"
-            aria-label={closeLabel}
-            onClick={closeLightbox}
-          />
-
-          <button
-            type="button"
-            className="pdp-lightbox-close"
-            aria-label={closeLabel}
-            onClick={closeLightbox}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
-
-          {images.length > 1 && (
-            <>
-              <button
-                type="button"
-                className={`pdp-lightbox-nav pdp-lightbox-nav--prev${
-                  lightboxIndex === 0 ? " is-disabled" : ""
-                }`}
-                aria-label={prevLabel}
-                disabled={lightboxIndex === 0}
-                onClick={lightboxPrev}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M15 5l-7 7 7 7" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                className={`pdp-lightbox-nav pdp-lightbox-nav--next${
-                  lightboxIndex >= images.length - 1 ? " is-disabled" : ""
-                }`}
-                aria-label={nextLabel}
-                disabled={lightboxIndex >= images.length - 1}
-                onClick={lightboxNext}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </>
-          )}
-
+      {portalReady &&
+        lightboxOpen &&
+        createPortal(
           <div
-            className="pdp-lightbox-track"
-            ref={lightboxTrackRef}
-            onScroll={onLightboxScroll}
+            className="pdp-lightbox"
+            role="dialog"
+            aria-modal="true"
+            aria-label={alt}
           >
-            {images.map((src, i) => (
-              <figure className="pdp-lightbox-slide" key={`lb-${src}-${i}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={src}
-                  alt={`${alt} — ${i + 1}`}
-                  referrerPolicy="no-referrer"
-                  draggable={false}
-                />
-              </figure>
-            ))}
-          </div>
+            <button
+              type="button"
+              className="pdp-lightbox-backdrop"
+              aria-label={closeLabel}
+              onClick={closeLightbox}
+            />
 
-          {images.length > 1 && (
-            <p className="pdp-lightbox-count" aria-live="polite">
-              {lightboxIndex + 1} / {images.length}
-            </p>
-          )}
-        </div>
-      )}
+            <button
+              type="button"
+              className="pdp-lightbox-close"
+              aria-label={closeLabel}
+              onClick={closeLightbox}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+
+            {images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className={`pdp-lightbox-nav pdp-lightbox-nav--prev${
+                    lightboxIndex === 0 ? " is-disabled" : ""
+                  }`}
+                  aria-label={prevLabel}
+                  disabled={lightboxIndex === 0}
+                  onClick={lightboxPrev}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M15 5l-7 7 7 7" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className={`pdp-lightbox-nav pdp-lightbox-nav--next${
+                    lightboxIndex >= images.length - 1 ? " is-disabled" : ""
+                  }`}
+                  aria-label={nextLabel}
+                  disabled={lightboxIndex >= images.length - 1}
+                  onClick={lightboxNext}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            )}
+
+            <div
+              className="pdp-lightbox-track"
+              ref={lightboxTrackRef}
+              onScroll={onLightboxScroll}
+            >
+              {images.map((src, i) => (
+                <figure className="pdp-lightbox-slide" key={`lb-${src}-${i}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={src}
+                    alt={`${alt} — ${i + 1}`}
+                    referrerPolicy="no-referrer"
+                    draggable={false}
+                  />
+                </figure>
+              ))}
+            </div>
+
+            {images.length > 1 && (
+              <p className="pdp-lightbox-count" aria-live="polite">
+                {lightboxIndex + 1} / {images.length}
+              </p>
+            )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }

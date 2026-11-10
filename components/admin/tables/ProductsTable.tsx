@@ -9,8 +9,6 @@ import {
 } from "@/lib/adminProductsListState";
 import {
   applyPricePatch,
-  formatStoredForexPrice,
-  forexDraftToPatch,
   parsePriceInput,
 } from "@/lib/adminProductPrices";
 import { getProductImageSrc } from "@/lib/getFirstProductImage";
@@ -63,6 +61,7 @@ export default function ProductsTable() {
   const [page, setPage] = useState(1);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [priceDraft, setPriceDraft] = useState<Record<string, PriceDraftRow>>(
     {}
   );
@@ -261,35 +260,6 @@ export default function ProductsTable() {
     clearPriceDraftField(id, "uah");
   }
 
-  async function saveListForex(
-    id: string,
-    field: "priceEur" | "priceUsd",
-    draftKey: "eur" | "usd"
-  ) {
-    const current = products.find((p) => p.id === id);
-    if (!current) return;
-    const result = forexDraftToPatch(
-      priceDraft[id]?.[draftKey],
-      current[field]
-    );
-    if (result.kind === "skip") {
-      if (priceDraft[id]?.[draftKey] !== undefined) {
-        clearPriceDraftField(id, draftKey);
-      }
-      return;
-    }
-    if (result.kind === "invalid") {
-      clearPriceDraftField(id, draftKey);
-      return;
-    }
-    if (result.kind === "clear") {
-      await patchProduct(id, { [field]: null });
-    } else {
-      await patchProduct(id, { [field]: result.value });
-    }
-    clearPriceDraftField(id, draftKey);
-  }
-
   async function handleDelete(product: Product) {
     if (!confirm(`Видалити «${product.name}»?`)) return;
     setMenuOpenId(null);
@@ -308,6 +278,9 @@ export default function ProductsTable() {
 
   async function handleDuplicate(product: Product) {
     setMenuOpenId(null);
+    const asColorway = window.confirm(
+      "Звʼязати копію як інший колір цієї моделі?\n\nOK — так (колір + фото далі). Скасувати — просто копія."
+    );
     setBusyId(product.id);
     try {
       const res = await fetch(
@@ -316,12 +289,40 @@ export default function ProductsTable() {
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const copy = (await res.json()) as Product;
-      window.location.href = `/admin/products/${encodeURIComponent(copy.id)}/edit`;
+      if (asColorway) {
+        await fetch(
+          `/api/admin/products/${encodeURIComponent(copy.id)}`,
+          {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ colorVariantIds: [product.id] }),
+          }
+        );
+      }
+      window.location.href = `/admin/products/${encodeURIComponent(copy.id)}/edit${
+        asColorway ? "#section-color" : ""
+      }`;
     } catch (e) {
       console.error(e);
       alert("Не вдалося скопіювати товар");
       setBusyId(null);
     }
+  }
+
+  function cycleStockPatch(product: Product): {
+    inStock: boolean;
+    madeToOrder: boolean;
+  } {
+    if (product.inStock) return { inStock: false, madeToOrder: true };
+    if (product.madeToOrder) return { inStock: false, madeToOrder: false };
+    return { inStock: true, madeToOrder: false };
+  }
+
+  function stockLabel(product: Product): string {
+    if (product.inStock) return "В наявності";
+    if (product.madeToOrder) return "14 днів";
+    return "Немає";
   }
 
   async function persistOrder(next: Product[]) {
@@ -395,31 +396,51 @@ export default function ProductsTable() {
             {" · "}фільтри не зберігаються
           </p>
         </div>
-        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
-          <Link
-            href="/admin/products/stock"
-            className="admin-btn-secondary !h-9 !px-3 !text-xs"
-          >
-            Наявність
-          </Link>
-          <Link
-            href="/admin/products/categories"
-            className="admin-btn-secondary !h-9 !px-3 !text-xs"
-          >
-            Категорії
-          </Link>
-          <Link
-            href="/admin/products/prices"
-            className="admin-btn-secondary !h-9 !px-3 !text-xs"
-          >
-            Всі ціни
-          </Link>
-          <Link
-            href="/admin/products/crops"
-            className="admin-btn-secondary !h-9 !px-3 !text-xs"
-          >
-            Кадр фото
-          </Link>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <div className="relative">
+            <button
+              type="button"
+              className="admin-btn-secondary !h-9 !px-3 !text-xs"
+              aria-expanded={bulkOpen}
+              onClick={() => {
+                setMenuOpenId(null);
+                setBulkOpen((o) => !o);
+              }}
+            >
+              Масові дії
+            </button>
+            {bulkOpen ? (
+              <div
+                className="absolute right-0 z-20 mt-1 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+                onClick={() => setBulkOpen(false)}
+              >
+                <Link
+                  href="/admin/products/categories"
+                  className="block px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                >
+                  Категорії
+                </Link>
+                <Link
+                  href="/admin/products/crops"
+                  className="block px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                >
+                  Кадр фото
+                </Link>
+                <Link
+                  href="/admin/products/prices"
+                  className="block px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                >
+                  Усі ціни
+                </Link>
+                <Link
+                  href="/admin/products/stock"
+                  className="block px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                >
+                  Наявність
+                </Link>
+              </div>
+            ) : null}
+          </div>
           <button
             type="button"
             onClick={() => void load()}
@@ -628,9 +649,8 @@ export default function ProductsTable() {
                         <span className="max-w-full truncate">
                           {categoryLabel(p.category)}
                         </span>
-                        <div className="flex basis-full items-center gap-1.5 sm:basis-auto">
                         <label
-                          className="inline-flex items-center gap-1"
+                          className="inline-flex basis-full items-center gap-1 sm:basis-auto"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <input
@@ -669,50 +689,6 @@ export default function ProductsTable() {
                           />
                           <span>₴</span>
                         </label>
-                        <label
-                          className="inline-flex items-center gap-1"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            aria-label={`Ціна в євро: ${p.name}`}
-                            placeholder="—"
-                            className="admin-input !h-7 !w-[56px] !px-2 !text-[12px] tabular-nums"
-                            value={
-                              priceDraft[p.id]?.eur ??
-                              formatStoredForexPrice(p.priceEur)
-                            }
-                            disabled={busy}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) =>
-                              setPriceDraft((d) => ({
-                                ...d,
-                                [p.id]: {
-                                  ...d[p.id],
-                                  eur: e.target.value,
-                                },
-                              }))
-                            }
-                            onBlur={() =>
-                              void saveListForex(p.id, "priceEur", "eur")
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                void saveListForex(p.id, "priceEur", "eur");
-                                (e.target as HTMLInputElement).blur();
-                              }
-                              if (e.key === "Escape") {
-                                e.preventDefault();
-                                clearPriceDraftField(p.id, "eur");
-                                (e.target as HTMLInputElement).blur();
-                              }
-                            }}
-                          />
-                          <span>€</span>
-                        </label>
-                        </div>
                         {p.isNew ? (
                           <span className="rounded bg-[#B7E1DF]/50 px-1.5 py-0.5 text-[10px] font-semibold text-gray-800 dark:bg-[#B7E1DF]/20 dark:text-[#B7E1DF]">
                             New
@@ -729,58 +705,22 @@ export default function ProductsTable() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 pl-9 sm:ml-auto sm:pl-0 sm:shrink-0">
-                  {isDraft ? (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        void patchProduct(p.id, { isVisible: true })
-                      }
-                      className="admin-btn-mint !h-10 shrink-0 sm:!h-8"
-                      title="Показати товар у каталозі"
-                    >
-                      Опублікувати
-                    </button>
-                  ) : null}
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() =>
-                      void patchProduct(
-                        p.id,
-                        p.inStock
-                          ? { inStock: false }
-                          : { inStock: true, madeToOrder: false }
-                      )
+                      void patchProduct(p.id, cycleStockPatch(p))
                     }
                     className={`inline-flex h-10 shrink-0 items-center rounded-lg px-2.5 text-[12px] font-semibold transition sm:h-8 ${
                       p.inStock
                         ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
-                        : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-400"
+                        : p.madeToOrder
+                          ? "bg-sky-50 text-sky-800 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-400"
                     }`}
-                    title="В наявності"
+                    title="Натисніть, щоб змінити: в наявності → 14 днів → немає"
                   >
-                    В наявності
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() =>
-                      void patchProduct(
-                        p.id,
-                        p.madeToOrder
-                          ? { madeToOrder: false }
-                          : { madeToOrder: true, inStock: false }
-                      )
-                    }
-                    className={`inline-flex h-10 shrink-0 items-center rounded-lg px-2.5 text-[12px] font-semibold transition sm:h-8 ${
-                      p.madeToOrder
-                        ? "bg-sky-50 text-sky-800 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300"
-                        : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-400"
-                    }`}
-                    title="Зшиємо за 14 днів"
-                  >
-                    14 днів
+                    {stockLabel(p)}
                   </button>
 
                   <Link
@@ -798,6 +738,7 @@ export default function ProductsTable() {
                       disabled={busy}
                       onClick={(e) => {
                         e.stopPropagation();
+                        setBulkOpen(false);
                         setMenuOpenId((cur) =>
                           cur === p.id ? null : p.id
                         );
@@ -838,7 +779,7 @@ export default function ProductsTable() {
                           className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
                           onClick={() => void handleDuplicate(p)}
                         >
-                          Зробити копію
+                          Копія / новий колір
                         </button>
                         <button
                           type="button"

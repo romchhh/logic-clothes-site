@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/lib/SidebarContext";
@@ -160,6 +160,24 @@ type NavGroup = {
   items: NavItem[];
 };
 
+const SITE_PATHS = [
+  "/admin/hero",
+  "/admin/content",
+  "/admin/feeds",
+  "/admin/settings",
+] as const;
+
+const siteItems: NavItem[] = [
+  { name: "Hero", icon: <HeroIcon />, path: "/admin/hero" },
+  { name: "Контент", icon: <ContentIcon />, path: "/admin/content" },
+  { name: "Фіди", icon: <FeedIcon />, path: "/admin/feeds" },
+  {
+    name: "Налаштування",
+    icon: <SettingsIcon />,
+    path: "/admin/settings",
+  },
+];
+
 const navGroups: NavGroup[] = [
   {
     label: "Огляд",
@@ -179,19 +197,6 @@ const navGroups: NavGroup[] = [
       { name: "Клієнти", icon: <UsersIcon />, path: "/admin/customers" },
     ],
   },
-  {
-    label: "Система",
-    items: [
-      { name: "Hero", icon: <HeroIcon />, path: "/admin/hero" },
-      { name: "Контент", icon: <ContentIcon />, path: "/admin/content" },
-      { name: "Фіди", icon: <FeedIcon />, path: "/admin/feeds" },
-      {
-        name: "Налаштування",
-        icon: <SettingsIcon />,
-        path: "/admin/settings",
-      },
-    ],
-  },
 ];
 
 const AppSidebar: React.FC = () => {
@@ -204,6 +209,14 @@ const AppSidebar: React.FC = () => {
   } = useSidebar();
   const pathname = usePathname();
   const showLabels = isExpanded || isHovered || isMobileOpen;
+  const siteActive = SITE_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
+  );
+  const [siteOpen, setSiteOpen] = useState(siteActive);
+
+  useEffect(() => {
+    if (siteActive) setSiteOpen(true);
+  }, [siteActive]);
 
   const closeMobile = () => {
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
@@ -309,6 +322,95 @@ const AppSidebar: React.FC = () => {
             </ul>
           </div>
         ))}
+
+        <div>
+          <h2
+            className={`mb-2 px-2 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-400 ${
+              !isExpanded && !isHovered
+                ? "lg:flex lg:justify-center"
+                : "justify-start"
+            }`}
+          >
+            {showLabels ? "Сайт" : <HorizontaLDots />}
+          </h2>
+          <ul className="flex flex-col gap-0.5">
+            <li>
+              <button
+                type="button"
+                onClick={() => setSiteOpen((o) => !o)}
+                className={`menu-item group w-full ${
+                  siteActive ? "menu-item-active" : "menu-item-inactive"
+                } ${
+                  !isExpanded && !isHovered
+                    ? "lg:justify-center"
+                    : "lg:justify-start"
+                }`}
+                aria-expanded={siteOpen}
+              >
+                <span
+                  className={
+                    siteActive
+                      ? "menu-item-icon-active"
+                      : "menu-item-icon-inactive"
+                  }
+                >
+                  <SettingsIcon />
+                </span>
+                {showLabels && (
+                  <>
+                    <span className="menu-item-text flex-1 text-left">
+                      Сайт і інтеграції
+                    </span>
+                    <span
+                      className={`text-[10px] text-gray-400 transition ${
+                        siteOpen ? "rotate-90" : ""
+                      }`}
+                      aria-hidden
+                    >
+                      ›
+                    </span>
+                  </>
+                )}
+              </button>
+            </li>
+            {siteOpen || (!showLabels && siteActive)
+              ? siteItems.map((nav) => {
+                  const active = isSection(nav.path);
+                  return (
+                    <li key={nav.path}>
+                      <Link
+                        href={nav.path}
+                        onClick={closeMobile}
+                        className={`menu-item group ${
+                          showLabels ? "pl-9" : ""
+                        } ${
+                          active ? "menu-item-active" : "menu-item-inactive"
+                        } ${
+                          !isExpanded && !isHovered
+                            ? "lg:justify-center"
+                            : "lg:justify-start"
+                        }`}
+                        title={nav.name}
+                      >
+                        <span
+                          className={
+                            active
+                              ? "menu-item-icon-active"
+                              : "menu-item-icon-inactive"
+                          }
+                        >
+                          {nav.icon}
+                        </span>
+                        {showLabels && (
+                          <span className="menu-item-text">{nav.name}</span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })
+              : null}
+          </ul>
+        </div>
       </nav>
 
       {showLabels ? (

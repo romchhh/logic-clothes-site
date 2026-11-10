@@ -318,21 +318,37 @@ export default function ProductMediaManager({ media, onChange }: Props) {
         return;
       }
 
-      imageQueueRef.current = images.slice(1).map((file) => ({
-        file,
-        replaceUrl: null,
-      }));
-      setQueueTotal(images.length);
-      setQueueIndex(1);
+      // Upload straight into the gallery — crop/tone stays optional via «Кадр».
+      let uploaded = 0;
+      for (let i = 0; i < images.length; i++) {
+        const file = images[i];
+        setUploadProgress(
+          images.length > 1
+            ? `Завантаження фото ${i + 1} з ${images.length}…`
+            : "Завантаження фото…"
+        );
+        const items = await uploadOne(file);
+        const fresh = items[0];
+        if (!fresh) throw new Error("empty");
+        originalsRef.current.set(fresh.url, file);
+        const next = [...mediaRef.current, fresh];
+        mediaRef.current = next;
+        onChange(next);
+        uploaded += 1;
+      }
+
+      const parts: string[] = [];
       if (videoCount > 0) {
-        setUploadNotice(
-          `Відео (${videoCount}) уже в галереї — відкриється лише кадрування фото.`
+        parts.push(
+          videoCount === 1 ? "відео додано" : `${videoCount} відео додано`
         );
       }
-      // Clear busy BEFORE opening editor — busy was disabling Застосувати / tabs
-      setUploading(false);
-      setUploadProgress(null);
-      await openImageEdit(images[0], null);
+      parts.push(
+        uploaded === 1 ? "фото в галереї" : `${uploaded} фото в галереї`
+      );
+      setUploadNotice(
+        `${parts.join(" · ")}. Кадр і тон — кнопка «Кадр» на картці.`
+      );
     } catch (e) {
       console.error(e);
       setError(

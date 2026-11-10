@@ -42,7 +42,12 @@ import {
   rememberSuggestions,
   type SuggestKind,
 } from "@/lib/adminProductPresets";
-import { ADMIN_SIZE_PRESETS, normalizeBrandSize } from "@/lib/productSizes";
+import {
+  ADMIN_SIZE_PRESETS,
+  MADE_TO_ORDER_SIZE_GRID,
+  normalizeBrandSize,
+} from "@/lib/productSizes";
+import { slugifyId } from "@/lib/slug";
 import {
   emptyGarmentMeasures,
   GARMENT_MEASURE_FIELDS,
@@ -99,11 +104,10 @@ const PRODUCT_FORM_SECTIONS = [
   { id: "section-category", label: "Каталог" },
   { id: "section-color", label: "Колір" },
   { id: "section-sizes", label: "Розміри" },
-  { id: "section-variants", label: "Варіації" },
-  { id: "section-material", label: "Склад" },
+  { id: "section-material", label: "Тканина" },
   { id: "section-description", label: "Опис" },
   { id: "section-media", label: "Фото" },
-  { id: "section-links", label: "Звʼязки" },
+  { id: "section-more", label: "Ще" },
 ] as const;
 
 const EMPTY: FormState = {
@@ -527,23 +531,37 @@ export default function ProductForm({ productId }: Props) {
       setError("Вкажіть назву (UK)");
       return;
     }
-    if (!form.fabricName.trim()) {
-      setError("Вкажіть основну тканину");
-      return;
-    }
-    if (!form.material.trim()) {
-      setError("Вкажіть склад основної тканини");
-      return;
-    }
-    const priceNum = Number(form.priceUah);
+
+    const priceNum = Number(form.priceUah || "0");
     if (!Number.isFinite(priceNum) || priceNum < 0) {
       setError("Вкажіть коректну ціну в грн");
       return;
     }
-    if (!asDraft && priceNum <= 0) {
-      setError("Щоб опублікувати, вкажіть ціну більше 0");
-      return;
+
+    // Drafts: name is enough. Publish: fabric, composition, color, price, category.
+    if (!asDraft) {
+      if (!form.fabricName.trim()) {
+        setError("Щоб опублікувати, вкажіть основну тканину");
+        return;
+      }
+      if (!form.material.trim()) {
+        setError("Щоб опублікувати, вкажіть склад основної тканини");
+        return;
+      }
+      if (priceNum <= 0) {
+        setError("Щоб опублікувати, вкажіть ціну більше 0");
+        return;
+      }
+      if (!form.category.trim()) {
+        setError("Щоб опублікувати, оберіть категорію");
+        return;
+      }
+      if (!paletteSelection.ids.length || !paletteSelection.primaryId) {
+        setError("Щоб опублікувати, оберіть хоча б один колір з палітри");
+        return;
+      }
     }
+
     const priceEur = Number(form.priceEur);
     const priceUsd = form.priceUsd.trim() ? Number(form.priceUsd) : null;
     const compareAt = form.compareAtUah.trim()
@@ -565,16 +583,17 @@ export default function ProductForm({ productId }: Props) {
     }
 
     rememberFabricNames(form.materialOptions);
+    if (form.fabricName.trim()) {
+      rememberFabricNames([form.fabricName.trim()]);
+    }
     if (form.material.trim()) {
       rememberCompositions([form.material.trim()]);
     }
 
-    if (!paletteSelection.ids.length || !paletteSelection.primaryId) {
-      setError("Оберіть хоча б один колір з палітри");
-      return;
-    }
-    const primaryColor = getPaletteColor(paletteSelection.primaryId);
-    if (!primaryColor) {
+    const primaryColor = paletteSelection.primaryId
+      ? getPaletteColor(paletteSelection.primaryId)
+      : null;
+    if (!asDraft && !primaryColor) {
       setError("Оберіть коректний колір з палітри");
       return;
     }
@@ -597,8 +616,8 @@ export default function ProductForm({ productId }: Props) {
           ? compareAt
           : null,
       category: form.category,
-      color: primaryColor.label,
-      colorHex: primaryColor.hex,
+      color: primaryColor?.label ?? "",
+      colorHex: primaryColor?.hex ?? "",
       fabricName: form.fabricName.trim(),
       material: form.material.trim(),
       lining: form.lining.trim() || null,
@@ -694,8 +713,36 @@ export default function ProductForm({ productId }: Props) {
     await saveProduct();
   }
 
+  async function translateAllUkToEn() {
+    setTranslating("all");
+    setError(null);
+    try {
+      const next: Partial<FormState> = {};
+      if (form.nameUk.trim()) {
+        next.nameEn = await translateText(form.nameUk, "uk", "en");
+      }
+      if (form.descriptionUk.trim()) {
+        next.descriptionEn = await translateText(
+          form.descriptionUk,
+          "uk",
+          "en"
+        );
+      }
+      if (Object.keys(next).length) {
+        setForm((prev) => ({ ...prev, ...next }));
+      }
+    } catch {
+      setError("Не вдалося перекласти — спробуйте ще раз");
+    } finally {
+      setTranslating(null);
+    }
+  }
+
   async function handleDuplicate() {
     if (!productId) return;
+    const asColorway = window.confirm(
+      "Звʼязати копію як інший колір цієї моделі?\n\nOK — так (колір + фото далі). Скасувати — просто копія."
+    );
     setDuplicating(true);
     setError(null);
     try {
@@ -705,7 +752,22 @@ export default function ProductForm({ productId }: Props) {
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const copy = (await res.json()) as Product;
-      router.push(`/admin/products/${encodeURIComponent(copy.id)}/edit`);
+      if (asColorway) {
+        await fetch(
+          `/api/admin/products/${encodeURIComponent(copy.id)}`,
+          {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ colorVariantIds: [productId] }),
+          }
+        );
+      }
+      router.push(
+        `/admin/products/${encodeURIComponent(copy.id)}/edit${
+          asColorway ? "#section-color" : ""
+        }`
+      );
       router.refresh();
     } catch (e) {
       console.error(e);
@@ -781,12 +843,42 @@ export default function ProductForm({ productId }: Props) {
 
       <AdminSectionNav sections={[...PRODUCT_FORM_SECTIONS]} />
 
-      {/* Name bilingual */}
-      <ComponentCard title="Назва" sectionId="section-name">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <Label htmlFor="nameUk">Українською *</Label>
+      <ComponentCard
+        title="Назва"
+        sectionId="section-name"
+        actions={
+          <button
+            type="button"
+            className="admin-btn-mint !h-8 !text-xs"
+            disabled={translating === "all" || !form.nameUk.trim()}
+            onClick={() => void translateAllUkToEn()}
+          >
+            {translating === "all" ? "Переклад…" : "Перекласти все UK→EN"}
+          </button>
+        }
+      >
+        <div>
+          <Label htmlFor="nameUk">Українською *</Label>
+          <Input
+            id="nameUk"
+            value={form.nameUk}
+            onChange={(e) => set("nameUk", e.target.value)}
+            placeholder="Сукня з сітки"
+          />
+          <p className="mt-1.5 text-xs text-gray-400">
+            URL: /product/
+            <code>
+              {isEdit && form.id
+                ? form.id
+                : slugifyId(form.nameUk.trim() || "new-product")}
+            </code>
+          </p>
+        </div>
+        <details className="admin-details">
+          <summary>English {form.nameEn.trim() ? "· заповнено" : ""}</summary>
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="nameEn">English</Label>
               <TranslateBtn
                 busy={translating === "name-en"}
                 onClick={() =>
@@ -801,46 +893,17 @@ export default function ProductForm({ productId }: Props) {
               />
             </div>
             <Input
-              id="nameUk"
-              value={form.nameUk}
-              onChange={(e) => set("nameUk", e.target.value)}
-              placeholder="Сукня з сітки"
-            />
-          </div>
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <Label htmlFor="nameEn">English</Label>
-              <TranslateBtn
-                busy={translating === "name-uk"}
-                onClick={() =>
-                  void runTranslate(
-                    "name-uk",
-                    form.nameEn,
-                    "en",
-                    "uk",
-                    (t) => set("nameUk", t)
-                  )
-                }
-              />
-            </div>
-            <Input
               id="nameEn"
               value={form.nameEn}
               onChange={(e) => set("nameEn", e.target.value)}
               placeholder="Mesh dress"
             />
           </div>
-        </div>
-        {isEdit && (
-          <p className="text-xs text-gray-400">
-            Slug: <code>{form.id}</code>
-          </p>
-        )}
+        </details>
       </ComponentCard>
 
-      {/* Price */}
       <ComponentCard title="Ціна" sectionId="section-price">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="priceUah">Ціна, ₴ *</Label>
             <Input
@@ -850,37 +913,6 @@ export default function ProductForm({ productId }: Props) {
               step={1}
               value={form.priceUah}
               onChange={(e) => set("priceUah", e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="priceEur">Ціна, €</Label>
-            <Input
-              id="priceEur"
-              type="number"
-              min="0"
-              step={1}
-              value={form.priceEur}
-              onChange={(e) => {
-                setEurManual(true);
-                set("priceEur", e.target.value);
-              }}
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              {eurManual
-                ? "Вказано вручну"
-                : `Авто з курсу ~${UAH_PER_EUR} ₴/€`}
-            </p>
-          </div>
-          <div>
-            <Label htmlFor="priceUsd">Ціна, $</Label>
-            <Input
-              id="priceUsd"
-              type="number"
-              min="0"
-              step={1}
-              value={form.priceUsd}
-              onChange={(e) => set("priceUsd", e.target.value)}
-              placeholder="Необовʼязково"
             />
           </div>
           <div>
@@ -899,41 +931,65 @@ export default function ProductForm({ productId }: Props) {
             />
           </div>
         </div>
-      </ComponentCard>
-
-      {/* Category + flags */}
-      <ComponentCard title="Категорія та мітки" sectionId="section-category">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-4">
+        <details className="admin-details">
+          <summary>
+            Інші валюти
+            {form.priceEur || form.priceUsd ? " · задано" : ` · € авто ~${UAH_PER_EUR} ₴`}
+          </summary>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Категорія</Label>
-              <Select
-                options={categoryOptions}
-                placeholder="Оберіть категорію"
-                value={form.category}
-                onChange={(v) => {
-                  setForm((prev) => ({
-                    ...prev,
-                    category: v,
-                    season: categorySupportsSeasonFilter(v)
-                      ? prev.season
-                      : null,
-                  }));
-                }}
-              />
-            </div>
-            <div>
-              <Label htmlFor="sortOrder">Пріоритет у каталозі</Label>
+              <Label htmlFor="priceEur">Ціна, €</Label>
               <Input
-                id="sortOrder"
+                id="priceEur"
                 type="number"
                 min="0"
                 step={1}
-                value={form.sortOrder}
-                onChange={(e) => set("sortOrder", e.target.value)}
-                placeholder={isEdit ? "0" : "Авто (в кінець)"}
+                value={form.priceEur}
+                onChange={(e) => {
+                  setEurManual(true);
+                  set("priceEur", e.target.value);
+                }}
+              />
+              <p className="mt-1 text-xs text-gray-400">
+                {eurManual
+                  ? "Вказано вручну"
+                  : `Авто з курсу ~${UAH_PER_EUR} ₴/€`}
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="priceUsd">Ціна, $</Label>
+              <Input
+                id="priceUsd"
+                type="number"
+                min="0"
+                step={1}
+                value={form.priceUsd}
+                onChange={(e) => set("priceUsd", e.target.value)}
+                placeholder="Необовʼязково"
               />
             </div>
+          </div>
+        </details>
+      </ComponentCard>
+
+      <ComponentCard title="Категорія та наявність" sectionId="section-category">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <Label>Категорія</Label>
+            <Select
+              options={categoryOptions}
+              placeholder="Оберіть категорію"
+              value={form.category}
+              onChange={(v) => {
+                setForm((prev) => ({
+                  ...prev,
+                  category: v,
+                  season: categorySupportsSeasonFilter(v)
+                    ? prev.season
+                    : null,
+                }));
+              }}
+            />
           </div>
           <div className="flex flex-col gap-3 md:pt-1">
             <div className="admin-toggle-row">
@@ -961,28 +1017,15 @@ export default function ProductForm({ productId }: Props) {
                       ...prev,
                       madeToOrder: true,
                       inStock: false,
+                      sizeOptions:
+                        prev.sizeOptions.length > 0
+                          ? prev.sizeOptions
+                          : [...MADE_TO_ORDER_SIZE_GRID],
                     }));
                   } else {
                     set("madeToOrder", false);
                   }
                 }}
-              />
-            </div>
-            <div className="admin-toggle-row">
-              <ToggleSwitch
-                label="New"
-                enabled={form.isNew}
-                setEnabled={(v) => set("isNew", v)}
-              />
-              <ToggleSwitch
-                label="Sale"
-                enabled={form.isSale}
-                setEnabled={(v) => set("isSale", v)}
-              />
-              <ToggleSwitch
-                label="Популярні"
-                enabled={form.isPopular}
-                setEnabled={(v) => set("isPopular", v)}
               />
             </div>
             {categorySupportsSeasonFilter(form.category) ? (
@@ -1021,12 +1064,32 @@ export default function ProductForm({ productId }: Props) {
         />
       </ComponentCard>
 
-      {/* Sizes */}
       <ComponentCard title="Розміри" sectionId="section-sizes">
         <div className="space-y-3">
-          <p className="text-[12px] text-gray-500 dark:text-gray-400">
-            Наша сітка: ONESIZE · XS-S · S-M · M-L · L-XL · A · B · C · D
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="admin-btn-secondary !h-8 !text-xs"
+              onClick={() =>
+                setForm((prev) => ({
+                  ...prev,
+                  sizeOptions: [...ADMIN_SIZE_PRESETS],
+                }))
+              }
+            >
+              Усі розміри
+            </button>
+            <button
+              type="button"
+              className="admin-btn-ghost !h-8 !text-xs"
+              onClick={() => set("sizeOptions", [])}
+            >
+              Очистити
+            </button>
+            <p className="text-[12px] text-gray-500 dark:text-gray-400">
+              ONESIZE · XS-S · S-M · M-L · L-XL · A · B · C · D
+            </p>
+          </div>
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {ADMIN_SIZE_PRESETS.map((value) => {
               const active = form.sizeOptions.includes(value);
@@ -1070,9 +1133,184 @@ export default function ProductForm({ productId }: Props) {
         </div>
       </ComponentCard>
 
-      {/* Length + material variants */}
-      <ComponentCard title="Варіації" sectionId="section-variants">
+      <ComponentCard title="Тканина" sectionId="section-material">
+        <div className="space-y-5">
+          <div>
+            <Label htmlFor="fabricName">Основна тканина *</Label>
+            <Input
+              id="fabricName"
+              value={form.fabricName}
+              onChange={(e) => set("fabricName", e.target.value)}
+              placeholder="напр. сітка, шовк, креп"
+            />
+            <AdminSuggestRail
+              suggestions={fabricSuggestions}
+              value={form.fabricName}
+              onSelect={(v) => set("fabricName", v)}
+              onRemember={(v) => rememberField("fabricName", v)}
+              addPlaceholder="Нова тканина в список"
+            />
+          </div>
+          <div>
+            <Label htmlFor="material">Склад *</Label>
+            <Input
+              id="material"
+              value={form.material}
+              onChange={(e) => set("material", e.target.value)}
+              placeholder="100% поліестер / 95% бавовна, 5% еластан"
+            />
+            <AdminSuggestRail
+              suggestions={compositionSuggestions}
+              value={form.material}
+              onSelect={(v) => set("material", v)}
+              onRemember={(v) => rememberField("composition", v)}
+              addPlaceholder="Новий склад у список"
+            />
+          </div>
+          <details className="admin-details">
+            <summary>
+              Підклад / утеплювач
+              {form.lining || form.insulation ? " · заповнено" : ""}
+            </summary>
+            <div className="mt-4 space-y-5">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="lining">Підклад</Label>
+                  <Input
+                    id="lining"
+                    value={form.lining}
+                    onChange={(e) => set("lining", e.target.value)}
+                    placeholder="якщо немає — залиште порожнім"
+                  />
+                  <AdminSuggestRail
+                    suggestions={liningSuggestions}
+                    value={form.lining}
+                    onSelect={(v) => set("lining", v)}
+                    onRemember={(v) => rememberField("lining", v)}
+                    addPlaceholder="Новий підклад у список"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="liningComposition">Склад підкладки</Label>
+                  <Input
+                    id="liningComposition"
+                    value={form.liningComposition}
+                    onChange={(e) => set("liningComposition", e.target.value)}
+                    placeholder="напр. 100% віскоза"
+                  />
+                  <AdminSuggestRail
+                    suggestions={liningCompSuggestions}
+                    value={form.liningComposition}
+                    onSelect={(v) => set("liningComposition", v)}
+                    onRemember={(v) => rememberField("liningComposition", v)}
+                    addPlaceholder="Новий склад підкладки"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="insulation">Утеплювач</Label>
+                <Input
+                  id="insulation"
+                  value={form.insulation}
+                  onChange={(e) => set("insulation", e.target.value)}
+                  placeholder="якщо немає — залиште порожнім"
+                />
+                <AdminSuggestRail
+                  suggestions={insulationSuggestions}
+                  value={form.insulation}
+                  onSelect={(v) => set("insulation", v)}
+                  onRemember={(v) => rememberField("insulation", v)}
+                  addPlaceholder="Новий утеплювач у список"
+                />
+              </div>
+            </div>
+          </details>
+        </div>
+      </ComponentCard>
+
+      <ComponentCard title="Опис" sectionId="section-description">
+        <div>
+          <Label>Українською</Label>
+          <TextArea
+            rows={5}
+            value={form.descriptionUk}
+            onChange={(v) => set("descriptionUk", v)}
+            placeholder="Опис товару"
+          />
+        </div>
+        <details className="admin-details">
+          <summary>
+            English {form.descriptionEn.trim() ? "· заповнено" : ""}
+          </summary>
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label>English</Label>
+              <TranslateBtn
+                busy={translating === "desc-en"}
+                onClick={() =>
+                  void runTranslate(
+                    "desc-en",
+                    form.descriptionUk,
+                    "uk",
+                    "en",
+                    (t) => set("descriptionEn", t)
+                  )
+                }
+              />
+            </div>
+            <TextArea
+              rows={5}
+              value={form.descriptionEn}
+              onChange={(v) => set("descriptionEn", v)}
+              placeholder="Product description"
+            />
+          </div>
+        </details>
+      </ComponentCard>
+
+      <ComponentCard title="Медіа" sectionId="section-media">
+        <ProductMediaManager
+          media={form.media}
+          onChange={(media) => set("media", media)}
+        />
+      </ComponentCard>
+
+      <ComponentCard
+        title="Ще поля"
+        sectionId="section-more"
+        desc="Мітки, довжина, модель, заміри, звʼязки"
+      >
         <div className="space-y-6">
+          <div className="admin-toggle-row">
+            <ToggleSwitch
+              label="New"
+              enabled={form.isNew}
+              setEnabled={(v) => set("isNew", v)}
+            />
+            <ToggleSwitch
+              label="Sale"
+              enabled={form.isSale}
+              setEnabled={(v) => set("isSale", v)}
+            />
+            <ToggleSwitch
+              label="Популярні"
+              enabled={form.isPopular}
+              setEnabled={(v) => set("isPopular", v)}
+            />
+          </div>
+          <div className="max-w-xs">
+            <Label htmlFor="sortOrder">Пріоритет у каталозі</Label>
+            <Input
+              id="sortOrder"
+              type="number"
+              min="0"
+              step={1}
+              value={form.sortOrder}
+              onChange={(e) => set("sortOrder", e.target.value)}
+              placeholder={isEdit ? "0" : "Авто (в кінець)"}
+            />
+          </div>
+
           <div>
             <Label>Довжина</Label>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -1112,135 +1350,6 @@ export default function ProductForm({ productId }: Props) {
             </div>
           </div>
 
-          <AdminChipField
-            label="Тканини (варіанти)"
-            placeholderChip="Нова тканина"
-            bulkPlaceholder="Шовк, Креп, Трикотаж"
-            suggestions={Array.from(
-              new Set([...fabricSuggestions, ...form.materialOptions])
-            )}
-            selected={form.materialOptions}
-            chipMode="add"
-            onToggle={(value) => {
-              setForm((prev) => {
-                const has = prev.materialOptions.includes(value);
-                const next = has
-                  ? prev.materialOptions
-                  : [...prev.materialOptions, value];
-                return {
-                  ...prev,
-                  materialOptions: [
-                    value,
-                    ...next.filter((x) => x !== value),
-                  ],
-                };
-              });
-            }}
-            onBulkAdd={(values) => {
-              const next = rememberFabricNames(values);
-              setFabricSuggestions(next);
-              setForm((prev) => ({
-                ...prev,
-                materialOptions: Array.from(
-                  new Set([...prev.materialOptions, ...values])
-                ),
-              }));
-            }}
-          />
-        </div>
-      </ComponentCard>
-
-      {/* Composition + model */}
-      <ComponentCard title="Тканини і склад" sectionId="section-material">
-        <div className="space-y-8">
-          <div className="space-y-5">
-            <div>
-              <Label htmlFor="fabricName">Основна тканина *</Label>
-              <Input
-                id="fabricName"
-                value={form.fabricName}
-                onChange={(e) => set("fabricName", e.target.value)}
-                placeholder="напр. сітка, шовк, креп"
-              />
-              <AdminSuggestRail
-                suggestions={fabricSuggestions}
-                value={form.fabricName}
-                onSelect={(v) => set("fabricName", v)}
-                onRemember={(v) => rememberField("fabricName", v)}
-                addPlaceholder="Нова тканина в список"
-              />
-            </div>
-            <div>
-              <Label htmlFor="material">Склад основної тканини *</Label>
-              <Input
-                id="material"
-                value={form.material}
-                onChange={(e) => set("material", e.target.value)}
-                placeholder="100% поліестер / 95% бавовна, 5% еластан"
-              />
-              <AdminSuggestRail
-                suggestions={compositionSuggestions}
-                value={form.material}
-                onSelect={(v) => set("material", v)}
-                onRemember={(v) => rememberField("composition", v)}
-                addPlaceholder="Новий склад у список"
-              />
-            </div>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="lining">Підклад</Label>
-                <Input
-                  id="lining"
-                  value={form.lining}
-                  onChange={(e) => set("lining", e.target.value)}
-                  placeholder="якщо немає — залиште порожнім"
-                />
-                <AdminSuggestRail
-                  suggestions={liningSuggestions}
-                  value={form.lining}
-                  onSelect={(v) => set("lining", v)}
-                  onRemember={(v) => rememberField("lining", v)}
-                  addPlaceholder="Новий підклад у список"
-                />
-              </div>
-              <div>
-                <Label htmlFor="liningComposition">Склад підкладки</Label>
-                <Input
-                  id="liningComposition"
-                  value={form.liningComposition}
-                  onChange={(e) => set("liningComposition", e.target.value)}
-                  placeholder="напр. 100% віскоза"
-                />
-                <AdminSuggestRail
-                  suggestions={liningCompSuggestions}
-                  value={form.liningComposition}
-                  onSelect={(v) => set("liningComposition", v)}
-                  onRemember={(v) => rememberField("liningComposition", v)}
-                  addPlaceholder="Новий склад підкладки"
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="insulation">Утеплювач</Label>
-              <Input
-                id="insulation"
-                value={form.insulation}
-                onChange={(e) => set("insulation", e.target.value)}
-                placeholder="якщо немає — залиште порожнім"
-              />
-              <AdminSuggestRail
-                suggestions={insulationSuggestions}
-                value={form.insulation}
-                onSelect={(v) => set("insulation", v)}
-                onRemember={(v) => rememberField("insulation", v)}
-                addPlaceholder="Новий утеплювач у список"
-              />
-              <p className="mt-1 text-[12px] text-gray-500">
-                Підклад і утеплювач на сайті зʼявляються лише коли заповнені.
-                Списки памʼятають ваші варіанти після збереження.
-              </p>
-            </div>
-          </div>
           <ModelPresetPicker
             photoSize={form.photoSize}
             modelParams={form.modelParams}
@@ -1248,113 +1357,49 @@ export default function ProductForm({ productId }: Props) {
               setForm((prev) => ({ ...prev, photoSize, modelParams }))
             }
           />
-          <div className="space-y-3">
-            <p className="text-[13px] font-medium text-gray-700 dark:text-gray-300">
-              Фактичні заміри виробу
-            </p>
-            <p className="text-[12px] text-gray-500">
-              Порожні поля на сайті не показуються. Для старих товарів блок
-              зʼявиться лише після заповнення.
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {GARMENT_MEASURE_FIELDS.map((field) => (
-                <div key={field.key}>
-                  <Label htmlFor={`gm-${field.key}`}>{field.label}</Label>
-                  <Input
-                    id={`gm-${field.key}`}
-                    value={form.garmentMeasures[field.key]}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        garmentMeasures: {
-                          ...prev.garmentMeasures,
-                          [field.key]: e.target.value,
-                        },
-                      }))
-                    }
-                    placeholder="см"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </ComponentCard>
 
-      {/* Description */}
-      <ComponentCard title="Опис" sectionId="section-description">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <Label>Українською</Label>
-              <TranslateBtn
-                busy={translating === "desc-en"}
-                onClick={() =>
-                  void runTranslate(
-                    "desc-en",
-                    form.descriptionUk,
-                    "uk",
-                    "en",
-                    (t) => set("descriptionEn", t)
-                  )
-                }
-              />
+          <details className="admin-details">
+            <summary>Фактичні заміри виробу</summary>
+            <div className="mt-3 space-y-3">
+              <p className="text-[12px] text-gray-500">
+                Порожні поля на сайті не показуються.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {GARMENT_MEASURE_FIELDS.map((field) => (
+                  <div key={field.key}>
+                    <Label htmlFor={`gm-${field.key}`}>{field.label}</Label>
+                    <Input
+                      id={`gm-${field.key}`}
+                      value={form.garmentMeasures[field.key]}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          garmentMeasures: {
+                            ...prev.garmentMeasures,
+                            [field.key]: e.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="см"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-            <TextArea
-              rows={5}
-              value={form.descriptionUk}
-              onChange={(v) => set("descriptionUk", v)}
-              placeholder="Опис товару"
+          </details>
+
+          <div className="border-t border-gray-100 pt-6 dark:border-white/[0.06]">
+            <ProductRelationPicker
+              kind="color-siblings"
+              label="Інші кольори моделі"
+              catalog={catalog}
+              excludeId={productId}
+              currentProductName={form.nameUk}
+              selectedIds={colorVariantIds}
+              onChange={setColorVariantIds}
+              emptyHint="Пошуком додайте копії цієї моделі"
             />
           </div>
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <Label>English</Label>
-              <TranslateBtn
-                busy={translating === "desc-uk"}
-                onClick={() =>
-                  void runTranslate(
-                    "desc-uk",
-                    form.descriptionEn,
-                    "en",
-                    "uk",
-                    (t) => set("descriptionUk", t)
-                  )
-                }
-              />
-            </div>
-            <TextArea
-              rows={5}
-              value={form.descriptionEn}
-              onChange={(v) => set("descriptionEn", v)}
-              placeholder="Product description"
-            />
-          </div>
-        </div>
-      </ComponentCard>
-
-      {/* Media */}
-      <ComponentCard title="Медіа" sectionId="section-media">
-        <ProductMediaManager
-          media={form.media}
-          onChange={(media) => set("media", media)}
-        />
-      </ComponentCard>
-
-      {/* Relations */}
-      <ComponentCard title="Звʼязки" sectionId="section-links">
-        <div className="space-y-8">
-          <ProductRelationPicker
-            kind="color-siblings"
-            label="Інші кольори моделі"
-            catalog={catalog}
-            excludeId={productId}
-            currentProductName={form.nameUk}
-            selectedIds={colorVariantIds}
-            onChange={setColorVariantIds}
-            emptyHint="Пошуком додайте копії цієї моделі"
-          />
-          <div className="border-t border-gray-100 dark:border-white/[0.06]" />
           {!isEdit ? (
             <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-[12px] leading-snug text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
               Спочатку створіть товар — лук можна додати після збереження.
