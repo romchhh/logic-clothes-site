@@ -176,11 +176,14 @@ export async function POST(request: NextRequest) {
             fit: "fill",
           });
       } else if (fitCard) {
+        // Prefer contain + pad over aggressive center-cover crop when
+        // client did not send an explicit crop rect.
         pipeline = pipeline.resize(
           PRODUCT_CARD_EXPORT_W,
           PRODUCT_CARD_EXPORT_H,
           {
-            fit: "cover",
+            fit: "contain",
+            background: { r: 17, g: 17, b: 17, alpha: 1 },
             position: "centre",
           }
         );

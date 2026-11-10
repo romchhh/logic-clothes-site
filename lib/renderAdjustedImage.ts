@@ -102,16 +102,6 @@ function applyTonePixels(
   }
 }
 
-function hasTone(adjust: MediaAdjust): boolean {
-  return !(
-    adjust.brightness === 0 &&
-    adjust.contrast === 0 &&
-    adjust.warmth === 0 &&
-    adjust.saturation === 0 &&
-    adjust.sharpness === 0
-  );
-}
-
 /**
  * Same pixels as the editor frame: crop first, then tone.
  * Uses pixel math so bake matches preview even without canvas.filter support.
@@ -135,9 +125,38 @@ export async function renderAdjustedImageBlob(
   const sy = Math.max(0, Math.round(crop.y * sourceH));
   const sw = Math.max(1, Math.round(crop.w * sourceW));
   const sh = Math.max(1, Math.round(crop.h * sourceH));
-  bctx.drawImage(source, sx, sy, sw, sh, 0, 0, outW, outH);
+  const rot = adjust.rotate ?? 0;
+  bctx.fillStyle = "#111";
+  bctx.fillRect(0, 0, outW, outH);
+  if (Math.abs(rot) > 0.05) {
+    bctx.save();
+    bctx.translate(outW / 2, outH / 2);
+    bctx.rotate((rot * Math.PI) / 180);
+    // Slight overscan so rotation does not leave empty corners in frame.
+    const over = 1.12;
+    bctx.drawImage(
+      source,
+      sx,
+      sy,
+      sw,
+      sh,
+      (-outW * over) / 2,
+      (-outH * over) / 2,
+      outW * over,
+      outH * over
+    );
+    bctx.restore();
+  } else {
+    bctx.drawImage(source, sx, sy, sw, sh, 0, 0, outW, outH);
+  }
 
-  if (!hasTone(adjust)) return canvasToJpeg(base);
+  const needsColorTone =
+    adjust.brightness !== 0 ||
+    adjust.contrast !== 0 ||
+    adjust.warmth !== 0 ||
+    adjust.saturation !== 0 ||
+    adjust.sharpness !== 0;
+  if (!needsColorTone) return canvasToJpeg(base);
 
   // Prefer CSS filter path when supported (matches live preview filter string).
   const filter = mediaAdjustCssFilter(adjust);

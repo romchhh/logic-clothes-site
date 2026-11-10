@@ -52,7 +52,16 @@ export interface Product {
   compareAtPriceNum?: number | null;
   color: string;
   colorHex?: string;
+  /** Основна тканина (required for publish UX). */
+  fabricName?: string;
+  /** Склад основної тканини. */
   material: string;
+  /** Підклад — hidden on storefront when empty. */
+  lining?: string;
+  /** Склад підкладки — hidden when empty. */
+  liningComposition?: string;
+  /** Утеплювач — hidden when empty. */
+  insulation?: string;
   description: string;
   descriptionEn?: string;
   longDescription: string;

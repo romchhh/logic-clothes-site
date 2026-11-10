@@ -81,6 +81,12 @@ export type Messages = {
     openSizeChart: string;
     actualMeasures: string;
     fabricKind: string;
+    fabricComposition: string;
+    fabricMaterialLabel: string;
+    lining: string;
+    liningComposition: string;
+    liningLabel: string;
+    insulation: string;
     photoSizeLabel: string;
     modelParamsLabel: string;
     inWish: string;
@@ -352,12 +358,18 @@ const uk: Messages = {
     orderMyColorSize: "хочу замовити в своєму кольорі в своєму розмірі",
     openSizeChart: "відкрити розмірну сітку",
     actualMeasures: "фактичні заміри виробу",
-    fabricKind: "матеріал",
+    fabricKind: "основна тканина",
+    fabricComposition: "склад основної тканини",
+    fabricMaterialLabel: "матеріал",
+    lining: "підклад",
+    liningComposition: "склад підкладки",
+    liningLabel: "підкладка",
+    insulation: "утеплювач",
     photoSizeLabel: "на фото розмір",
     modelParamsLabel: "параметри моделі на фото",
     inWish: "У вішлисті",
     description: "Опис",
-    fabric: "Склад",
+    fabric: "склад",
     related: "Ще з колекції",
     lookTitle: "Також у цьому луці",
     pickSize: "Оберіть розмір",
@@ -641,12 +653,18 @@ const en: Messages = {
     orderMyColorSize: "I want my colour and my size",
     openSizeChart: "open size chart",
     actualMeasures: "actual garment measurements",
-    fabricKind: "fabric",
+    fabricKind: "main fabric",
+    fabricComposition: "main fabric composition",
+    fabricMaterialLabel: "material",
+    lining: "lining",
+    liningComposition: "lining composition",
+    liningLabel: "lining",
+    insulation: "insulation",
     photoSizeLabel: "size on photo",
     modelParamsLabel: "model on photo",
     inWish: "In wishlist",
     description: "Description",
-    fabric: "Composition",
+    fabric: "composition",
     related: "More from the collection",
     lookTitle: "Also in this look",
     pickSize: "Please select a size",

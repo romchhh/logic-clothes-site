@@ -9,6 +9,7 @@ import {
   categorySupportsSeasonFilter,
   type SeasonFilter,
 } from "@/lib/productSeason";
+import { formatSizeLabel } from "@/lib/productSizes";
 
 export type SortOrder = "newest" | "oldest" | "asc" | "desc";
 
@@ -176,7 +177,7 @@ export default function SidebarFilter({
                         checked={selectedSizes.includes(size)}
                         onChange={() => toggleSize(size)}
                       />
-                      <span>{size}</span>
+                      <span>{formatSizeLabel(size)}</span>
                     </label>
                   ))}
                 </div>

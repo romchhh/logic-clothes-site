@@ -1,13 +1,17 @@
-import { CATALOG_SIZE_ORDER } from "@/lib/productSizes";
+import {
+  CATALOG_SIZE_ORDER,
+  normalizeBrandSize,
+} from "@/lib/productSizes";
 import type { Product } from "@/lib/types";
 
-const SIZE_ORDER = [...CATALOG_SIZE_ORDER, "XXS", "XS", "S", "M", "L", "XL", "XXL"];
+const SIZE_ORDER: string[] = [...CATALOG_SIZE_ORDER];
 
 export function collectSizes(products: Product[]): string[] {
   const set = new Set<string>();
   for (const p of products) {
     for (const s of p.sizeOptions || []) {
-      if (s) set.add(s);
+      const normalized = normalizeBrandSize(s);
+      if (normalized) set.add(normalized);
     }
   }
   return [...set].sort((a, b) => {

@@ -1,6 +1,8 @@
 import type { Product } from "@/lib/types";
 
-const DEFAULT_SIZES = ["ONESIZE", "S-M", "M-L"];
+import { normalizeBrandSize } from "@/lib/productSizes";
+
+const DEFAULT_SIZES = ["ONESIZE", "XS-S", "S-M", "M-L", "L-XL", "A", "B", "C", "D"];
 
 /** Real sellable SKU (not a gift certificate / zero-price placeholder). */
 export function isRealProduct(p: Product): boolean {
@@ -24,6 +26,8 @@ export function isSellableProduct(p: Product): boolean {
 export function normalizeSizeOptions(
   sizes: string[] | null | undefined
 ): string[] {
-  if (Array.isArray(sizes) && sizes.length > 0) return sizes;
+  if (Array.isArray(sizes) && sizes.length > 0) {
+    return sizes.map(normalizeBrandSize).filter(Boolean);
+  }
   return [...DEFAULT_SIZES];
 }

@@ -1,5 +1,6 @@
 import { parseGarmentMeasures } from "@/lib/garmentMeasures";
 import { normalizeMediaAdjust } from "@/lib/mediaAdjust";
+import { normalizeBrandSize } from "@/lib/productSizes";
 import { normalizeProductSeason } from "@/lib/productSeason";
 import { formatPriceLabel } from "@/lib/sql";
 import type { Product, ProductMedia } from "@/lib/types";
@@ -58,9 +59,21 @@ export function productFromBody(
   body: Record<string, unknown>,
   base: Partial<Product> & { id: string }
 ): Product {
-  const sizeOptions: string[] = Array.isArray(body.sizeOptions)
-    ? body.sizeOptions.map(String).filter(Boolean)
-    : base.sizeOptions || ["ONESIZE", "S-M", "M-L"];
+  const sizeOptions: string[] = (
+    Array.isArray(body.sizeOptions)
+      ? body.sizeOptions.map(String).filter(Boolean)
+      : base.sizeOptions || [
+          "ONESIZE",
+          "XS-S",
+          "S-M",
+          "M-L",
+          "L-XL",
+          "A",
+          "B",
+          "C",
+          "D",
+        ]
+  ).map((s) => normalizeBrandSize(String(s)));
   const lengthOptions: string[] = Array.isArray(body.lengthOptions)
     ? body.lengthOptions.map(String).filter(Boolean)
     : base.lengthOptions || [];
@@ -113,8 +126,24 @@ export function productFromBody(
     color: body.color != null ? String(body.color) : base.color || "",
     colorHex:
       body.colorHex != null ? String(body.colorHex) : base.colorHex || "",
+    fabricName:
+      body.fabricName != null
+        ? String(body.fabricName).trim()
+        : base.fabricName || "",
     material:
       body.material != null ? String(body.material) : base.material || "",
+    lining:
+      body.lining != null
+        ? String(body.lining).trim()
+        : base.lining || "",
+    liningComposition:
+      body.liningComposition != null
+        ? String(body.liningComposition).trim()
+        : base.liningComposition || "",
+    insulation:
+      body.insulation != null
+        ? String(body.insulation).trim()
+        : base.insulation || "",
     description:
       body.description != null
         ? String(body.description)

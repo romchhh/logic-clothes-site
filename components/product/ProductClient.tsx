@@ -18,7 +18,11 @@ import {
   normalizeSizeOptions,
 } from "@/lib/catalogProduct";
 import { formatDualPrice } from "@/lib/format";
-import { MADE_TO_ORDER_SIZE_GRID } from "@/lib/productSizes";
+import {
+  formatSizeLabel,
+  MADE_TO_ORDER_SIZE_GRID,
+  orderBrandSizes,
+} from "@/lib/productSizes";
 import { SIZE_CHART_ROWS } from "@/lib/sizeChart";
 import {
   productDescription,
@@ -77,14 +81,31 @@ export default function ProductClient({
   const inStockSizeSet = new Set(
     product.inStock && stockSizes.length > 0 ? stockSizes : []
   );
-  const displaySizes = Array.from(
-    new Set([...MADE_TO_ORDER_SIZE_GRID, ...stockSizes])
+  // Full brand grid only when made-to-order; otherwise just stocked SKUs.
+  const displaySizes = orderBrandSizes(
+    product.madeToOrder
+      ? [...MADE_TO_ORDER_SIZE_GRID, ...stockSizes]
+      : stockSizes
   );
   const canBuy = isSellableProduct(product);
   const onSale =
     product.isSale ||
     (product.compareAtPriceNum != null &&
       product.compareAtPriceNum > product.priceNum);
+
+  const fabricValue = [product.fabricName?.trim(), product.material?.trim()]
+    .filter(Boolean)
+    .join(" ");
+  const liningValue = [
+    product.lining?.trim(),
+    product.liningComposition?.trim(),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const insulationValue = product.insulation?.trim() || "";
+  const showFabricSpecs = Boolean(
+    fabricValue || liningValue || insulationValue
+  );
 
   useEffect(() => {
     setSelectedSize(null);
@@ -201,315 +222,325 @@ export default function ProductClient({
         </div>
 
         <div className="pdp-detail">
-        <header className="pdp-intro pdp-intro--row">
-          <h1 className="pdp-title">{displayName}</h1>
-          <div className="pdp-price">
-            {onSale && product.compareAtPriceNum != null && (
-              <span className="pdp-price-old">
-                {product.compareAtPriceNum.toLocaleString("uk-UA")} грн
-              </span>
-            )}
-            <span>{formatDualPrice(product)}</span>
-          </div>
-        </header>
-
-        <div className="pdp-block pdp-buy-opts">
-              <ProductColorPalette product={product} lang={lang} />
-
-              {lengthOptions.length > 0 && (
-                <div
-                  className={`pdp-option pdp-option--length${lengthOptions.length === 1 ? " is-static" : ""}${lengthHint ? " is-hint" : ""}`}
-                  ref={lengthBlockRef}
-                >
-                  <div className="pdp-option-top">
-                    <p className="pdp-label">{t.product.length}</p>
-                    {(lengthOptions.length === 1 || selectedLength) && (
-                      <p className="pdp-option-value">
-                        {lengthOptions.length === 1
-                          ? lengthOptions[0]
-                          : selectedLength}
-                      </p>
-                    )}
-                  </div>
-                  {lengthOptions.length > 1 && (
-                    <div
-                      className="pdp-sizes"
-                      role="listbox"
-                      aria-label={t.product.length}
-                      aria-invalid={lengthHint}
-                    >
-                      {lengthOptions.map((value) => (
-                        <button
-                          key={value}
-                          className={`pdp-size${selectedLength === value ? " is-active" : ""}`}
-                          type="button"
-                          role="option"
-                          aria-selected={selectedLength === value}
-                          onClick={() => {
-                            setSelectedLength(value);
-                            setLengthHint(false);
-                          }}
-                        >
-                          {value}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {lengthHint && (
-                    <p className="pdp-inline-hint" role="status">
-                      {t.product.pickLength}
-                    </p>
-                  )}
-                </div>
+          <header className="pdp-intro pdp-intro--row">
+            <h1 className="pdp-title">{displayName}</h1>
+            <div className="pdp-price">
+              {onSale && product.compareAtPriceNum != null && (
+                <span className="pdp-price-old">
+                  {product.compareAtPriceNum.toLocaleString("uk-UA")} грн
+                </span>
               )}
-
-              {materialOptions.length > 0 && (
-                <div
-                  className={`pdp-option pdp-option--material${materialOptions.length === 1 ? " is-static" : ""}${materialHint ? " is-hint" : ""}`}
-                  ref={materialBlockRef}
-                >
-                  <div className="pdp-option-top">
-                    <p className="pdp-label">{t.product.materialVariant}</p>
-                    {(materialOptions.length === 1 || selectedMaterial) && (
-                      <p className="pdp-option-value">
-                        {materialOptions.length === 1
-                          ? materialOptions[0]
-                          : selectedMaterial}
-                      </p>
-                    )}
-                  </div>
-                  {materialOptions.length > 1 && (
-                    <div
-                      className="pdp-sizes"
-                      role="listbox"
-                      aria-label={t.product.materialVariant}
-                      aria-invalid={materialHint}
-                    >
-                      {materialOptions.map((value) => (
-                        <button
-                          key={value}
-                          className={`pdp-size${selectedMaterial === value ? " is-active" : ""}`}
-                          type="button"
-                          role="option"
-                          aria-selected={selectedMaterial === value}
-                          onClick={() => {
-                            setSelectedMaterial(value);
-                            setMaterialHint(false);
-                          }}
-                        >
-                          {value}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {materialHint && (
-                    <p className="pdp-inline-hint" role="status">
-                      {t.product.pickMaterial}
-                    </p>
-                  )}
-                </div>
-              )}
-
-        </div>
-
-        {displayDesc ? (
-          <p className="pdp-desc pdp-desc--lead">{displayDesc}</p>
-        ) : null}
-
-        {(materialOptions.length > 0 || product.material) && (
-          <dl className="pdp-fabric-grid">
-            {materialOptions.length > 0 ? (
-              <div>
-                <dt>{t.product.fabricKind}</dt>
-                <dd>{materialOptions.join(" · ")}</dd>
-              </div>
-            ) : null}
-            {product.material ? (
-              <div>
-                <dt>{t.product.fabric}</dt>
-                <dd>{product.material}</dd>
-              </div>
-            ) : null}
-          </dl>
-        )}
-
-        {(product.inStock || product.madeToOrder) && (
-          <div className="pdp-status-row">
-            {product.inStock ? <span>{t.product.inStock}</span> : null}
-            {product.madeToOrder ? <span>{t.product.sewIn14Days}</span> : null}
-          </div>
-        )}
-
-        <div
-          className={`pdp-option pdp-option--size${sizeHint ? " is-hint" : ""}`}
-          ref={sizeBlockRef}
-        >
-          <div
-            className="pdp-sizes pdp-sizes--all"
-            role="listbox"
-            aria-label={t.product.size}
-            aria-invalid={sizeHint}
-          >
-            {displaySizes.map((sz) => {
-              const stocked = inStockSizeSet.has(sz);
-              return (
-                <button
-                  key={sz}
-                  className={`pdp-size${selectedSize === sz ? " is-active" : ""}${
-                    stocked ? "" : " is-off"
-                  }`}
-                  type="button"
-                  role="option"
-                  aria-selected={selectedSize === sz}
-                  disabled={!stocked}
-                  onClick={() => selectSize(sz)}
-                >
-                  {sz}
-                </button>
-              );
-            })}
-          </div>
-          {missingSizes ? (
-            <ProductDiscussOrder
-              lang={lang}
-              productId={product.id}
-              productName={displayName}
-              shadeLabel={product.color || ""}
-              label={t.product.orderMySize}
-              intent="size"
-            />
-          ) : null}
-          <button
-            type="button"
-            className="pdp-disclosure"
-            aria-expanded={sizeChartOpen}
-            onClick={() => setSizeChartOpen((v) => !v)}
-          >
-            {t.product.openSizeChart}
-          </button>
-          {sizeChartOpen ? (
-            <div className="pdp-size-chart pdp-size-chart--inline" id="pdp-size-chart">
-              <table className="pdp-size-table pdp-size-table--brand">
-                <thead>
-                  <tr>
-                    <th scope="col">{t.product.sizeCol}</th>
-                    <th scope="col">{t.product.bust}</th>
-                    <th scope="col">{t.product.waist}</th>
-                    <th scope="col">{t.product.hips}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {SIZE_CHART_ROWS.map((row) => (
-                    <tr key={row.size}>
-                      <th scope="row">{row.size}</th>
-                      <td>{row.bust}</td>
-                      <td>{row.waist}</td>
-                      <td>{row.hips}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <span>{formatDualPrice(product)}</span>
             </div>
-          ) : null}
-          {sizeHint && (
-            <p className="pdp-inline-hint" role="status">
-              {t.product.pickSize}
-            </p>
-          )}
-        </div>
+          </header>
 
-        {(product.photoSize || product.modelParams) && (
-          <div className="pdp-model-facts">
-            {product.photoSize ? (
-              <p>
-                <span>{t.product.photoSizeLabel}: </span>
-                {product.photoSize}
-              </p>
-            ) : null}
-            {product.modelParams ? (
-              <p>
-                <span>{t.product.modelParamsLabel}: </span>
-                {product.modelParams}
-              </p>
-            ) : null}
+          <div className="pdp-block pdp-buy-opts">
+            <ProductColorPalette product={product} lang={lang} />
+
+            {lengthOptions.length > 0 && (
+              <div
+                className={`pdp-option pdp-option--length${lengthOptions.length === 1 ? " is-static" : ""}${lengthHint ? " is-hint" : ""}`}
+                ref={lengthBlockRef}
+              >
+                <div className="pdp-option-top">
+                  <p className="pdp-label">{t.product.length}</p>
+                  {(lengthOptions.length === 1 || selectedLength) && (
+                    <p className="pdp-option-value">
+                      {lengthOptions.length === 1
+                        ? lengthOptions[0]
+                        : selectedLength}
+                    </p>
+                  )}
+                </div>
+                {lengthOptions.length > 1 && (
+                  <div
+                    className="pdp-sizes"
+                    role="listbox"
+                    aria-label={t.product.length}
+                    aria-invalid={lengthHint}
+                  >
+                    {lengthOptions.map((value) => (
+                      <button
+                        key={value}
+                        className={`pdp-size${selectedLength === value ? " is-active" : ""}`}
+                        type="button"
+                        role="option"
+                        aria-selected={selectedLength === value}
+                        onClick={() => {
+                          setSelectedLength(value);
+                          setLengthHint(false);
+                        }}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {lengthHint && (
+                  <p className="pdp-inline-hint" role="status">
+                    {t.product.pickLength}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {materialOptions.length > 1 && (
+              <div
+                className={`pdp-option pdp-option--material${materialHint ? " is-hint" : ""}`}
+                ref={materialBlockRef}
+              >
+                <div className="pdp-option-top">
+                  <p className="pdp-label">{t.product.materialVariant}</p>
+                  {selectedMaterial ? (
+                    <p className="pdp-option-value">{selectedMaterial}</p>
+                  ) : null}
+                </div>
+                <div
+                  className="pdp-sizes"
+                  role="listbox"
+                  aria-label={t.product.materialVariant}
+                  aria-invalid={materialHint}
+                >
+                  {materialOptions.map((value) => (
+                    <button
+                      key={value}
+                      className={`pdp-size${selectedMaterial === value ? " is-active" : ""}`}
+                      type="button"
+                      role="option"
+                      aria-selected={selectedMaterial === value}
+                      onClick={() => {
+                        setSelectedMaterial(value);
+                        setMaterialHint(false);
+                      }}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+                {materialHint && (
+                  <p className="pdp-inline-hint" role="status">
+                    {t.product.pickMaterial}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
-        )}
 
-        {showMeasures ? (
-          <div className="pdp-measures">
+          {displayDesc ? (
+            <p className="pdp-desc pdp-desc--lead">{displayDesc}</p>
+          ) : null}
+
+          {showFabricSpecs ? (
+            <dl className="pdp-fabric-grid">
+              {fabricValue ? (
+                <div>
+                  <dt>{t.product.fabricMaterialLabel}</dt>
+                  <dd>{fabricValue}</dd>
+                </div>
+              ) : null}
+              {insulationValue ? (
+                <div>
+                  <dt>{t.product.insulation}</dt>
+                  <dd>{insulationValue}</dd>
+                </div>
+              ) : null}
+              {liningValue ? (
+                <div>
+                  <dt>{t.product.liningLabel}</dt>
+                  <dd>{liningValue}</dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : null}
+
+          {(product.inStock || product.madeToOrder) && (
+            <div className="pdp-status-row">
+              {product.inStock ? (
+                <span className="pdp-status-chip">{t.product.inStock}</span>
+              ) : null}
+              {product.madeToOrder ? (
+                <span className="pdp-status-chip">{t.product.preorder}</span>
+              ) : null}
+            </div>
+          )}
+
+          <div
+            className={`pdp-option pdp-option--size${sizeHint ? " is-hint" : ""}`}
+            ref={sizeBlockRef}
+          >
+            <div
+              className="pdp-sizes pdp-sizes--text"
+              role="listbox"
+              aria-label={t.product.size}
+              aria-invalid={sizeHint}
+            >
+              {displaySizes.map((sz) => {
+                const stocked = inStockSizeSet.has(sz);
+                const canSelect = stocked || Boolean(product.madeToOrder);
+                return (
+                  <button
+                    key={sz}
+                    className={`pdp-size pdp-size--text${selectedSize === sz ? " is-active" : ""}${
+                      stocked
+                        ? " is-stocked"
+                        : canSelect
+                          ? " is-mto"
+                          : " is-off"
+                    }`}
+                    type="button"
+                    role="option"
+                    aria-selected={selectedSize === sz}
+                    disabled={!canSelect}
+                    onClick={() => selectSize(sz)}
+                  >
+                    {formatSizeLabel(sz)}
+                  </button>
+                );
+              })}
+            </div>
             <button
               type="button"
               className="pdp-disclosure"
-              aria-expanded={measuresOpen}
-              onClick={() => setMeasuresOpen((v) => !v)}
+              aria-expanded={sizeChartOpen}
+              onClick={() => setSizeChartOpen((v) => !v)}
             >
-              {t.product.actualMeasures}
+              {t.product.openSizeChart}
             </button>
-            {measuresOpen ? (
-              <dl className="pdp-measures-list">
-                {GARMENT_MEASURE_FIELDS.map((field) => {
-                  const value = product.garmentMeasures?.[field.key];
-                  if (!value) return null;
-                  return (
-                    <div key={field.key}>
-                      <dt>{lang === "en" ? field.labelEn : field.label}</dt>
-                      <dd>{value}</dd>
-                    </div>
-                  );
-                })}
-              </dl>
+            {sizeChartOpen ? (
+              <div
+                className="pdp-size-chart pdp-size-chart--inline"
+                id="pdp-size-chart"
+              >
+                <table className="pdp-size-table pdp-size-table--brand">
+                  <thead>
+                    <tr>
+                      <th scope="col">{t.product.sizeCol}</th>
+                      <th scope="col">{t.product.bust}</th>
+                      <th scope="col">{t.product.waist}</th>
+                      <th scope="col">{t.product.hips}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SIZE_CHART_ROWS.map((row) => (
+                      <tr key={row.size}>
+                        <th scope="row">{row.size}</th>
+                        <td>{row.bust}</td>
+                        <td>{row.waist}</td>
+                        <td>{row.hips}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+            {sizeHint && (
+              <p className="pdp-inline-hint" role="status">
+                {t.product.pickSize}
+              </p>
+            )}
+          </div>
+
+          {(product.photoSize || product.modelParams) && (
+            <div className="pdp-model-facts">
+              {product.photoSize ? (
+                <p>
+                  <span>{t.product.photoSizeLabel}: </span>
+                  {product.photoSize}
+                </p>
+              ) : null}
+              {product.modelParams ? (
+                <p className="pdp-model-facts-sub">
+                  {t.product.modelParamsLabel}; {product.modelParams}
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          {showMeasures ? (
+            <div className="pdp-measures">
+              <button
+                type="button"
+                className="pdp-disclosure"
+                aria-expanded={measuresOpen}
+                onClick={() => setMeasuresOpen((v) => !v)}
+              >
+                {t.product.actualMeasures}
+              </button>
+              {measuresOpen ? (
+                <dl className="pdp-measures-list">
+                  {GARMENT_MEASURE_FIELDS.map((field) => {
+                    const value = product.garmentMeasures?.[field.key];
+                    if (!value) return null;
+                    return (
+                      <div key={field.key}>
+                        <dt>{lang === "en" ? field.labelEn : field.label}</dt>
+                        <dd>{value}</dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="pdp-actions pdp-actions--immersive">
+            {!canBuy && (
+              <p className="pdp-stock-note" role="status">
+                {t.product.outOfStock}
+              </p>
+            )}
+            <button
+              className="pdp-cart pdp-cart--compact"
+              type="button"
+              onClick={addToCart}
+              disabled={!canBuy}
+            >
+              {canBuy ? t.product.addToCart : t.product.outOfStock}
+            </button>
+            <button
+              className={`pdp-wishlist-link${wished ? " is-on" : ""}`}
+              type="button"
+              aria-pressed={wished}
+              onClick={() =>
+                toggleWish({
+                  id: product.id,
+                  name: displayName,
+                  price: product.price,
+                  priceNum: product.priceNum,
+                  image: images[0],
+                })
+              }
+            >
+              {wished ? t.product.inWish : t.product.addWish}
+            </button>
+            <button
+              type="button"
+              className={`pdp-custom-order-cta${builderOpen ? " is-open" : ""}`}
+              aria-expanded={builderOpen}
+              onClick={() => setBuilderOpen((v) => !v)}
+            >
+              {t.product.orderMyColorSize}
+            </button>
+            {missingSizes ? (
+              <ProductDiscussOrder
+                lang={lang}
+                productId={product.id}
+                productName={displayName}
+                shadeLabel={product.color || ""}
+                label={t.product.orderMySize}
+                intent="size"
+              />
             ) : null}
           </div>
-        ) : null}
 
-        <div className="pdp-actions pdp-actions--immersive">
-          {!canBuy && (
-            <p className="pdp-stock-note" role="status">
-              {t.product.outOfStock}
-            </p>
-          )}
-          <button
-            className="pdp-cart pdp-cart--compact"
-            type="button"
-            onClick={addToCart}
-            disabled={!canBuy}
-          >
-            {canBuy ? t.product.addToCart : t.product.outOfStock}
-          </button>
-          <button
-            className={`pdp-wishlist-link${wished ? " is-on" : ""}`}
-            type="button"
-            aria-pressed={wished}
-            onClick={() =>
-              toggleWish({
-                id: product.id,
-                name: displayName,
-                price: product.price,
-                priceNum: product.priceNum,
-                image: images[0],
-              })
-            }
-          >
-            {wished ? t.product.inWish : t.product.addWish}
-          </button>
-          <button
-            type="button"
-            className={`pdp-custom-order-cta${builderOpen ? " is-open" : ""}`}
-            aria-expanded={builderOpen}
-            onClick={() => setBuilderOpen((v) => !v)}
-          >
-            {t.product.orderMyColorSize}
-          </button>
-        </div>
-
-        {builderOpen ? (
-          <ProductCustomBuilder
-            product={product}
-            lang={lang}
-            sizes={displaySizes}
-            onAdd={addCustom}
-          />
-        ) : null}
+          {builderOpen ? (
+            <ProductCustomBuilder
+              product={product}
+              lang={lang}
+              sizes={displaySizes}
+              onAdd={addCustom}
+            />
+          ) : null}
         </div>
       </div>
 

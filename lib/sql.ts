@@ -53,7 +53,11 @@ type ProductRow = {
   compare_at_price_num: string | number | null;
   color: string;
   color_hex: string | null;
+  fabric_name?: string | null;
   material: string;
+  lining?: string | null;
+  lining_composition?: string | null;
+  insulation?: string | null;
   description: string;
   description_en: string | null;
   long_description: string;
@@ -171,7 +175,13 @@ function mapProduct(row: ProductRow): Product {
     ...(compareAt != null && compareAt > 0 ? { compareAtPriceNum: compareAt } : {}),
     color: row.color || "",
     ...(row.color_hex ? { colorHex: row.color_hex } : {}),
+    ...(row.fabric_name?.trim() ? { fabricName: row.fabric_name.trim() } : {}),
     material: row.material || "",
+    ...(row.lining?.trim() ? { lining: row.lining.trim() } : {}),
+    ...(row.lining_composition?.trim()
+      ? { liningComposition: row.lining_composition.trim() }
+      : {}),
+    ...(row.insulation?.trim() ? { insulation: row.insulation.trim() } : {}),
     description: row.description || "",
     ...(row.description_en ? { descriptionEn: row.description_en } : {}),
     longDescription: row.long_description || "",
@@ -225,7 +235,11 @@ const PRODUCT_SELECT = `
     p.compare_at_price_num,
     p.color,
     p.color_hex,
+    p.fabric_name,
     p.material,
+    p.lining,
+    p.lining_composition,
+    p.insulation,
     p.description,
     p.description_en,
     p.long_description,
@@ -433,7 +447,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
       INSERT INTO products (
         slug, name, name_en, sizes_display, price_num, price_label,
         price_eur, price_usd, compare_at_price_num,
-        color, color_hex, material,
+        color, color_hex, fabric_name, material, lining, lining_composition, insulation,
         description, description_en, long_description, long_description_en,
         short_description, photo_size, model_params, garment_measures,
         in_stock, made_to_order, season, is_visible, sku, category, is_new, is_popular, is_sale, color_group,
@@ -441,11 +455,11 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
       ) VALUES (
         $1,$2,$3,$4,$5,$6,
         $7,$8,$9,
-        $10,$11,$12,
-        $13,$14,$15,$16,
+        $10,$11,$12,$13,$14,$15,$16,
         $17,$18,$19,$20,
-        $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,
-        $31, NOW()
+        $21,$22,$23,$24,
+        $25,$26,$27,$28,$29,$30,$31,$32,$33,$34,
+        $35, NOW()
       )
       ON CONFLICT (slug) DO UPDATE SET
         name = EXCLUDED.name,
@@ -458,7 +472,11 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         compare_at_price_num = EXCLUDED.compare_at_price_num,
         color = EXCLUDED.color,
         color_hex = EXCLUDED.color_hex,
+        fabric_name = EXCLUDED.fabric_name,
         material = EXCLUDED.material,
+        lining = EXCLUDED.lining,
+        lining_composition = EXCLUDED.lining_composition,
+        insulation = EXCLUDED.insulation,
         description = EXCLUDED.description,
         description_en = EXCLUDED.description_en,
         long_description = EXCLUDED.long_description,
@@ -492,7 +510,11 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         product.compareAtPriceNum ?? null,
         product.color || "",
         product.colorHex || "",
+        product.fabricName?.trim() || null,
         product.material || "",
+        product.lining?.trim() || null,
+        product.liningComposition?.trim() || null,
+        product.insulation?.trim() || null,
         product.description || "",
         product.descriptionEn || "",
         product.longDescription || "",

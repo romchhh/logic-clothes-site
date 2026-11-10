@@ -33,11 +33,14 @@ export default function ProductImmersiveGallery({
   closeLabel?: string;
 }) {
   const lightboxTrackRef = useRef<HTMLDivElement>(null);
+  const thumbsRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const indexRef = useRef(0);
+  const suppressClickRef = useRef(false);
   const heroDragRef = useRef({
     active: false,
     pointerId: null as number | null,
     startX: 0,
-    startScroll: 0,
     moved: false,
   });
 
@@ -48,14 +51,83 @@ export default function ProductImmersiveGallery({
   const goTo = useCallback(
     (i: number) => {
       const next = Math.max(0, Math.min(slides.length - 1, i));
+      indexRef.current = next;
       setIndex(next);
     },
     [slides.length]
   );
 
   useEffect(() => {
+    indexRef.current = 0;
     setIndex(0);
   }, [slides]);
+
+  useEffect(() => {
+    const root = thumbsRef.current;
+    if (!root) return;
+    const active = root.querySelector<HTMLElement>(".pdp-immerse-thumb.is-active");
+    active?.scrollIntoView({
+      behavior: "smooth",
+      inline: "nearest",
+      block: "nearest",
+    });
+  }, [index]);
+
+  // Non-passive touch listeners so reverse horizontal swipe is not stolen
+  // by browser back-gesture / page scroll.
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el || slides.length < 2) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      suppressClickRef.current = false;
+      heroDragRef.current = {
+        active: true,
+        pointerId: -1,
+        startX: e.touches[0].clientX,
+        moved: false,
+      };
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const drag = heroDragRef.current;
+      if (!drag.active || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - drag.startX;
+      if (Math.abs(dx) > 8) {
+        drag.moved = true;
+        if (e.cancelable) e.preventDefault();
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      const drag = heroDragRef.current;
+      if (!drag.active) return;
+      const endX =
+        e.changedTouches[0]?.clientX ?? drag.startX;
+      const dx = endX - drag.startX;
+      const wasMoved = drag.moved;
+      drag.active = false;
+      drag.pointerId = null;
+      drag.moved = false;
+      if (!wasMoved || Math.abs(dx) < 36) return;
+      suppressClickRef.current = true;
+      const cur = indexRef.current;
+      if (dx < 0) goTo(cur + 1);
+      else goTo(cur - 1);
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [slides.length, goTo]);
 
   useScrollLock(lightboxOpen);
 
@@ -70,7 +142,11 @@ export default function ProductImmersiveGallery({
   useEffect(() => {
     if (!lightboxOpen) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setLightboxOpen(false);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setLightboxOpen(false);
+        return;
+      }
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         setLightboxIndex((i) => Math.max(0, i - 1));
@@ -84,32 +160,51 @@ export default function ProductImmersiveGallery({
     return () => document.removeEventListener("keydown", onKey);
   }, [lightboxOpen, slides.length]);
 
+  const wasLightboxOpenRef = useRef(false);
+  useEffect(() => {
+    if (wasLightboxOpenRef.current && !lightboxOpen) {
+      goTo(lightboxIndex);
+    }
+    wasLightboxOpenRef.current = lightboxOpen;
+  }, [lightboxOpen, lightboxIndex, goTo]);
+
   function openLightbox(i: number) {
     setLightboxIndex(i);
     setLightboxOpen(true);
   }
 
+  function closeLightbox() {
+    setLightboxOpen(false);
+  }
+
   function onHeroPointerDown(e: ReactPointerEvent<HTMLElement>) {
     if (!multi) return;
+    // Touch is handled by non-passive listeners (avoids double-step).
+    if (e.pointerType === "touch") return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    suppressClickRef.current = false;
     heroDragRef.current = {
       active: true,
       pointerId: e.pointerId,
       startX: e.clientX,
-      startScroll: 0,
       moved: false,
     };
     e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function onHeroPointerMove(e: ReactPointerEvent<HTMLElement>) {
+    if (e.pointerType === "touch") return;
     const drag = heroDragRef.current;
     if (!drag.active || drag.pointerId !== e.pointerId) return;
     const dx = e.clientX - drag.startX;
-    if (Math.abs(dx) > 10) drag.moved = true;
+    if (Math.abs(dx) > 8) {
+      drag.moved = true;
+      if (e.cancelable) e.preventDefault();
+    }
   }
 
   function endHeroDrag(e: ReactPointerEvent<HTMLElement>) {
+    if (e.pointerType === "touch") return;
     const drag = heroDragRef.current;
     if (!drag.active || drag.pointerId !== e.pointerId) return;
     try {
@@ -118,13 +213,28 @@ export default function ProductImmersiveGallery({
       /* ignore */
     }
     const dx = e.clientX - drag.startX;
-    if (drag.moved) {
-      if (dx < -48) goTo(index + 1);
-      else if (dx > 48) goTo(index - 1);
-    }
+    const wasMoved = drag.moved;
     drag.active = false;
     drag.pointerId = null;
     drag.moved = false;
+
+    if (!wasMoved || Math.abs(dx) < 36) return;
+
+    suppressClickRef.current = true;
+    const cur = indexRef.current;
+    // Finger/mouse left → next; right → previous.
+    if (dx < 0) goTo(cur + 1);
+    else goTo(cur - 1);
+  }
+
+  function onLightboxScroll() {
+    const el = lightboxTrackRef.current;
+    if (!el) return;
+    const w = el.clientWidth || 1;
+    const idx = Math.round(el.scrollLeft / w);
+    if (idx !== lightboxIndex && idx >= 0 && idx < slides.length) {
+      setLightboxIndex(idx);
+    }
   }
 
   if (!slides.length) return null;
@@ -135,6 +245,7 @@ export default function ProductImmersiveGallery({
   return (
     <div className="pdp-immerse-root">
       <section
+        ref={heroRef}
         className="pdp-immerse-hero"
         aria-label={alt}
         onPointerDown={onHeroPointerDown}
@@ -146,8 +257,9 @@ export default function ProductImmersiveGallery({
           type="button"
           className="pdp-immerse-hero-hit"
           onClick={(e) => {
-            if (heroDragRef.current.moved) {
+            if (suppressClickRef.current || heroDragRef.current.moved) {
               e.preventDefault();
+              suppressClickRef.current = false;
               return;
             }
             openLightbox(index);
@@ -206,7 +318,7 @@ export default function ProductImmersiveGallery({
       </section>
 
       <section className="pdp-immerse-angles" aria-label={alt}>
-        <div className="pdp-immerse-thumbs" role="tablist">
+        <div className="pdp-immerse-thumbs" role="tablist" ref={thumbsRef}>
           {slides.map((slide, i) => (
             <button
               key={`${slide.url}-thumb-${i}`}
@@ -250,13 +362,13 @@ export default function ProductImmersiveGallery({
             type="button"
             className="pdp-lightbox-backdrop"
             aria-label={closeLabel}
-            onClick={() => setLightboxOpen(false)}
+            onClick={closeLightbox}
           />
           <button
             type="button"
             className="pdp-lightbox-close"
             aria-label={closeLabel}
-            onClick={() => setLightboxOpen(false)}
+            onClick={closeLightbox}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
@@ -296,7 +408,11 @@ export default function ProductImmersiveGallery({
               </button>
             </>
           )}
-          <div className="pdp-lightbox-track" ref={lightboxTrackRef}>
+          <div
+            className="pdp-lightbox-track"
+            ref={lightboxTrackRef}
+            onScroll={onLightboxScroll}
+          >
             {slides.map((slide, i) => (
               <figure className="pdp-lightbox-slide" key={`lb-${slide.url}-${i}`}>
                 {slide.type === "video" ? (

@@ -40,7 +40,7 @@ import {
   rememberFromCatalog,
   rememberFromProduct,
 } from "@/lib/adminProductPresets";
-import { ADMIN_SIZE_PRESETS } from "@/lib/productSizes";
+import { ADMIN_SIZE_PRESETS, normalizeBrandSize } from "@/lib/productSizes";
 import {
   emptyGarmentMeasures,
   GARMENT_MEASURE_FIELDS,
@@ -76,7 +76,11 @@ type FormState = {
   priceUsd: string;
   compareAtUah: string;
   category: string;
+  fabricName: string;
   material: string;
+  lining: string;
+  liningComposition: string;
+  insulation: string;
   photoSize: string;
   modelParams: string;
   garmentMeasures: Record<GarmentMeasureKey, string>;
@@ -120,11 +124,15 @@ const EMPTY: FormState = {
   priceUsd: "",
   compareAtUah: "",
   category: "",
+  fabricName: "",
   material: "",
+  lining: "",
+  liningComposition: "",
+  insulation: "",
   photoSize: "",
   modelParams: "",
   garmentMeasures: emptyGarmentMeasures(),
-  sizeOptions: ["ONESIZE", "S-M", "M-L"],
+  sizeOptions: [],
   lengthOptions: [],
   materialOptions: [],
   descriptionUk: "",
@@ -321,14 +329,23 @@ export default function ProductForm({ productId }: Props) {
           compareAtUah:
             p.compareAtPriceNum != null ? String(p.compareAtPriceNum) : "",
           category: p.category ?? "",
+          fabricName:
+            p.fabricName?.trim() ||
+            (Array.isArray(p.materialOptions) && p.materialOptions[0]) ||
+            "",
           material: p.material ?? "",
+          lining: p.lining ?? "",
+          liningComposition: p.liningComposition ?? "",
+          insulation: p.insulation ?? "",
           photoSize: p.photoSize ?? "",
           modelParams: p.modelParams ?? "",
           garmentMeasures: {
             ...emptyGarmentMeasures(),
             ...(p.garmentMeasures ?? {}),
           },
-          sizeOptions: Array.isArray(p.sizeOptions) ? p.sizeOptions : [],
+          sizeOptions: Array.isArray(p.sizeOptions)
+            ? p.sizeOptions.map(normalizeBrandSize)
+            : [],
           lengthOptions: Array.isArray(p.lengthOptions) ? p.lengthOptions : [],
           materialOptions: Array.isArray(p.materialOptions)
             ? p.materialOptions
@@ -497,6 +514,14 @@ export default function ProductForm({ productId }: Props) {
       setError("Вкажіть назву (UK)");
       return;
     }
+    if (!form.fabricName.trim()) {
+      setError("Вкажіть основну тканину");
+      return;
+    }
+    if (!form.material.trim()) {
+      setError("Вкажіть склад основної тканини");
+      return;
+    }
     const priceNum = Number(form.priceUah);
     if (!Number.isFinite(priceNum) || priceNum < 0) {
       setError("Вкажіть коректну ціну в грн");
@@ -561,13 +586,21 @@ export default function ProductForm({ productId }: Props) {
       category: form.category,
       color: primaryColor.label,
       colorHex: primaryColor.hex,
+      fabricName: form.fabricName.trim(),
       material: form.material.trim(),
+      lining: form.lining.trim() || null,
+      liningComposition: form.liningComposition.trim() || null,
+      insulation: form.insulation.trim() || null,
       photoSize: form.photoSize.trim(),
       modelParams: form.modelParams.trim(),
       garmentMeasures: form.garmentMeasures,
-      sizeOptions: form.sizeOptions,
+      sizeOptions: form.sizeOptions.map(normalizeBrandSize),
       lengthOptions: form.lengthOptions,
-      materialOptions: form.materialOptions,
+      materialOptions: form.fabricName.trim()
+        ? Array.from(
+            new Set([form.fabricName.trim(), ...form.materialOptions])
+          )
+        : form.materialOptions,
       description: descriptionUk,
       descriptionEn,
       // Keep legacy long_* columns in sync — one description for the shop.
@@ -974,22 +1007,51 @@ export default function ProductForm({ productId }: Props) {
 
       {/* Sizes */}
       <ComponentCard title="Розміри" sectionId="section-sizes">
-        <AdminChipField
-          label="Розміри в наявності"
-          placeholderChip="Свій розмір"
-          bulkPlaceholder="XXS, XS, S, M, L, XL"
-          suggestions={Array.from(
-            new Set([...ADMIN_SIZE_PRESETS, ...form.sizeOptions])
-          )}
-          selected={form.sizeOptions}
-          onToggle={(value) => toggleOption("sizeOptions", value)}
-          onBulkAdd={(values) => {
-            setForm((prev) => ({
-              ...prev,
-              sizeOptions: Array.from(new Set([...prev.sizeOptions, ...values])),
-            }));
-          }}
-        />
+        <div className="space-y-3">
+          <p className="text-[12px] text-gray-500 dark:text-gray-400">
+            Наша сітка: ONESIZE · XS-S · S-M · M-L · L-XL · A · B · C · D
+          </p>
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            {ADMIN_SIZE_PRESETS.map((value) => {
+              const active = form.sizeOptions.includes(value);
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => toggleOption("sizeOptions", value)}
+                  className={`admin-chip ${active ? "admin-chip-active" : ""}`}
+                >
+                  {value}
+                </button>
+              );
+            })}
+          </div>
+          <AdminChipField
+            label="Додаткові / свої розміри"
+            hint="Якщо треба щось поза сіткою — додайте тут."
+            placeholderChip="Свій розмір"
+            bulkPlaceholder="ONESIZE, XS-S, S-M"
+            suggestions={form.sizeOptions.filter(
+              (s) =>
+                !(ADMIN_SIZE_PRESETS as readonly string[]).includes(s)
+            )}
+            selected={form.sizeOptions}
+            onToggle={(value) =>
+              toggleOption("sizeOptions", normalizeBrandSize(value))
+            }
+            onBulkAdd={(values) => {
+              setForm((prev) => ({
+                ...prev,
+                sizeOptions: Array.from(
+                  new Set([
+                    ...prev.sizeOptions,
+                    ...values.map(normalizeBrandSize),
+                  ])
+                ),
+              }));
+            }}
+          />
+        </div>
       </ComponentCard>
 
       {/* Length + material variants */}
@@ -1077,11 +1139,29 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       {/* Composition + model */}
-      <ComponentCard title="Склад і модель" sectionId="section-material">
+      <ComponentCard title="Тканини і склад" sectionId="section-material">
         <div className="space-y-8">
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="fabricName">Основна тканина *</Label>
+              <Input
+                id="fabricName"
+                value={form.fabricName}
+                onChange={(e) => set("fabricName", e.target.value)}
+                placeholder="напр. сітка, шовк, креп"
+              />
+            </div>
+            <div>
+              <Label htmlFor="material">Склад основної тканини *</Label>
+              <Input
+                id="material"
+                value={form.material}
+                onChange={(e) => set("material", e.target.value)}
+                placeholder="100% поліестер / 95% бавовна, 5% еластан"
+              />
+            </div>
             <AdminChipField
-              label="Збережені склади"
+              label="Швидкий вибір складу"
               placeholderChip="Новий склад"
               bulkPlaceholder={"95% бавовна, 5% еластан"}
               suggestions={Array.from(
@@ -1103,14 +1183,37 @@ export default function ProductForm({ productId }: Props) {
                 }
               }}
             />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="lining">Підклад</Label>
+                <Input
+                  id="lining"
+                  value={form.lining}
+                  onChange={(e) => set("lining", e.target.value)}
+                  placeholder="якщо немає — залиште порожнім"
+                />
+              </div>
+              <div>
+                <Label htmlFor="liningComposition">Склад підкладки</Label>
+                <Input
+                  id="liningComposition"
+                  value={form.liningComposition}
+                  onChange={(e) => set("liningComposition", e.target.value)}
+                  placeholder="напр. 100% віскоза"
+                />
+              </div>
+            </div>
             <div>
-              <Label htmlFor="material">Склад (текст на сайті)</Label>
+              <Label htmlFor="insulation">Утеплювач</Label>
               <Input
-                id="material"
-                value={form.material}
-                onChange={(e) => set("material", e.target.value)}
-                placeholder="100% поліестер / 95% cotton, 5% elastane"
+                id="insulation"
+                value={form.insulation}
+                onChange={(e) => set("insulation", e.target.value)}
+                placeholder="якщо немає — залиште порожнім"
               />
+              <p className="mt-1 text-[12px] text-gray-500">
+                Підклад і утеплювач на сайті зʼявляються лише коли заповнені.
+              </p>
             </div>
           </div>
           <ModelPresetPicker

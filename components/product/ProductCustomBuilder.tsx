@@ -67,7 +67,7 @@ export default function ProductCustomBuilder({
             className={`pdp-size${size === sz ? " is-active" : ""}`}
             onClick={() => setSize(sz)}
           >
-            {sz}
+            {sz.replace(/-/g, "\u2011")}
           </button>
         ))}
       </div>

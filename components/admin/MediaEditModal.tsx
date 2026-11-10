@@ -59,7 +59,6 @@ function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
-const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.12;
 
@@ -85,7 +84,27 @@ const FINE_SLIDERS: {
   },
   { key: "saturation", label: "Насиченість", hint: "Колір", min: -100, max: 100 },
   { key: "sharpness", label: "Різкість", hint: "Деталі", min: 0, max: 100 },
+  {
+    key: "rotate",
+    label: "Горизонт",
+    hint: "Вирівняти нахил (як в Instagram)",
+    min: -15,
+    max: 15,
+  },
 ];
+
+/** Cover = 1. Allow zoom-out to contain so wide photos are not force-cropped. */
+function minZoomFor(
+  naturalW: number,
+  naturalH: number,
+  frameW: number,
+  frameH: number
+): number {
+  if (naturalW <= 0 || naturalH <= 0 || frameW <= 0 || frameH <= 0) return 0.5;
+  const cover = Math.max(frameW / naturalW, frameH / naturalH);
+  const contain = Math.min(frameW / naturalW, frameH / naturalH);
+  return clamp(contain / cover, 0.35, 1);
+}
 
 export default function MediaEditModal({
   session,
@@ -143,7 +162,9 @@ export default function MediaEditModal({
 
   useEffect(() => {
     if (!session) return;
-    setAdjust(session.initialAdjust ?? DEFAULT_MEDIA_ADJUST);
+    const initial = session.initialAdjust ?? DEFAULT_MEDIA_ADJUST;
+    setAdjust(initial);
+    rotateRef.current = initial.rotate ?? 0;
     setTab(session.mode === "video" ? "poster" : "crop");
     setCompare(false);
     setSaveError(null);
@@ -198,10 +219,16 @@ export default function MediaEditModal({
     return cropImgRef.current ?? videoRef.current;
   }, []);
 
+  const rotateRef = useRef(0);
+
   const applyPanToDom = useCallback(() => {
     const el = cropNode();
     if (!el) return;
-    el.style.transform = `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0)`;
+    const rot = rotateRef.current;
+    el.style.transform =
+      Math.abs(rot) > 0.05
+        ? `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) rotate(${rot}deg)`
+        : `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0)`;
   }, [cropNode]);
 
   const coverLayout = useCallback(
@@ -216,8 +243,22 @@ export default function MediaEditModal({
       const dispW = naturalW * scale;
       const dispH = naturalH * scale;
       const minX = Math.min(0, frameW - dispW);
+      const maxX = Math.max(0, frameW - dispW);
       const minY = Math.min(0, frameH - dispH);
-      return { frameW, frameH, scale, cover, dispW, dispH, minX, minY };
+      const maxY = Math.max(0, frameH - dispH);
+      return {
+        frameW,
+        frameH,
+        scale,
+        cover,
+        dispW,
+        dispH,
+        minX,
+        maxX,
+        minY,
+        maxY,
+        minZoom: minZoomFor(naturalW, naturalH, frameW, frameH),
+      };
     },
     []
   );
@@ -244,8 +285,8 @@ export default function MediaEditModal({
         };
       } else {
         panRef.current = {
-          x: clamp(panRef.current.x, layout.minX, 0),
-          y: clamp(panRef.current.y, layout.minY, 0),
+          x: clamp(panRef.current.x, layout.minX, layout.maxX),
+          y: clamp(panRef.current.y, layout.minY, layout.maxY),
         };
       }
       applyPanToDom();
@@ -263,7 +304,9 @@ export default function MediaEditModal({
       focalX?: number,
       focalY?: number
     ) => {
-      const z = clamp(nextZoom, MIN_ZOOM, MAX_ZOOM);
+      const layoutHint = coverLayout(naturalW, naturalH, 1);
+      const zMin = layoutHint?.minZoom ?? 0.5;
+      const z = clamp(nextZoom, zMin, MAX_ZOOM);
       const prev = coverLayout(naturalW, naturalH, zoomRef.current);
       if (!prev) {
         zoomRef.current = z;
@@ -287,8 +330,8 @@ export default function MediaEditModal({
         el.style.objectFit = "fill";
       }
       panRef.current = {
-        x: clamp(fx - imgX * next.scale, next.minX, 0),
-        y: clamp(fy - imgY * next.scale, next.minY, 0),
+        x: clamp(fx - imgX * next.scale, next.minX, next.maxX),
+        y: clamp(fy - imgY * next.scale, next.minY, next.maxY),
       };
       applyPanToDom();
       cropReadyRef.current = true;
@@ -466,8 +509,8 @@ export default function MediaEditModal({
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
     panRef.current = {
-      x: clamp(drag.originX + dx, layout.minX, 0),
-      y: clamp(drag.originY + dy, layout.minY, 0),
+      x: clamp(drag.originX + dx, layout.minX, layout.maxX),
+      y: clamp(drag.originY + dy, layout.minY, layout.maxY),
     };
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(applyPanToDom);
@@ -524,9 +567,14 @@ export default function MediaEditModal({
   const previewFilter = mediaAdjustCssFilter(previewAdjust);
 
   function onFineChange(key: ToneKey, value: number) {
+    if (key === "rotate") {
+      rotateRef.current = value;
+      applyPanToDom();
+    }
     setAdjust((prev) => {
       const frame = currentFrame();
       const next: MediaAdjust = { ...prev, [key]: value };
+      if (key === "rotate" && Math.abs(value) < 0.05) delete next.rotate;
       if (frame) next.frame = frame;
       else delete next.frame;
       return next;
@@ -678,6 +726,13 @@ export default function MediaEditModal({
   const showCropLayer = tab === "crop";
   const showSkip = Boolean(onSkip) && (isVideo || queueTotal > 1);
   const fileLabel = session.label?.trim();
+  const liveMinZoom =
+    coverLayout(
+      naturalRef.current.w || session.naturalW,
+      naturalRef.current.h || session.naturalH,
+      1
+    )?.minZoom ?? 0.5;
+  const rotateDeg = adjust.rotate ?? 0;
 
   const tabs: { id: EditorTab; label: string }[] = isVideo
     ? [
@@ -800,12 +855,12 @@ export default function MediaEditModal({
                         x: clamp(
                           spanX < 1 ? panRef.current.x : -(saved.x / 100) * spanX,
                           layout.minX,
-                          0
+                          layout.maxX
                         ),
                         y: clamp(
                           spanY < 1 ? panRef.current.y : -(saved.y / 100) * spanY,
                           layout.minY,
-                          0
+                          layout.maxY
                         ),
                       };
                       applyPanToDom();
@@ -845,9 +900,30 @@ export default function MediaEditModal({
                   style={
                     previewFilter ? { filter: previewFilter } : undefined
                   }
-                  onLoad={() =>
-                    centerPan(session.naturalW, session.naturalH)
-                  }
+                  onLoad={() => {
+                    const saved = session.initialAdjust?.frame;
+                    // Start slightly zoomed out for wide photos so less is cut off.
+                    const layout = coverLayout(
+                      session.naturalW,
+                      session.naturalH,
+                      1
+                    );
+                    if (saved?.zoom) {
+                      setZoomAround(
+                        saved.zoom,
+                        session.naturalW,
+                        session.naturalH
+                      );
+                    } else if (layout && layout.minZoom < 0.98) {
+                      setZoomAround(
+                        Math.max(layout.minZoom, 0.72),
+                        session.naturalW,
+                        session.naturalH
+                      );
+                    } else {
+                      centerPan(session.naturalW, session.naturalH);
+                    }
+                  }}
                 />
               )}
               <div className="media-editor-frame-guide" aria-hidden="true" />
@@ -913,14 +989,15 @@ export default function MediaEditModal({
                         <div className="media-editor-slider-top">
                           <span className="media-editor-slider-label">{label}</span>
                           <span className="media-editor-slider-value">
-                            {adjust[key]}
+                            {adjust[key] ?? 0}
                           </span>
                         </div>
                         <input
                           type="range"
                           min={min}
                           max={max}
-                          value={adjust[key]}
+                          step={key === "rotate" ? 0.5 : 1}
+                          value={adjust[key] ?? 0}
                           className="media-editor-range"
                           onChange={(e) =>
                             onFineChange(key, Number(e.target.value))
@@ -949,7 +1026,7 @@ export default function MediaEditModal({
                     type="button"
                     className="media-editor-zoom-btn"
                     aria-label="Віддалити"
-                    disabled={disabled || zoom <= MIN_ZOOM}
+                    disabled={disabled || zoom <= liveMinZoom + 0.001}
                     onClick={() =>
                       setZoomAround(
                         zoomRef.current - ZOOM_STEP,
@@ -963,7 +1040,7 @@ export default function MediaEditModal({
                   <input
                     type="range"
                     className="media-editor-zoom-range"
-                    min={MIN_ZOOM}
+                    min={liveMinZoom}
                     max={MAX_ZOOM}
                     step={0.01}
                     value={zoom}
@@ -1114,7 +1191,7 @@ export default function MediaEditModal({
                       </div>
                       <input
                         type="range"
-                        min={MIN_ZOOM}
+                        min={liveMinZoom}
                         max={MAX_ZOOM}
                         step={0.01}
                         value={zoom}

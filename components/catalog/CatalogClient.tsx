@@ -28,6 +28,7 @@ import {
   productMatchesSeasonFilter,
   type SeasonFilter,
 } from "@/lib/productSeason";
+import { normalizeBrandSize } from "@/lib/productSizes";
 import type { Product } from "@/lib/types";
 
 const PAGE_STEP = 16;
@@ -99,7 +100,10 @@ export default function CatalogClient({
     return products.filter((product) => {
       const matchesSize =
         selectedSizes.length === 0 ||
-        (product.sizeOptions || []).some((s) => selectedSizes.includes(s));
+        (product.sizeOptions || []).some((s) =>
+          selectedSizes.includes(s) ||
+          selectedSizes.includes(normalizeBrandSize(s))
+        );
 
       const colorValues = [
         product.color,

@@ -16,6 +16,8 @@ export type MediaAdjust = {
   saturation: number;
   /** 0 … 100 */
   sharpness: number;
+  /** Horizon straighten, degrees (−15 … 15). */
+  rotate?: number;
   frame?: MediaFrame;
 };
 
@@ -25,6 +27,7 @@ export const DEFAULT_MEDIA_ADJUST: MediaAdjust = {
   warmth: 0,
   saturation: 0,
   sharpness: 0,
+  rotate: 0,
 };
 
 export function normalizeMediaAdjust(raw: unknown): MediaAdjust | undefined {
@@ -36,12 +39,14 @@ export function normalizeMediaAdjust(raw: unknown): MediaAdjust | undefined {
     return Math.min(max, Math.max(min, n));
   };
   const frame = parseMediaFrame(o.frame);
+  const rotate = clamp(o.rotate, -15, 15, 0);
   const a: MediaAdjust = {
     brightness: clamp(o.brightness, -100, 100, 0),
     contrast: clamp(o.contrast, -100, 100, 0),
     warmth: clamp(o.warmth, -100, 100, 0),
     saturation: clamp(o.saturation, -100, 100, 0),
     sharpness: clamp(o.sharpness, 0, 100, 0),
+    ...(Math.abs(rotate) > 0.05 ? { rotate } : {}),
     ...(frame ? { frame } : {}),
   };
   if (isDefaultAdjust(a)) return undefined;
@@ -58,9 +63,11 @@ function parseMediaFrame(raw: unknown): MediaFrame | undefined {
   const frame: MediaFrame = {
     x: Math.min(100, Math.max(0, n(o.x, 50))),
     y: Math.min(100, Math.max(0, n(o.y, 50))),
-    zoom: Math.min(4, Math.max(1, n(o.zoom, 1))),
+    zoom: Math.min(4, Math.max(0.35, n(o.zoom, 1))),
   };
-  if (frame.x === 50 && frame.y === 50 && frame.zoom <= 1.001) return undefined;
+  if (frame.x === 50 && frame.y === 50 && Math.abs(frame.zoom - 1) < 0.001) {
+    return undefined;
+  }
   return frame;
 }
 
@@ -71,10 +78,11 @@ export function isDefaultAdjust(a: MediaAdjust | undefined): boolean {
     a.contrast === 0 &&
     a.warmth === 0 &&
     a.saturation === 0 &&
-    a.sharpness === 0;
+    a.sharpness === 0 &&
+    Math.abs(a.rotate ?? 0) < 0.05;
   const frame = a.frame;
   const frameDefault =
-    !frame || (frame.x === 50 && frame.y === 50 && frame.zoom <= 1.001);
+    !frame || (frame.x === 50 && frame.y === 50 && Math.abs(frame.zoom - 1) < 0.001);
   return tone && frameDefault;
 }
 
@@ -98,10 +106,10 @@ export function mediaAdjustCssFilter(adjust: MediaAdjust | undefined): string | 
   if (!adjust) return undefined;
   if (
     adjust.brightness === 0 &&
-      adjust.contrast === 0 &&
-      adjust.warmth === 0 &&
-      adjust.saturation === 0 &&
-      adjust.sharpness === 0
+    adjust.contrast === 0 &&
+    adjust.warmth === 0 &&
+    adjust.saturation === 0 &&
+    adjust.sharpness === 0
   ) {
     return undefined;
   }
@@ -121,7 +129,6 @@ export function mediaAdjustCssFilter(adjust: MediaAdjust | undefined): string | 
   if (warm < 0) {
     parts.push(`hue-rotate(${(warm * 0.15).toFixed(1)}deg)`);
   }
-  // Approximate sharpness in live preview (baked via pixels on save).
   if (adjust.sharpness > 0) {
     parts.push(`contrast(${(1 + adjust.sharpness / 220).toFixed(3)})`);
   }
