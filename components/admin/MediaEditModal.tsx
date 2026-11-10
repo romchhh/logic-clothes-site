@@ -66,33 +66,35 @@ type PanState = { x: number; y: number };
 
 type ToneKey = Exclude<keyof MediaAdjust, "frame">;
 
-const HORIZON_SLIDER = {
-  key: "rotate" as const,
-  label: "Горизонт",
-  hint: "Вирівняти нахил",
-  min: -15,
-  max: 15,
-};
-
-/** Instagram-style: one tool at a time (horizon is separate, on top). */
+/** Instagram-style: one tool at a time (incl. horizon). */
 const TONE_TOOLS: {
-  key: Exclude<ToneKey, "rotate">;
+  key: ToneKey;
   label: string;
   hint: string;
   min: number;
   max: number;
+  step: number;
 }[] = [
-  { key: "brightness", label: "Світло", hint: "Експозиція", min: -100, max: 100 },
-  { key: "contrast", label: "Контраст", hint: "Глибина", min: -100, max: 100 },
+  { key: "brightness", label: "Світло", hint: "Експозиція", min: -100, max: 100, step: 1 },
+  { key: "contrast", label: "Контраст", hint: "Глибина", min: -100, max: 100, step: 1 },
   {
     key: "warmth",
     label: "Тепло",
     hint: "Холодніше ← → Тепліше",
     min: -100,
     max: 100,
+    step: 1,
   },
-  { key: "saturation", label: "Насич.", hint: "Колір", min: -100, max: 100 },
-  { key: "sharpness", label: "Різкість", hint: "Деталі", min: 0, max: 100 },
+  { key: "saturation", label: "Насич.", hint: "Колір", min: -100, max: 100, step: 1 },
+  { key: "sharpness", label: "Різкість", hint: "Деталі", min: 0, max: 100, step: 1 },
+  {
+    key: "rotate",
+    label: "Горизонт",
+    hint: "Вирівняти нахил",
+    min: -15,
+    max: 15,
+    step: 0.5,
+  },
 ];
 
 /** Cover = 1. Allow zoom-out to contain so wide photos are not force-cropped. */
@@ -779,20 +781,21 @@ export default function MediaEditModal({
         data-scroll-lock-allow
       >
         <header className="media-editor-head">
-          <div className="min-w-0">
-            <p className="media-editor-eyebrow">
-              {isVideo ? "Відео · обкладинка й тон" : "Фото"}
-              {queueTotal > 1 ? ` · ${queueIndex} з ${queueTotal}` : ""}
-            </p>
-            <h2 id="media-editor-title" className="media-editor-title">
-              {isVideo ? "Налаштування відео" : "Кадр і тон"}
-            </h2>
-            {fileLabel ? (
-              <p className="media-editor-file-label" title={fileLabel}>
-                {fileLabel}
-              </p>
+          <h2 id="media-editor-title" className="media-editor-title">
+            <span>
+              {isVideo ? "Відео · обкладинка й тон" : "Фото · кадр і тон"}
+            </span>
+            {queueTotal > 1 ? (
+              <span className="media-editor-title-meta">
+                {queueIndex} з {queueTotal}
+              </span>
             ) : null}
-          </div>
+            {fileLabel ? (
+              <span className="media-editor-file-label" title={fileLabel}>
+                {fileLabel}
+              </span>
+            ) : null}
+          </h2>
           <button
             type="button"
             className="media-editor-close"
@@ -935,98 +938,79 @@ export default function MediaEditModal({
               )}
               <div className="media-editor-frame-guide" aria-hidden="true" />
               <span className="media-editor-frame-ratio">3 : 5</span>
-
-              {tab === "fine" ? (
-                <div className="media-editor-tone-overlay" data-scroll-lock-allow>
-                  <div className="media-editor-tone-overlay-top">
-                    <nav className="media-editor-tabs media-editor-tabs--overlay" aria-label="Режим">
-                      {tabs.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          className={`media-editor-tab${
-                            tab === t.id ? " is-active" : ""
-                          }`}
-                          onClick={() => setTab(t.id)}
-                        >
-                          {t.label}
-                        </button>
-                      ))}
-                    </nav>
-                    <div className="media-editor-tone-tools">
-                      {isVideo ? (
-                        <button
-                          type="button"
-                          className={`media-editor-chip${videoPlaying ? " is-active" : ""}`}
-                          onClick={() => setVideoPlaying((p) => !p)}
-                        >
-                          {videoPlaying ? "Пауза" : "Грати"}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className={`media-editor-chip${compare ? " is-active" : ""}`}
-                          onPointerDown={() => setCompare(true)}
-                          onPointerUp={() => setCompare(false)}
-                          onPointerLeave={() => setCompare(false)}
-                          onPointerCancel={() => setCompare(false)}
-                        >
-                          До / після
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="media-editor-chip"
-                        onClick={() =>
-                          setAdjust((prev) => {
-                            const frame = prev.frame ?? currentFrame();
-                            const next: MediaAdjust = { ...DEFAULT_MEDIA_ADJUST };
-                            if (frame) next.frame = frame;
-                            return next;
-                          })
-                        }
-                      >
-                        Скинути
-                      </button>
-                    </div>
-                  </div>
-                  <div className="media-editor-horizon">
-                    <div className="media-editor-horizon-top">
-                      <span className="media-editor-horizon-label">
-                        {HORIZON_SLIDER.label}
-                      </span>
-                      <button
-                        type="button"
-                        className="media-editor-horizon-value"
-                        title="Скинути горизонт"
-                        onClick={() => onFineChange("rotate", 0)}
-                      >
-                        {(adjust.rotate ?? 0).toFixed(1)}°
-                      </button>
-                    </div>
-                    <input
-                      type="range"
-                      min={HORIZON_SLIDER.min}
-                      max={HORIZON_SLIDER.max}
-                      step={0.5}
-                      value={adjust.rotate ?? 0}
-                      className="media-editor-range media-editor-range--horizon"
-                      aria-label={HORIZON_SLIDER.label}
-                      onChange={(e) =>
-                        onFineChange("rotate", Number(e.target.value))
-                      }
-                    />
-                  </div>
-                </div>
-              ) : null}
             </div>
 
             {tab === "fine" ? (
               <div className="media-editor-tone-dock" data-scroll-lock-allow>
+                <div className="media-editor-tone-dock-top">
+                  <nav
+                    className="media-editor-tabs media-editor-tabs--tone"
+                    aria-label="Режим"
+                  >
+                    {tabs.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={`media-editor-tab${
+                          tab === t.id ? " is-active" : ""
+                        }`}
+                        onClick={() => setTab(t.id)}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </nav>
+                  <div className="media-editor-tone-tools">
+                    {isVideo ? (
+                      <button
+                        type="button"
+                        className={`media-editor-chip${
+                          videoPlaying ? " is-active" : ""
+                        }`}
+                        onClick={() => setVideoPlaying((p) => !p)}
+                      >
+                        {videoPlaying ? "Пауза" : "Грати"}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={`media-editor-chip${
+                          compare ? " is-active" : ""
+                        }`}
+                        onPointerDown={() => setCompare(true)}
+                        onPointerUp={() => setCompare(false)}
+                        onPointerLeave={() => setCompare(false)}
+                        onPointerCancel={() => setCompare(false)}
+                      >
+                        До / після
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="media-editor-chip"
+                      onClick={() =>
+                        setAdjust((prev) => {
+                          const frame = prev.frame ?? currentFrame();
+                          const next: MediaAdjust = {
+                            ...DEFAULT_MEDIA_ADJUST,
+                          };
+                          if (frame) next.frame = frame;
+                          return next;
+                        })
+                      }
+                    >
+                      Скинути
+                    </button>
+                  </div>
+                </div>
                 {(() => {
                   const active =
                     TONE_TOOLS.find((t) => t.key === toneTool) ?? TONE_TOOLS[0];
                   const value = adjust[active.key] ?? 0;
+                  const display =
+                    active.key === "rotate"
+                      ? `${Number(value).toFixed(1)}°`
+                      : String(value);
                   return (
                     <div className="media-editor-tone-active">
                       <div className="media-editor-tone-active-top">
@@ -1039,14 +1023,14 @@ export default function MediaEditModal({
                           title="Скинути цей параметр"
                           onClick={() => onFineChange(active.key, 0)}
                         >
-                          {value}
+                          {display}
                         </button>
                       </div>
                       <input
                         type="range"
                         min={active.min}
                         max={active.max}
-                        step={1}
+                        step={active.step}
                         value={value}
                         className="media-editor-range media-editor-range--ig"
                         aria-label={active.label}
@@ -1064,7 +1048,9 @@ export default function MediaEditModal({
                 >
                   {TONE_TOOLS.map((tool) => {
                     const active = toneTool === tool.key;
-                    const dirty = Math.abs(adjust[tool.key] ?? 0) > 0.5;
+                    const dirty =
+                      Math.abs(adjust[tool.key] ?? 0) >
+                      (tool.key === "rotate" ? 0.05 : 0.5);
                     return (
                       <button
                         key={tool.key}

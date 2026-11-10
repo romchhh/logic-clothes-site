@@ -83,17 +83,17 @@ export default function ColorPalettePicker({ selection, onChange }: Props) {
           <p className="text-[12px] font-semibold uppercase tracking-wide text-gray-400">
             Кольори цього товару ({ids.length})
           </p>
-          <ul className="flex flex-wrap gap-2">
+          <ul className="admin-suggest-rail" aria-label="Кольори цього товару">
             {ids.map((id) => {
               const c = getPaletteColor(id);
               if (!c) return null;
               const isPrimary = primaryId === id;
               return (
-                <li key={id}>
+                <li key={id} className="min-w-0">
                   <button
                     type="button"
                     onClick={() => setPrimary(id)}
-                    className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[12px] transition ${
+                    className={`admin-suggest-chip inline-flex max-w-none items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[12px] transition ${
                       isPrimary
                         ? "border-[#B7E1DF] bg-[#B7E1DF]/20 font-semibold text-gray-900 dark:text-white"
                         : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-white/10 dark:bg-white/5 dark:text-gray-200"
@@ -109,9 +109,9 @@ export default function ColorPalettePicker({ selection, onChange }: Props) {
                       style={{ backgroundColor: c.hex }}
                       aria-hidden
                     />
-                    <span>{c.label}</span>
+                    <span className="truncate">{c.label}</span>
                     {isPrimary ? (
-                      <span className="text-[10px] font-medium text-gray-500">
+                      <span className="shrink-0 text-[10px] font-medium text-gray-500">
                         основний
                       </span>
                     ) : null}

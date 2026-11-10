@@ -974,22 +974,36 @@ export default function ProductForm({ productId }: Props) {
 
       <ComponentCard title="Категорія та наявність" sectionId="section-category">
         <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <Label>Категорія</Label>
-            <Select
-              options={categoryOptions}
-              placeholder="Оберіть категорію"
-              value={form.category}
-              onChange={(v) => {
-                setForm((prev) => ({
-                  ...prev,
-                  category: v,
-                  season: categorySupportsSeasonFilter(v)
-                    ? prev.season
-                    : null,
-                }));
-              }}
-            />
+          <div className="space-y-4">
+            <div>
+              <Label>Категорія</Label>
+              <Select
+                options={categoryOptions}
+                placeholder="Оберіть категорію"
+                value={form.category}
+                onChange={(v) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    category: v,
+                    season: categorySupportsSeasonFilter(v)
+                      ? prev.season
+                      : null,
+                  }));
+                }}
+              />
+            </div>
+            <div>
+              <Label htmlFor="sortOrder">Пріоритет у каталозі</Label>
+              <Input
+                id="sortOrder"
+                type="number"
+                min="0"
+                step={1}
+                value={form.sortOrder}
+                onChange={(e) => set("sortOrder", e.target.value)}
+                placeholder={isEdit ? "0" : "Авто (в кінець)"}
+              />
+            </div>
           </div>
           <div className="flex flex-col gap-3 md:pt-1">
             <div className="admin-toggle-row">
@@ -1026,6 +1040,23 @@ export default function ProductForm({ productId }: Props) {
                     set("madeToOrder", false);
                   }
                 }}
+              />
+            </div>
+            <div className="admin-toggle-row">
+              <ToggleSwitch
+                label="New"
+                enabled={form.isNew}
+                setEnabled={(v) => set("isNew", v)}
+              />
+              <ToggleSwitch
+                label="Sale"
+                enabled={form.isSale}
+                setEnabled={(v) => set("isSale", v)}
+              />
+              <ToggleSwitch
+                label="Популярні"
+                enabled={form.isPopular}
+                setEnabled={(v) => set("isPopular", v)}
               />
             </div>
             {categorySupportsSeasonFilter(form.category) ? (
@@ -1278,39 +1309,9 @@ export default function ProductForm({ productId }: Props) {
       <ComponentCard
         title="Ще поля"
         sectionId="section-more"
-        desc="Мітки, довжина, модель, заміри, звʼязки"
+        desc="Довжина, модель, заміри, звʼязки"
       >
         <div className="space-y-6">
-          <div className="admin-toggle-row">
-            <ToggleSwitch
-              label="New"
-              enabled={form.isNew}
-              setEnabled={(v) => set("isNew", v)}
-            />
-            <ToggleSwitch
-              label="Sale"
-              enabled={form.isSale}
-              setEnabled={(v) => set("isSale", v)}
-            />
-            <ToggleSwitch
-              label="Популярні"
-              enabled={form.isPopular}
-              setEnabled={(v) => set("isPopular", v)}
-            />
-          </div>
-          <div className="max-w-xs">
-            <Label htmlFor="sortOrder">Пріоритет у каталозі</Label>
-            <Input
-              id="sortOrder"
-              type="number"
-              min="0"
-              step={1}
-              value={form.sortOrder}
-              onChange={(e) => set("sortOrder", e.target.value)}
-              placeholder={isEdit ? "0" : "Авто (в кінець)"}
-            />
-          </div>
-
           <div>
             <Label>Довжина</Label>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -1417,6 +1418,8 @@ export default function ProductForm({ productId }: Props) {
           />
         </div>
       </ComponentCard>
+
+      <div className="admin-sticky-clearance" aria-hidden="true" />
 
       <div className="admin-sticky-bar admin-sticky-bar--form">
         <div
