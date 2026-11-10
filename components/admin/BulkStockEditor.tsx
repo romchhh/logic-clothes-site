@@ -2,6 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ADMIN_LIST_SORT_OPTIONS,
+  parseAdminListSort,
+  sortByNameAndDate,
+  type AdminListSort,
+} from "@/lib/adminListSort";
 import { getProductImageSrc } from "@/lib/getFirstProductImage";
 import { CACHE_KEYS, clearCachedData } from "@/lib/cache";
 import type { Product } from "@/lib/types";
@@ -24,6 +30,7 @@ export default function BulkStockEditor() {
   const [initial, setInitial] = useState<Record<string, RowState>>({});
   const [rows, setRows] = useState<Record<string, RowState>>({});
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<AdminListSort>("name-asc");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,14 +66,16 @@ export default function BulkStockEditor() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.id.toLowerCase().includes(q) ||
-        String(p.sku ?? "").toLowerCase().includes(q)
-    );
-  }, [products, search]);
+    const list = !q
+      ? products
+      : products.filter(
+          (p) =>
+            p.name.toLowerCase().includes(q) ||
+            p.id.toLowerCase().includes(q) ||
+            String(p.sku ?? "").toLowerCase().includes(q)
+        );
+    return sortByNameAndDate(list, sort);
+  }, [products, search, sort]);
 
   const dirtyIds = useMemo(() => {
     const ids: string[] = [];
@@ -154,7 +163,7 @@ export default function BulkStockEditor() {
         </div>
       </div>
 
-      <div className="border-b border-gray-100 px-4 py-3 dark:border-white/[0.05] sm:px-5">
+      <div className="flex flex-col gap-2 border-b border-gray-100 px-4 py-3 dark:border-white/[0.05] sm:flex-row sm:items-center sm:px-5">
         <input
           type="search"
           value={search}
@@ -162,6 +171,18 @@ export default function BulkStockEditor() {
           placeholder="Пошук за назвою або ID…"
           className="admin-input max-w-md"
         />
+        <select
+          value={sort}
+          onChange={(e) => setSort(parseAdminListSort(e.target.value))}
+          className="admin-input sm:w-52"
+          aria-label="Сортування"
+        >
+          {ADMIN_LIST_SORT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && (

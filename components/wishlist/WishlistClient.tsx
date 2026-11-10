@@ -14,7 +14,7 @@ function toProduct(item: WishlistItem): Product {
     id: item.id,
     name: item.name,
     sizes: "",
-    sizeOptions: ["S", "M", "L"],
+    sizeOptions: ["ONESIZE", "S-M", "M-L"],
     price: item.price,
     priceNum: item.priceNum,
     color: "",

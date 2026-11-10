@@ -305,6 +305,19 @@ export default function MediaEditModal({
     [applyCoverSize]
   );
 
+  // Frame grows in tone mode — re-fit cover after layout settles.
+  useEffect(() => {
+    if (!session || tab !== "fine") return;
+    const id = window.requestAnimationFrame(() => {
+      applyCoverSize(
+        naturalRef.current.w || session.naturalW,
+        naturalRef.current.h || session.naturalH,
+        false
+      );
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [session, tab, applyCoverSize]);
+
   useEffect(() => {
     if (!session || (session.mode !== "image" && session.mode !== "video"))
       return;
@@ -742,7 +755,7 @@ export default function MediaEditModal({
               ref={frameRef}
               className={`media-editor-frame${
                 showCropLayer && tab === "crop" ? " is-cropping" : ""
-              }`}
+              }${tab === "fine" ? " is-tone-frame" : ""}`}
               style={{
                 cursor: showCropLayer && tab === "crop" ? "grab" : "default",
                 touchAction: "none",
@@ -839,6 +852,85 @@ export default function MediaEditModal({
               )}
               <div className="media-editor-frame-guide" aria-hidden="true" />
               <span className="media-editor-frame-ratio">3 : 5</span>
+
+              {tab === "fine" ? (
+                <div className="media-editor-tone-overlay" data-scroll-lock-allow>
+                  <div className="media-editor-tone-overlay-top">
+                    <nav className="media-editor-tabs media-editor-tabs--overlay" aria-label="Режим">
+                      {tabs.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className={`media-editor-tab${
+                            tab === t.id ? " is-active" : ""
+                          }`}
+                          onClick={() => setTab(t.id)}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </nav>
+                    <div className="media-editor-tone-tools">
+                      {isVideo ? (
+                        <button
+                          type="button"
+                          className={`media-editor-chip${videoPlaying ? " is-active" : ""}`}
+                          onClick={() => setVideoPlaying((p) => !p)}
+                        >
+                          {videoPlaying ? "Пауза" : "Грати"}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className={`media-editor-chip${compare ? " is-active" : ""}`}
+                          onPointerDown={() => setCompare(true)}
+                          onPointerUp={() => setCompare(false)}
+                          onPointerLeave={() => setCompare(false)}
+                          onPointerCancel={() => setCompare(false)}
+                        >
+                          Утримуй — до / після
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="media-editor-chip"
+                        onClick={() =>
+                          setAdjust((prev) => {
+                            const frame = prev.frame ?? currentFrame();
+                            const next: MediaAdjust = { ...DEFAULT_MEDIA_ADJUST };
+                            if (frame) next.frame = frame;
+                            return next;
+                          })
+                        }
+                      >
+                        Скинути тон
+                      </button>
+                    </div>
+                  </div>
+                  <div className="media-editor-tone-sliders">
+                    {FINE_SLIDERS.map(({ key, label, min, max }) => (
+                      <label key={key} className="media-editor-slider media-editor-slider--overlay">
+                        <div className="media-editor-slider-top">
+                          <span className="media-editor-slider-label">{label}</span>
+                          <span className="media-editor-slider-value">
+                            {adjust[key]}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={min}
+                          max={max}
+                          value={adjust[key]}
+                          className="media-editor-range"
+                          onChange={(e) =>
+                            onFineChange(key, Number(e.target.value))
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="media-editor-preview-actions">
@@ -850,14 +942,6 @@ export default function MediaEditModal({
                   onClick={() => void pickPosterFromCurrentFrame()}
                 >
                   {posterBusy ? "Знімаю…" : "Взяти цей кадр"}
-                </button>
-              ) : isVideo && tab === "fine" ? (
-                <button
-                  type="button"
-                  className={`media-editor-chip${videoPlaying ? " is-active" : ""}`}
-                  onClick={() => setVideoPlaying((p) => !p)}
-                >
-                  {videoPlaying ? "Пауза" : "Грати"}
                 </button>
               ) : tab === "crop" ? (
                 <div className="media-editor-zoom-bar">
@@ -912,22 +996,11 @@ export default function MediaEditModal({
                     {Math.round(zoom * 100)}%
                   </span>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  className={`media-editor-chip${compare ? " is-active" : ""}`}
-                  onPointerDown={() => setCompare(true)}
-                  onPointerUp={() => setCompare(false)}
-                  onPointerLeave={() => setCompare(false)}
-                  onPointerCancel={() => setCompare(false)}
-                >
-                  Утримуй — до / після
-                </button>
-              )}
+              ) : null}
             </div>
           </div>
 
-          <div className="media-editor-side">
+          <div className={`media-editor-side${tab === "fine" ? " is-hidden-tone" : ""}`}>
             <nav className="media-editor-tabs" aria-label="Режим">
               {tabs.map((t) => (
                   <button
@@ -944,58 +1017,6 @@ export default function MediaEditModal({
             </nav>
 
             <div className="media-editor-scroll" data-scroll-lock-allow>
-              {tab === "fine" && (
-                <div className="media-editor-fine">
-                  {isVideo ? (
-                    <p className="media-editor-hint media-editor-hint--video">
-                      Вирівняйте тон з фото. Або «Без змін» — відео залишиться
-                      як є.
-                    </p>
-                  ) : (
-                    <p className="media-editor-hint">
-                      Світло, контраст, температура — коли кадр з іншої камери.
-                    </p>
-                  )}
-                  {FINE_SLIDERS.map(({ key, label, hint, min, max }) => (
-                    <label key={key} className="media-editor-slider">
-                      <div className="media-editor-slider-top">
-                        <span className="media-editor-slider-label">
-                          {label}
-                        </span>
-                        <span className="media-editor-slider-value">
-                          {adjust[key]}
-                        </span>
-                      </div>
-                      <span className="media-editor-slider-hint">{hint}</span>
-                      <input
-                        type="range"
-                        min={min}
-                        max={max}
-                        value={adjust[key]}
-                        className="media-editor-range"
-                        onChange={(e) =>
-                          onFineChange(key, Number(e.target.value))
-                        }
-                      />
-                    </label>
-                  ))}
-                  <button
-                    type="button"
-                    className="media-editor-reset"
-                    onClick={() =>
-                      setAdjust((prev) => {
-                        const frame = prev.frame ?? currentFrame();
-                        const next: MediaAdjust = { ...DEFAULT_MEDIA_ADJUST };
-                        if (frame) next.frame = frame;
-                        return next;
-                      })
-                    }
-                  >
-                    Скинути тон
-                  </button>
-                </div>
-              )}
-
               {tab === "poster" && isVideo ? (
                 <div className="media-editor-crop-help media-editor-poster-help">
                   <p className="media-editor-hint">

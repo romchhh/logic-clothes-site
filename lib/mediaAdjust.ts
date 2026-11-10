@@ -95,13 +95,13 @@ export function mediaFrameStyle(
 
 /** CSS filter for live preview (images & video). */
 export function mediaAdjustCssFilter(adjust: MediaAdjust | undefined): string | undefined {
+  if (!adjust) return undefined;
   if (
-    !adjust ||
-    (adjust.brightness === 0 &&
+    adjust.brightness === 0 &&
       adjust.contrast === 0 &&
       adjust.warmth === 0 &&
       adjust.saturation === 0 &&
-      adjust.sharpness === 0)
+      adjust.sharpness === 0
   ) {
     return undefined;
   }
@@ -120,6 +120,10 @@ export function mediaAdjustCssFilter(adjust: MediaAdjust | undefined): string | 
   if (Math.abs(hue) > 0.5) parts.push(`hue-rotate(${hue.toFixed(1)}deg)`);
   if (warm < 0) {
     parts.push(`hue-rotate(${(warm * 0.15).toFixed(1)}deg)`);
+  }
+  // Approximate sharpness in live preview (baked via pixels on save).
+  if (adjust.sharpness > 0) {
+    parts.push(`contrast(${(1 + adjust.sharpness / 220).toFixed(3)})`);
   }
   return parts.join(" ");
 }

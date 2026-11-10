@@ -1,5 +1,7 @@
 export type AdminProductsSort =
   | "default"
+  | "name-asc"
+  | "name-desc"
   | "price-asc"
   | "price-desc"
   | "date-desc"
@@ -28,6 +30,8 @@ export function parseAdminProductsSort(
   v: string | null | undefined
 ): AdminProductsSort {
   if (
+    v === "name-asc" ||
+    v === "name-desc" ||
     v === "price-asc" ||
     v === "price-desc" ||
     v === "date-desc" ||

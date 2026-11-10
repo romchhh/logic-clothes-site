@@ -2,6 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ADMIN_LIST_SORT_OPTIONS,
+  parseAdminListSort,
+  sortByNameAndDate,
+  type AdminListSort,
+} from "@/lib/adminListSort";
 import { getProductImageSrc } from "@/lib/getFirstProductImage";
 import { CACHE_KEYS, clearCachedData } from "@/lib/cache";
 import type { Category } from "@/lib/categories";
@@ -24,6 +30,7 @@ export default function BulkCategoryEditor() {
   const [rows, setRows] = useState<Record<string, RowState>>({});
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("");
+  const [sort, setSort] = useState<AdminListSort>("name-asc");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +84,7 @@ export default function BulkCategoryEditor() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return products.filter((p) => {
+    const list = products.filter((p) => {
       const cat = rows[p.id]?.category ?? p.category ?? "";
       if (filterCat === "__none__" && cat) return false;
       if (filterCat && filterCat !== "__none__" && cat !== filterCat)
@@ -89,7 +96,8 @@ export default function BulkCategoryEditor() {
         String(p.sku ?? "").toLowerCase().includes(q)
       );
     });
-  }, [products, search, filterCat, rows]);
+    return sortByNameAndDate(list, sort);
+  }, [products, search, filterCat, rows, sort]);
 
   const dirtyIds = useMemo(() => {
     const ids: string[] = [];
@@ -204,6 +212,18 @@ export default function BulkCategoryEditor() {
           {productCategories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.label.uk}
+            </option>
+          ))}
+        </select>
+        <select
+          value={sort}
+          onChange={(e) => setSort(parseAdminListSort(e.target.value))}
+          className="admin-input sm:w-52"
+          aria-label="Сортування"
+        >
+          {ADMIN_LIST_SORT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
             </option>
           ))}
         </select>

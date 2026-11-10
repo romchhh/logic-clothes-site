@@ -1454,6 +1454,40 @@
 
   .side-panel--filter{z-index:120;}
   .filter-body{padding-top:8px;}
+  .filter-season-bar{
+    padding:12px 20px 14px;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(183,225,223,.18), transparent);
+  }
+  .filter-season-label{
+    margin:0 0 10px;
+    font-size:12px;
+    font-weight:var(--weight-medium);
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .filter-season-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .filter-season-chip{
+    border:1px solid var(--line);
+    background:var(--white);
+    color:var(--muted);
+    border-radius:999px;
+    padding:8px 14px;
+    font-size:13px;
+    font-weight:var(--weight-medium);
+    transition:border-color .2s, color .2s, background .2s;
+  }
+  .filter-season-chip.is-active{
+    border-color:var(--ink);
+    color:var(--ink);
+    background:#f4fafa;
+    font-weight:var(--weight-semi);
+  }
   .filter-acc{border-bottom:1px solid var(--line);}
   .filter-acc-head{
     width:100%;

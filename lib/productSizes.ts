@@ -1,13 +1,10 @@
 /** Admin + storefront size grids */
 export const ADMIN_SIZE_PRESETS = [
-  "XXS",
-  "XS",
-  "S",
-  "M",
-  "L",
-  "XL",
-  "XXL",
   "ONESIZE",
+  "XS-S",
+  "S-M",
+  "M-L",
+  "L-XL",
   "A",
   "B",
   "C",
@@ -16,14 +13,16 @@ export const ADMIN_SIZE_PRESETS = [
 
 /** Default «зшиємо за 14 днів» row on PDP */
 export const MADE_TO_ORDER_SIZE_GRID = [
-  "XXS",
-  "XS",
-  "S",
-  "M",
-  "L",
-  "XL",
+  "ONESIZE",
+  "XS-S",
+  "S-M",
+  "M-L",
+  "L-XL",
   "A",
   "B",
   "C",
   "D",
 ] as const;
+
+/** Canonical order for catalog size filter chips. */
+export const CATALOG_SIZE_ORDER = [...ADMIN_SIZE_PRESETS] as const;

@@ -6,6 +6,12 @@ import MediaEditModal, {
 } from "@/components/admin/MediaEditModal";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import type { MediaAdjust } from "@/lib/mediaAdjust";
+import {
+  CATEGORY_FORM_DRAFT_KEY,
+  clearAdminFormDraft,
+  readAdminFormDraft,
+  writeAdminFormDraft,
+} from "@/lib/adminFormDraft";
 import type { Category } from "@/lib/categories";
 import { prepareImageUploadFile } from "@/lib/prepareUploadImage";
 import { slugFromLabels } from "@/lib/slug";
@@ -100,24 +106,46 @@ export default function CategoriesTable() {
 
   const openCreate = () => {
     setEditingId(null);
-    setDraft(EMPTY_DRAFT);
+    const saved = readAdminFormDraft<{
+      editingId: null;
+      draft: Draft;
+    }>(CATEGORY_FORM_DRAFT_KEY);
+    setDraft(
+      saved?.editingId === null && saved.draft ? saved.draft : EMPTY_DRAFT
+    );
     setFormError(null);
     setModalOpen(true);
   };
 
   const openEdit = (c: Category) => {
     setEditingId(c.id);
-    setDraft({
-      labelUk: c.label.uk,
-      labelEn: c.label.en,
-      ctaUk: c.cta.uk,
-      ctaEn: c.cta.en,
-      image: c.image,
-      isVisible: c.isVisible,
-    });
+    const saved = readAdminFormDraft<{
+      editingId: string | null;
+      draft: Draft;
+    }>(CATEGORY_FORM_DRAFT_KEY);
+    if (saved?.editingId === c.id && saved.draft) {
+      setDraft(saved.draft);
+    } else {
+      setDraft({
+        labelUk: c.label.uk,
+        labelEn: c.label.en,
+        ctaUk: c.cta.uk,
+        ctaEn: c.cta.en,
+        image: c.image,
+        isVisible: c.isVisible,
+      });
+    }
     setFormError(null);
     setModalOpen(true);
   };
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    writeAdminFormDraft(CATEGORY_FORM_DRAFT_KEY, {
+      editingId,
+      draft,
+    });
+  }, [modalOpen, editingId, draft]);
 
   const previewSlug = useMemo(
     () =>
@@ -254,6 +282,8 @@ export default function CategoriesTable() {
       if (!res.ok) {
         throw new Error(data.error || `HTTP ${res.status}`);
       }
+      clearAdminFormDraft(CATEGORY_FORM_DRAFT_KEY);
+      setDraft(EMPTY_DRAFT);
       setModalOpen(false);
       await load();
     } catch (e) {

@@ -1,6 +1,7 @@
+import { CATALOG_SIZE_ORDER } from "@/lib/productSizes";
 import type { Product } from "@/lib/types";
 
-const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL"];
+const SIZE_ORDER = [...CATALOG_SIZE_ORDER, "XXS", "XS", "S", "M", "L", "XL", "XXL"];
 
 export function collectSizes(products: Product[]): string[] {
   const set = new Set<string>();
@@ -12,7 +13,7 @@ export function collectSizes(products: Product[]): string[] {
   return [...set].sort((a, b) => {
     const ia = SIZE_ORDER.indexOf(a);
     const ib = SIZE_ORDER.indexOf(b);
-    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b, "uk");
     if (ia === -1) return 1;
     if (ib === -1) return -1;
     return ia - ib;

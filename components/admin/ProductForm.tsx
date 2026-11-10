@@ -23,6 +23,12 @@ import TextArea from "@/components/admin/form/input/TextArea";
 import Select from "@/components/admin/form/Select";
 import ToggleSwitch from "@/components/admin/form/ToggleSwitch";
 import { getAdminProductsListHref } from "@/lib/adminProductsListState";
+import {
+  clearAdminFormDraft,
+  productFormDraftKey,
+  readAdminFormDraft,
+  writeAdminFormDraft,
+} from "@/lib/adminFormDraft";
 import type { Category } from "@/lib/categories";
 import { CACHE_KEYS, clearCachedData } from "@/lib/cache";
 import { UAH_PER_EUR } from "@/lib/format";
@@ -118,7 +124,7 @@ const EMPTY: FormState = {
   photoSize: "",
   modelParams: "",
   garmentMeasures: emptyGarmentMeasures(),
-  sizeOptions: ["S", "M", "L"],
+  sizeOptions: ["ONESIZE", "S-M", "M-L"],
   lengthOptions: [],
   materialOptions: [],
   descriptionUk: "",
@@ -169,9 +175,17 @@ function TranslateBtn({
   );
 }
 
+type ProductFormDraft = {
+  form: FormState;
+  paletteSelection: PaletteSelection;
+  colorVariantIds: string[];
+  lookProductIds: string[];
+};
+
 export default function ProductForm({ productId }: Props) {
   const router = useRouter();
   const isEdit = Boolean(productId);
+  const draftKey = productFormDraftKey(productId);
 
   const [form, setForm] = useState<FormState>(EMPTY);
   const [customLength, setCustomLength] = useState("");
@@ -180,6 +194,7 @@ export default function ProductForm({ productId }: Props) {
     string[]
   >([]);
   const [loading, setLoading] = useState(isEdit);
+  const [draftReady, setDraftReady] = useState(!isEdit);
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [translating, setTranslating] = useState<string | null>(null);
@@ -338,17 +353,71 @@ export default function ProductForm({ productId }: Props) {
         setLookProductIds(
           Array.isArray(p.lookProductIds) ? p.lookProductIds : []
         );
+
+        const draft = readAdminFormDraft<ProductFormDraft>(draftKey);
+        if (draft?.form) {
+          setForm(draft.form);
+          if (draft.paletteSelection) setPaletteSelection(draft.paletteSelection);
+          if (Array.isArray(draft.colorVariantIds)) {
+            setColorVariantIds(draft.colorVariantIds);
+          }
+          if (Array.isArray(draft.lookProductIds)) {
+            setLookProductIds(draft.lookProductIds);
+          }
+        }
       } catch (e) {
         console.error(e);
         if (!cancelled) setError("Не вдалося завантажити товар");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setDraftReady(true);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [productId]);
+  }, [productId, draftKey]);
+
+  // Restore create-form draft once (keeps typed fields after media cancel/delete).
+  useEffect(() => {
+    if (isEdit) return;
+    const draft = readAdminFormDraft<ProductFormDraft>(draftKey);
+    if (!draft?.form) {
+      setDraftReady(true);
+      return;
+    }
+    setForm(draft.form);
+    if (draft.paletteSelection) setPaletteSelection(draft.paletteSelection);
+    if (Array.isArray(draft.colorVariantIds)) {
+      setColorVariantIds(draft.colorVariantIds);
+    }
+    if (Array.isArray(draft.lookProductIds)) {
+      setLookProductIds(draft.lookProductIds);
+    }
+    setDraftReady(true);
+  }, [draftKey, isEdit]);
+
+  // Autosave local draft while editing / creating.
+  useEffect(() => {
+    if (!draftReady || loading || saving) return;
+    writeAdminFormDraft(draftKey, {
+      form,
+      paletteSelection,
+      colorVariantIds,
+      lookProductIds,
+    } satisfies ProductFormDraft);
+  }, [
+    draftReady,
+    loading,
+    saving,
+    draftKey,
+    form,
+    paletteSelection,
+    colorVariantIds,
+    lookProductIds,
+  ]);
 
   // Auto EUR from UAH unless manually overridden
   useEffect(() => {
@@ -547,6 +616,7 @@ export default function ProductForm({ productId }: Props) {
         );
       }
       set("isDraft", asDraft);
+      clearAdminFormDraft(draftKey);
       rememberFromProduct({
         material: form.material.trim(),
         materialOptions: form.materialOptions,

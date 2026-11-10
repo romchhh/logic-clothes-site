@@ -23,7 +23,11 @@ type PriceDraftRow = { uah?: string; eur?: string; usd?: string };
 
 function sortProducts(list: Product[], sort: AdminProductsSort): Product[] {
   const next = [...list];
-  if (sort === "price-asc") {
+  if (sort === "name-asc") {
+    next.sort((a, b) => a.name.localeCompare(b.name, "uk"));
+  } else if (sort === "name-desc") {
+    next.sort((a, b) => b.name.localeCompare(a.name, "uk"));
+  } else if (sort === "price-asc") {
     next.sort((a, b) => a.priceNum - b.priceNum);
   } else if (sort === "price-desc") {
     next.sort((a, b) => b.priceNum - a.priceNum);
@@ -499,10 +503,12 @@ export default function ProductsTable() {
             aria-label="Сортування"
           >
             <option value="default">За пріоритетом</option>
+            <option value="name-asc">А → Я</option>
+            <option value="name-desc">Я → А</option>
+            <option value="date-desc">Додано: новіші</option>
+            <option value="date-asc">Додано: старіші</option>
             <option value="price-asc">Ціна: від низької</option>
             <option value="price-desc">Ціна: від високої</option>
-            <option value="date-desc">Дата: новіші</option>
-            <option value="date-asc">Дата: старіші</option>
           </select>
           {hasActiveFilters && (
             <button

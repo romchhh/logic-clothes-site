@@ -1,6 +1,6 @@
 import type { Product } from "@/lib/types";
 
-const DEFAULT_SIZES = ["S", "M", "L"];
+const DEFAULT_SIZES = ["ONESIZE", "S-M", "M-L"];
 
 /** Real sellable SKU (not a gift certificate / zero-price placeholder). */
 export function isRealProduct(p: Product): boolean {

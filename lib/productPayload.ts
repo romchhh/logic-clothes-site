@@ -60,7 +60,7 @@ export function productFromBody(
 ): Product {
   const sizeOptions: string[] = Array.isArray(body.sizeOptions)
     ? body.sizeOptions.map(String).filter(Boolean)
-    : base.sizeOptions || ["S", "M", "L"];
+    : base.sizeOptions || ["ONESIZE", "S-M", "M-L"];
   const lengthOptions: string[] = Array.isArray(body.lengthOptions)
     ? body.lengthOptions.map(String).filter(Boolean)
     : base.lengthOptions || [];
