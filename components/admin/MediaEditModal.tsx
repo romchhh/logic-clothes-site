@@ -800,6 +800,7 @@ export default function MediaEditModal({
           </button>
         </header>
 
+        <div className="media-editor-body" data-scroll-lock-allow>
         <div
           className={`media-editor-layout${
             tab === "fine" ? " is-tone" : tab === "crop" ? " is-crop" : ""
@@ -983,32 +984,38 @@ export default function MediaEditModal({
                       </button>
                     </div>
                   </div>
-                  <div className="media-editor-tone-sliders">
-                    {FINE_SLIDERS.map(({ key, label, min, max }) => (
-                      <label key={key} className="media-editor-slider media-editor-slider--overlay">
-                        <div className="media-editor-slider-top">
-                          <span className="media-editor-slider-label">{label}</span>
-                          <span className="media-editor-slider-value">
-                            {adjust[key] ?? 0}
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min={min}
-                          max={max}
-                          step={key === "rotate" ? 0.5 : 1}
-                          value={adjust[key] ?? 0}
-                          className="media-editor-range"
-                          onChange={(e) =>
-                            onFineChange(key, Number(e.target.value))
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
                 </div>
               ) : null}
             </div>
+
+            {tab === "fine" ? (
+              <div className="media-editor-tone-sliders" data-scroll-lock-allow>
+                {FINE_SLIDERS.map(({ key, label, min, max }) => (
+                  <label
+                    key={key}
+                    className="media-editor-slider media-editor-slider--overlay"
+                  >
+                    <div className="media-editor-slider-top">
+                      <span className="media-editor-slider-label">{label}</span>
+                      <span className="media-editor-slider-value">
+                        {adjust[key] ?? 0}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={min}
+                      max={max}
+                      step={key === "rotate" ? 0.5 : 1}
+                      value={adjust[key] ?? 0}
+                      className="media-editor-range"
+                      onChange={(e) =>
+                        onFineChange(key, Number(e.target.value))
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            ) : null}
 
             <div className="media-editor-preview-actions">
               {isVideo && tab === "poster" ? (
@@ -1270,6 +1277,7 @@ export default function MediaEditModal({
             </button>
           </div>
         </footer>
+        </div>
       </div>
     </div>
   );
