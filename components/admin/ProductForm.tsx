@@ -224,7 +224,8 @@ export default function ProductForm({ productId }: Props) {
     if (kind === "insulation") setInsulationSuggestions(next);
   }
   const [loading, setLoading] = useState(isEdit);
-  const [draftReady, setDraftReady] = useState(!isEdit);
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [translating, setTranslating] = useState<string | null>(null);
@@ -282,6 +283,9 @@ export default function ProductForm({ productId }: Props) {
               data
                 .filter((c) => c.kind === "category")
                 .map((c) => ({ value: c.id, label: c.label.uk }))
+                .sort((a, b) =>
+                  a.label.localeCompare(b.label, "uk", { sensitivity: "base" })
+                )
             );
           }
         }
@@ -415,6 +419,7 @@ export default function ProductForm({ productId }: Props) {
           if (Array.isArray(draft.lookProductIds)) {
             setLookProductIds(draft.lookProductIds);
           }
+          if (!cancelled) setDraftRestored(true);
         }
       } catch (e) {
         console.error(e);
@@ -431,16 +436,27 @@ export default function ProductForm({ productId }: Props) {
     };
   }, [productId, draftKey]);
 
-  // New product always starts empty — do not restore the previous create draft.
+  // New product: restore local draft (incl. media) after accidental leave.
   useEffect(() => {
     if (isEdit) return;
-    clearAdminFormDraft(draftKey);
+    const draft = readAdminFormDraft<ProductFormDraft>(draftKey);
+    if (draft?.form) {
+      setForm(draft.form);
+      if (draft.paletteSelection) setPaletteSelection(draft.paletteSelection);
+      if (Array.isArray(draft.colorVariantIds)) {
+        setColorVariantIds(draft.colorVariantIds);
+      }
+      if (Array.isArray(draft.lookProductIds)) {
+        setLookProductIds(draft.lookProductIds);
+      }
+      setDraftRestored(true);
+    }
     setDraftReady(true);
   }, [draftKey, isEdit]);
 
-  // Autosave local draft only while editing an existing product.
+  // Autosave local draft (create + edit), including media gallery.
   useEffect(() => {
-    if (!isEdit || !draftReady || loading || saving) return;
+    if (!draftReady || loading || saving) return;
     writeAdminFormDraft(draftKey, {
       form,
       paletteSelection,
@@ -448,7 +464,6 @@ export default function ProductForm({ productId }: Props) {
       lookProductIds,
     } satisfies ProductFormDraft);
   }, [
-    isEdit,
     draftReady,
     loading,
     saving,
@@ -688,6 +703,7 @@ export default function ProductForm({ productId }: Props) {
       }
       set("isDraft", asDraft);
       clearAdminFormDraft(draftKey);
+      setDraftRestored(false);
       rememberFromProduct({
         fabricName: form.fabricName.trim(),
         material: form.material.trim(),
@@ -802,6 +818,32 @@ export default function ProductForm({ productId }: Props) {
           {error}
         </div>
       )}
+
+      {draftRestored ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+          <span>
+            Відновлено незавершене редагування (поля й медіа з моменту виходу).
+          </span>
+          <button
+            type="button"
+            className="admin-btn-ghost !h-8 !text-xs"
+            onClick={() => {
+              clearAdminFormDraft(draftKey);
+              setDraftRestored(false);
+              if (!isEdit) {
+                setForm(EMPTY);
+                setPaletteSelection({ ids: [], primaryId: null });
+                setColorVariantIds([]);
+                setLookProductIds([]);
+              } else {
+                window.location.reload();
+              }
+            }}
+          >
+            Скинути чернетку
+          </button>
+        </div>
+      ) : null}
 
       <div
         className={`admin-publish-bar ${form.isDraft ? "is-draft" : "is-live"}`}

@@ -796,17 +796,46 @@ export default function MediaEditModal({
               </span>
             ) : null}
           </h2>
-          <button
-            type="button"
-            className="media-editor-close"
-            aria-label="Закрити"
-            disabled={disabled}
-            onClick={onClose}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
+          <div className="media-editor-head-actions">
+            {showSkip ? (
+              <button
+                type="button"
+                className="admin-btn-secondary media-editor-head-skip"
+                disabled={disabled}
+                onClick={() => {
+                  if (isVideo) void handleSaveWithoutTone();
+                  else onSkip?.();
+                }}
+              >
+                {isVideo ? "Без змін" : "Пропустити"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="admin-btn-primary media-editor-save media-editor-head-save"
+              disabled={disabled}
+              onClick={() => void handleSave()}
+            >
+              {saving
+                ? "Збереження…"
+                : isVideo
+                  ? "Зберегти"
+                  : session.replaceUrl
+                    ? "Застосувати"
+                    : "Додати в галерею"}
+            </button>
+            <button
+              type="button"
+              className="media-editor-close"
+              aria-label="Закрити"
+              disabled={disabled}
+              onClick={onClose}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
         </header>
 
         <div className="media-editor-body" data-scroll-lock-allow>
@@ -1296,7 +1325,7 @@ export default function MediaEditModal({
           </p>
         ) : null}
 
-        <footer className="media-editor-foot">
+        <footer className="media-editor-foot media-editor-foot--secondary">
           <button
             type="button"
             className="admin-btn-ghost media-editor-cancel"
@@ -1305,35 +1334,6 @@ export default function MediaEditModal({
           >
             Скасувати
           </button>
-          <div className="media-editor-foot-right">
-            {showSkip ? (
-              <button
-                type="button"
-                className="admin-btn-secondary"
-                disabled={disabled}
-                onClick={() => {
-                  if (isVideo) void handleSaveWithoutTone();
-                  else onSkip?.();
-                }}
-              >
-                {isVideo ? "Без змін" : "Пропустити"}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="admin-btn-primary media-editor-save"
-              disabled={disabled}
-              onClick={() => void handleSave()}
-            >
-              {saving
-                ? "Збереження…"
-                : isVideo
-                  ? "Зберегти"
-                  : session.replaceUrl
-                    ? "Застосувати"
-                    : "Додати в галерею"}
-            </button>
-          </div>
         </footer>
         </div>
       </div>

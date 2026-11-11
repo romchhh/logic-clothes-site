@@ -4,10 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link";
 import Pagination from "./Pagination";
 import AdminAnchoredMenu from "@/components/admin/AdminAnchoredMenu";
-import {
-  parseAdminProductsSort,
-  type AdminProductsSort,
-} from "@/lib/adminProductsListState";
+import type { AdminProductsSort } from "@/lib/adminProductsListState";
 import {
   applyPricePatch,
   parsePriceInput,
@@ -15,6 +12,13 @@ import {
 import { getProductImageSrc } from "@/lib/getFirstProductImage";
 import type { Category } from "@/lib/categories";
 import type { Product } from "@/lib/types";
+
+const BULK_LINKS = [
+  { href: "/admin/products/categories", label: "Категорії" },
+  { href: "/admin/products/crops", label: "Кадр фото" },
+  { href: "/admin/products/prices", label: "Усі ціни" },
+  { href: "/admin/products/stock", label: "Наявність" },
+] as const;
 
 const PER_PAGE = 20;
 
@@ -62,11 +66,9 @@ export default function ProductsTable() {
   const [page, setPage] = useState(1);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const [bulkOpen, setBulkOpen] = useState(false);
   const [priceDraft, setPriceDraft] = useState<Record<string, PriceDraftRow>>(
     {}
   );
-  const bulkBtnRef = useRef<HTMLButtonElement>(null);
   const rowMenuBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const categoryLabels = useMemo(
@@ -393,58 +395,17 @@ export default function ProductsTable() {
           </p>
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <div className="relative">
-            <button
-              ref={bulkBtnRef}
-              type="button"
-              className="admin-btn-secondary !h-9 !px-3 !text-xs"
-              aria-expanded={bulkOpen}
-              onClick={(e) => {
-                e.stopPropagation();
-                setMenuOpenId(null);
-                rowMenuBtnRef.current = null;
-                setBulkOpen((o) => !o);
-              }}
-            >
-              Масові дії ▾
-            </button>
-            <AdminAnchoredMenu
-              open={bulkOpen}
-              anchorRef={bulkBtnRef}
-              onClose={() => setBulkOpen(false)}
-              width={220}
-              align="left"
-            >
+          <nav className="admin-bulk-links" aria-label="Масові дії">
+            {BULK_LINKS.map((item) => (
               <Link
-                href="/admin/products/categories"
-                className="admin-anchored-menu-item"
-                onClick={() => setBulkOpen(false)}
+                key={item.href}
+                href={item.href}
+                className="admin-bulk-link"
               >
-                Категорії
+                {item.label}
               </Link>
-              <Link
-                href="/admin/products/crops"
-                className="admin-anchored-menu-item"
-                onClick={() => setBulkOpen(false)}
-              >
-                Кадр фото
-              </Link>
-              <Link
-                href="/admin/products/prices"
-                className="admin-anchored-menu-item"
-                onClick={() => setBulkOpen(false)}
-              >
-                Усі ціни
-              </Link>
-              <Link
-                href="/admin/products/stock"
-                className="admin-anchored-menu-item"
-                onClick={() => setBulkOpen(false)}
-              >
-                Наявність
-              </Link>
-            </AdminAnchoredMenu>
-          </div>
+            ))}
+          </nav>
           <button
             type="button"
             onClick={() => void load()}
@@ -489,27 +450,28 @@ export default function ProductsTable() {
             </button>
           ))}
         </div>
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          placeholder="Пошук: назва, ID, SKU…"
-          autoCapitalize="off"
-          autoCorrect="off"
-          spellCheck={false}
-          className="admin-input lg:max-w-sm"
-        />
-        <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center">
+        <div className="admin-list-toolbar">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Пошук: назва, ID, SKU…"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            className="admin-input admin-list-toolbar-search"
+          />
           <select
             value={categoryId}
             onChange={(e) => {
               setCategoryId(e.target.value);
               setPage(1);
             }}
-            className="admin-input lg:w-56"
+            className="admin-input admin-list-toolbar-category"
+            aria-label="Категорія"
           >
             <option value="">Усі категорії</option>
             {productCategories.map((c) => (
@@ -518,28 +480,87 @@ export default function ProductsTable() {
               </option>
             ))}
           </select>
-          <select
-            value={sort}
-            onChange={(e) => {
-              setSort(parseAdminProductsSort(e.target.value));
-              setPage(1);
-            }}
-            className="admin-input lg:w-56"
-            aria-label="Сортування"
-          >
-            <option value="default">За пріоритетом</option>
-            <option value="name-asc">А → Я</option>
-            <option value="name-desc">Я → А</option>
-            <option value="date-desc">Додано: новіші</option>
-            <option value="date-asc">Додано: старіші</option>
-            <option value="price-asc">Ціна: від низької</option>
-            <option value="price-desc">Ціна: від високої</option>
-          </select>
+          <div className="admin-sort-row" role="group" aria-label="Сортування">
+            <div className="admin-sort" role="group" aria-label="Ціна">
+              <span className="admin-sort-prefix">Ціна</span>
+              <button
+                type="button"
+                className={`admin-sort-arrow${sort === "price-asc" ? " is-active" : ""}`}
+                aria-label="Ціна: від низької"
+                aria-pressed={sort === "price-asc"}
+                onClick={() => {
+                  setSort("price-asc");
+                  setPage(1);
+                }}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 15l6-6 6 6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className={`admin-sort-arrow${sort === "price-desc" ? " is-active" : ""}`}
+                aria-label="Ціна: від високої"
+                aria-pressed={sort === "price-desc"}
+                onClick={() => {
+                  setSort("price-desc");
+                  setPage(1);
+                }}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+            </div>
+            <div className="admin-sort" role="group" aria-label="Додано">
+              <span className="admin-sort-prefix">Додано</span>
+              <button
+                type="button"
+                className={`admin-sort-arrow${sort === "date-desc" ? " is-active" : ""}`}
+                aria-label="Спочатку нові"
+                aria-pressed={sort === "date-desc"}
+                onClick={() => {
+                  setSort("date-desc");
+                  setPage(1);
+                }}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 15l6-6 6 6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className={`admin-sort-arrow${sort === "date-asc" ? " is-active" : ""}`}
+                aria-label="Спочатку старі"
+                aria-pressed={sort === "date-asc"}
+                onClick={() => {
+                  setSort("date-asc");
+                  setPage(1);
+                }}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+            </div>
+            <button
+              type="button"
+              className={`admin-sort-default${sort === "default" ? " is-active" : ""}`}
+              aria-pressed={sort === "default"}
+              title="Порядок як у каталозі (перетягування)"
+              onClick={() => {
+                setSort("default");
+                setPage(1);
+              }}
+            >
+              Пріоритет
+            </button>
+          </div>
           {hasActiveFilters && (
             <button
               type="button"
               onClick={resetFilters}
-              className="admin-btn-ghost !h-9 col-span-2 self-start lg:col-span-1"
+              className="admin-btn-ghost !h-9"
             >
               Скинути
             </button>
@@ -742,7 +763,6 @@ export default function ProductsTable() {
                       disabled={busy}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setBulkOpen(false);
                         const btn = e.currentTarget;
                         setMenuOpenId((cur) => {
                           if (cur === p.id) {
