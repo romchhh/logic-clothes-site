@@ -892,7 +892,7 @@
 .admin-upload-preloader {
   position: fixed;
   inset: 0;
-  z-index: 100040;
+  z-index: 200080;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -902,7 +902,7 @@
   -webkit-backdrop-filter: blur(6px);
 }
 .admin-upload-preloader.is-elevated {
-  z-index: 100060; /* above media editor */
+  z-index: 200120; /* above media editor */
 }
 .admin-upload-preloader-card {
   display: flex;
@@ -949,10 +949,11 @@
 }
 
 /* ——— Media editor (product photos / video tone) ——— */
+/* Portaled to body — must sit above admin header (99999) + sticky bars */
 .media-editor-root {
   position: fixed;
   inset: 0;
-  z-index: 100050; /* above admin header (99999) */
+  z-index: 200100;
   display: flex;
   align-items: stretch;
   justify-content: center;
@@ -961,19 +962,23 @@
   height: 100dvh;
   max-height: 100dvh;
   padding: 0;
-  /* Cover iOS notch / home indicator */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   box-sizing: border-box;
 }
+body:has(.media-editor-root) .admin-app-header,
+body:has(.media-editor-root) .admin-sticky-bar,
+body:has(.media-editor-root) .admin-section-nav {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
 .media-editor-backdrop {
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(8, 10, 12, 0.88);
-  backdrop-filter: blur(8px);
+  background: #0a0a0a;
   cursor: pointer;
 }
 .media-editor-panel {
@@ -985,15 +990,17 @@
   max-width: 100%;
   height: 100%;
   max-height: 100%;
-  background: #fafafa;
+  background: #111;
   box-shadow: none;
   overflow: hidden;
   border-radius: 0;
 }
 .dark .media-editor-panel {
-  background: #0f1114;
+  background: #0a0a0a;
 }
 .media-editor-head {
+  position: relative;
+  z-index: 5;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -1001,8 +1008,9 @@
   gap: 10px;
   min-height: 48px;
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: #fff;
+  border-bottom: 0;
+  background: transparent;
+  color: #fff;
 }
 @media (min-width: 900px) {
   .media-editor-head {
@@ -1039,8 +1047,8 @@
   }
 }
 .dark .media-editor-head {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-  background: #0f1114;
+  border-bottom: 0;
+  background: transparent;
 }
 .media-editor-title {
   margin: 0;
@@ -1052,8 +1060,9 @@
   font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: #111;
+  color: #f5f5f5;
   line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 .dark .media-editor-title {
   color: #f5f5f5;
@@ -1063,7 +1072,7 @@
 }
 .media-editor-title-meta {
   flex-shrink: 0;
-  color: #8a8a8a;
+  color: rgba(255, 255, 255, 0.55);
   font-weight: 500;
 }
 .media-editor-head .media-editor-file-label {
@@ -1075,7 +1084,7 @@
   white-space: nowrap;
   font-size: 12px;
   font-weight: 400;
-  color: #8a8a8a;
+  color: rgba(255, 255, 255, 0.55);
 }
 .media-editor-close {
   flex-shrink: 0;
@@ -1085,13 +1094,13 @@
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: #fff;
-  color: #111;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
   transition: background 0.2s, transform 0.15s;
 }
 .media-editor-close:hover {
-  background: #f0f0f0;
+  background: rgba(0, 0, 0, 0.55);
 }
 .media-editor-close svg {
   width: 18px;
@@ -1101,8 +1110,8 @@
   fill: none;
 }
 .dark .media-editor-close {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
 .media-editor-body {
@@ -1559,23 +1568,32 @@
 @media (max-width: 899px) {
   .media-editor-side {
     flex: 0 0 auto;
-    max-height: min(38dvh, 320px);
+    max-height: min(44dvh, 380px);
     min-height: 0;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: #111;
+    position: relative;
+    z-index: 4;
+    pointer-events: auto;
   }
   .dark .media-editor-side {
     border-top-color: rgba(255, 255, 255, 0.08);
+    background: #0a0a0a;
   }
   .media-editor-head {
     min-height: 52px;
     padding-top: 10px;
     padding-bottom: 10px;
+    background: transparent;
   }
   .media-editor-title > span:first-child {
     font-size: 13px;
   }
   .media-editor-head .media-editor-file-label {
     display: none;
+  }
+  .media-editor-preview-wrap {
+    pointer-events: auto;
   }
 }
 @media (min-width: 900px) {

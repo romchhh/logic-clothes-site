@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import AdminUploadPreloader from "@/components/admin/AdminUploadPreloader";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import {
@@ -166,6 +167,11 @@ export default function MediaEditModal({
   const rafRef = useRef(0);
 
   useScrollLock(Boolean(session));
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!session) return;
@@ -727,7 +733,7 @@ export default function MediaEditModal({
     }
   }
 
-  if (!session) return null;
+  if (!session || !mounted || typeof document === "undefined") return null;
 
   const isVideo = session.mode === "video";
   const disabled = saving || busy || posterBusy;
@@ -753,7 +759,7 @@ export default function MediaEditModal({
         { id: "fine", label: "Тон" },
       ];
 
-  return (
+  return createPortal(
     <div className="media-editor-root" role="presentation">
       <AdminUploadPreloader
         open={saving || busy}
@@ -1338,6 +1344,7 @@ export default function MediaEditModal({
         </footer>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
