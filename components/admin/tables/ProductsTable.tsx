@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Pagination from "./Pagination";
+import AdminAnchoredMenu from "@/components/admin/AdminAnchoredMenu";
 import {
   parseAdminProductsSort,
   type AdminProductsSort,
@@ -65,6 +66,8 @@ export default function ProductsTable() {
   const [priceDraft, setPriceDraft] = useState<Record<string, PriceDraftRow>>(
     {}
   );
+  const bulkBtnRef = useRef<HTMLButtonElement>(null);
+  const rowMenuBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const categoryLabels = useMemo(
     () => Object.fromEntries(categories.map((c) => [c.id, c.label.uk])),
@@ -125,13 +128,6 @@ export default function ProductsTable() {
   useEffect(() => {
     load();
   }, [load]);
-
-  useEffect(() => {
-    if (!menuOpenId) return;
-    const close = () => setMenuOpenId(null);
-    window.addEventListener("click", close);
-    return () => window.removeEventListener("click", close);
-  }, [menuOpenId]);
 
   const counts = useMemo(() => {
     const out = products.filter((p) => !p.inStock && !p.madeToOrder).length;
@@ -397,62 +393,57 @@ export default function ProductsTable() {
           </p>
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <div className="relative z-30">
+          <div className="relative">
             <button
+              ref={bulkBtnRef}
               type="button"
               className="admin-btn-secondary !h-9 !px-3 !text-xs"
               aria-expanded={bulkOpen}
               onClick={(e) => {
                 e.stopPropagation();
                 setMenuOpenId(null);
+                rowMenuBtnRef.current = null;
                 setBulkOpen((o) => !o);
               }}
             >
               Масові дії ▾
             </button>
-            {bulkOpen ? (
-              <>
-                <button
-                  type="button"
-                  className="fixed inset-0 z-40 cursor-default bg-transparent"
-                  aria-label="Закрити меню"
-                  onClick={() => setBulkOpen(false)}
-                />
-                <div
-                  className="absolute right-0 z-50 mt-1 w-52 rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-gray-900"
-                  role="menu"
-                >
-                  <Link
-                    href="/admin/products/categories"
-                    className="block px-3 py-2.5 text-[13px] font-medium text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-white/5"
-                    onClick={() => setBulkOpen(false)}
-                  >
-                    Категорії
-                  </Link>
-                  <Link
-                    href="/admin/products/crops"
-                    className="block px-3 py-2.5 text-[13px] font-medium text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-white/5"
-                    onClick={() => setBulkOpen(false)}
-                  >
-                    Кадр фото
-                  </Link>
-                  <Link
-                    href="/admin/products/prices"
-                    className="block px-3 py-2.5 text-[13px] font-medium text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-white/5"
-                    onClick={() => setBulkOpen(false)}
-                  >
-                    Усі ціни
-                  </Link>
-                  <Link
-                    href="/admin/products/stock"
-                    className="block px-3 py-2.5 text-[13px] font-medium text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-white/5"
-                    onClick={() => setBulkOpen(false)}
-                  >
-                    Наявність
-                  </Link>
-                </div>
-              </>
-            ) : null}
+            <AdminAnchoredMenu
+              open={bulkOpen}
+              anchorRef={bulkBtnRef}
+              onClose={() => setBulkOpen(false)}
+              width={220}
+              align="left"
+            >
+              <Link
+                href="/admin/products/categories"
+                className="admin-anchored-menu-item"
+                onClick={() => setBulkOpen(false)}
+              >
+                Категорії
+              </Link>
+              <Link
+                href="/admin/products/crops"
+                className="admin-anchored-menu-item"
+                onClick={() => setBulkOpen(false)}
+              >
+                Кадр фото
+              </Link>
+              <Link
+                href="/admin/products/prices"
+                className="admin-anchored-menu-item"
+                onClick={() => setBulkOpen(false)}
+              >
+                Усі ціни
+              </Link>
+              <Link
+                href="/admin/products/stock"
+                className="admin-anchored-menu-item"
+                onClick={() => setBulkOpen(false)}
+              >
+                Наявність
+              </Link>
+            </AdminAnchoredMenu>
           </div>
           <button
             type="button"
@@ -752,22 +743,34 @@ export default function ProductsTable() {
                       onClick={(e) => {
                         e.stopPropagation();
                         setBulkOpen(false);
-                        setMenuOpenId((cur) =>
-                          cur === p.id ? null : p.id
-                        );
+                        const btn = e.currentTarget;
+                        setMenuOpenId((cur) => {
+                          if (cur === p.id) {
+                            rowMenuBtnRef.current = null;
+                            return null;
+                          }
+                          rowMenuBtnRef.current = btn;
+                          return p.id;
+                        });
                       }}
                     >
                       ⋯
                     </button>
                     {menuOpenId === p.id ? (
-                      <div
-                        className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
-                        onClick={(e) => e.stopPropagation()}
+                      <AdminAnchoredMenu
+                        open
+                        anchorRef={rowMenuBtnRef}
+                        onClose={() => {
+                          setMenuOpenId(null);
+                          rowMenuBtnRef.current = null;
+                        }}
+                        width={180}
+                        align="right"
                       >
                         {isDraft ? (
                           <button
                             type="button"
-                            className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                            className="admin-anchored-menu-item"
                             onClick={() => {
                               setMenuOpenId(null);
                               void patchProduct(p.id, { isVisible: true });
@@ -778,7 +781,7 @@ export default function ProductsTable() {
                         ) : (
                           <button
                             type="button"
-                            className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                            className="admin-anchored-menu-item"
                             onClick={() => {
                               setMenuOpenId(null);
                               void patchProduct(p.id, { isVisible: false });
@@ -789,19 +792,19 @@ export default function ProductsTable() {
                         )}
                         <button
                           type="button"
-                          className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                          className="admin-anchored-menu-item"
                           onClick={() => void handleDuplicate(p)}
                         >
                           Копія / новий колір
                         </button>
                         <button
                           type="button"
-                          className="block w-full px-3 py-2 text-left text-[13px] text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                          className="admin-anchored-menu-item is-danger"
                           onClick={() => void handleDelete(p)}
                         >
                           Видалити
                         </button>
-                      </div>
+                      </AdminAnchoredMenu>
                     ) : null}
                   </div>
                 </div>

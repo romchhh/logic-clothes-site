@@ -167,8 +167,11 @@ export default function ProductRelationPicker({
       if (!el) return;
       const r = el.getBoundingClientRect();
       const gap = 6;
-      const spaceBelow = window.innerHeight - r.bottom - gap - 16;
-      const spaceAbove = r.top - gap - 16;
+      const pad = 8;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const spaceBelow = vh - r.bottom - gap - pad;
+      const spaceAbove = r.top - gap - pad;
       const preferBelow = spaceBelow >= 180 || spaceBelow >= spaceAbove;
       const maxHeight = Math.max(
         160,
@@ -176,11 +179,13 @@ export default function ProductRelationPicker({
       );
       const top = preferBelow
         ? r.bottom + gap
-        : Math.max(8, r.top - gap - maxHeight);
+        : Math.max(pad, r.top - gap - maxHeight);
+      const width = Math.min(Math.max(r.width, 200), vw - pad * 2);
+      const left = Math.max(pad, Math.min(r.left, vw - width - pad));
       setMenuBox({
         top,
-        left: r.left,
-        width: r.width,
+        left,
+        width,
         maxHeight,
       });
     };

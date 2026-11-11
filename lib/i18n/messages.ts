@@ -379,9 +379,9 @@ const uk: Messages = {
     sizeTooltipMadeToOrder: "Зшиємо за 14 днів",
     customOrderTitle: "Конструктор власного замовлення",
     customOrderLead:
-      "Будь-який колір палітри — по мірках або з нашої сітки. Напишіть, який відтінок і розмір вам потрібні.",
+      "Оберіть палітру (зелена, червона…), не всі відтінки одразу. Розмір з сітки або по мірках — тон узгодимо з вами.",
     customOrderCta: "Обговорити замовлення з живою людиною",
-    customOrderSelected: "Обраний відтінок",
+    customOrderSelected: "Обрані палітри",
     discussChoose: "Куди надіслати повідомлення?",
     discussInstagram: "Instagram Direct",
     discussMessenger: "Месенджер (Viber менеджера)",
@@ -674,9 +674,9 @@ const en: Messages = {
     sizeTooltipMadeToOrder: "Made to order in 14 days",
     customOrderTitle: "Build your custom order",
     customOrderLead:
-      "Any palette colour — standard sizes or made to measure. Tell us the shade and fit you need.",
+      "Pick a colour family (not every shade). Standard sizes or made to measure — we refine the tone with you.",
     customOrderCta: "Discuss your order with a real person",
-    customOrderSelected: "Selected shade",
+    customOrderSelected: "Selected palettes",
     discussChoose: "Where should we receive your message?",
     discussInstagram: "Instagram Direct",
     discussMessenger: "Viber (order manager)",

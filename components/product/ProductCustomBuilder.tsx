@@ -1,11 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import ProductDiscussOrder from "@/components/product/ProductDiscussOrder";
+import {
+  getPaletteGroups,
+  groupForPaletteId,
+  resolvePaletteId,
+} from "@/lib/colorPalette";
+import { paintSwatchShape } from "@/lib/paletteSwatchShape";
 import { formatDualPrice } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import type { Product } from "@/lib/types";
+
+function dabStyle(hex: string, index: number): CSSProperties {
+  const shape = paintSwatchShape(index);
+  return {
+    background: hex,
+    borderRadius: shape.borderRadius,
+    transform: shape.transform,
+  };
+}
 
 export default function ProductCustomBuilder({
   product,
@@ -19,13 +34,36 @@ export default function ProductCustomBuilder({
   onAdd: (size: string, note: string) => void;
 }) {
   const { t } = useI18n();
+  const groups = getPaletteGroups();
+  const defaultGroupId =
+    groupForPaletteId(
+      resolvePaletteId({
+        color: product.color,
+        colorHex: product.colorHex,
+      })
+    )?.id ?? null;
   const [size, setSize] = useState<string | null>(null);
+  const [paletteIds, setPaletteIds] = useState<string[]>(
+    defaultGroupId ? [defaultGroupId] : []
+  );
   const [height, setHeight] = useState("");
   const [bust, setBust] = useState("");
   const [waist, setWaist] = useState("");
   const [hips, setHips] = useState("");
 
+  const paletteLabels = useMemo(
+    () =>
+      paletteIds
+        .map((id) => groups.find((g) => g.id === id))
+        .filter(Boolean)
+        .map((g) => (lang === "en" ? g!.labelEn : g!.label)),
+    [paletteIds, groups, lang]
+  );
+
   const note = [
+    paletteLabels.length
+      ? `${lang === "uk" ? "палітри" : "palettes"}: ${paletteLabels.join(", ")}`
+      : "",
     height && `${lang === "uk" ? "зріст" : "height"} ${height}`,
     bust && `${lang === "uk" ? "груди" : "bust"} ${bust}`,
     waist && `${lang === "uk" ? "талія" : "waist"} ${waist}`,
@@ -34,15 +72,59 @@ export default function ProductCustomBuilder({
     .filter(Boolean)
     .join(", ");
 
+  function togglePalette(id: string) {
+    setPaletteIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
   return (
     <section className="pdp-builder" aria-label={t.product.customOrderTitle}>
       <h2 className="pdp-builder-title">{t.product.customOrderTitle}</h2>
       <p className="pdp-builder-lead">{t.product.customOrderLead}</p>
 
       <p className="pdp-builder-label">
-        {lang === "uk" ? "орієнтовна бажана гама" : "desired colour range"}
+        {lang === "uk" ? "бажані палітри" : "desired palettes"}
       </p>
-      <p className="pdp-builder-note">{product.color || "—"}</p>
+      <p className="pdp-builder-note">
+        {lang === "uk"
+          ? "Оберіть загальну гаму — відтінки узгодимо пізніше."
+          : "Pick a colour family — we refine the shade later."}
+      </p>
+      <div className="pdp-palette-row pdp-palette-row--cards pdp-builder-palettes">
+        {groups.map((group, gi) => {
+          const on = paletteIds.includes(group.id);
+          const label = lang === "en" ? group.labelEn : group.label;
+          return (
+            <button
+              key={group.id}
+              type="button"
+              className={`pdp-palette-item pdp-palette-item--card${
+                on ? " is-on is-current" : ""
+              }`}
+              aria-pressed={on}
+              title={label}
+              onClick={() => togglePalette(group.id)}
+            >
+              <span className="pdp-palette-card-grid" aria-hidden>
+                {group.shades.slice(0, 9).map((shade, i) => (
+                  <span
+                    key={shade.id}
+                    className="pdp-palette-card-dab"
+                    style={dabStyle(shade.hex, gi * 9 + i)}
+                  />
+                ))}
+              </span>
+              <span className="pdp-palette-name">{label}</span>
+            </button>
+          );
+        })}
+      </div>
+      {paletteLabels.length ? (
+        <p className="pdp-builder-note">
+          {t.product.customOrderSelected}: {paletteLabels.join(" · ")}
+        </p>
+      ) : null}
 
       {product.lengthOptions && product.lengthOptions.length > 0 ? (
         <>
@@ -112,7 +194,9 @@ export default function ProductCustomBuilder({
         lang={lang}
         productId={product.id}
         productName={product.name}
-        shadeLabel={[product.color, size, note].filter(Boolean).join(" · ")}
+        shadeLabel={[paletteLabels.join(" · ") || product.color, size, note]
+          .filter(Boolean)
+          .join(" · ")}
         label={t.product.customOrderCta}
       />
     </section>

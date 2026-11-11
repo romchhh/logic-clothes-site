@@ -596,6 +596,61 @@
   max-width: 28rem;
 }
 
+/* Portaled action menus (bulk, row ⋯) — fixed + viewport-clamped */
+.admin-anchored-menu {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(229 231 235);
+  background: #fff;
+  padding: 0.25rem 0;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+.dark .admin-anchored-menu {
+  border-color: rgb(55 65 81);
+  background: rgb(17 24 39);
+}
+.admin-anchored-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgb(31 41 55);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+.admin-anchored-menu-item:hover {
+  background: rgb(249 250 251);
+}
+.dark .admin-anchored-menu-item {
+  color: rgb(243 244 246);
+}
+.dark .admin-anchored-menu-item:hover {
+  background: rgb(255 255 255 / 0.05);
+}
+.admin-anchored-menu-item.is-danger {
+  color: rgb(220 38 38);
+}
+.dark .admin-anchored-menu-item.is-danger {
+  color: rgb(248 113 113);
+}
+.admin-anchored-menu-item.is-danger:hover {
+  background: rgb(254 242 242);
+}
+.dark .admin-anchored-menu-item.is-danger:hover {
+  background: rgb(127 29 29 / 0.4);
+}
+
 /* Relation search menu — portaled to body, never clipped by cards */
 .admin-relation-dropdown {
   display: flex;
