@@ -58,8 +58,10 @@ export default function ColorPalettePicker({ selection, onChange }: Props) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="hidden text-[13px] leading-snug text-gray-500 sm:block dark:text-gray-400">
-          Оберіть відтінок з палітри (8 груп × 9 кольорів). Інший колір моделі —
-          окремий товар у «Ще поля → Звʼязки».
+          Основний відтінок цього SKU (для картки й палітри на сайті). Щоб на
+          PDP можна було клікати інші палітри — зробіть копію «інший колір»,
+          оберіть інший відтінок і опублікуйте; або додайте товари в «Ще поля →
+          Звʼязки».
         </p>
         <button
           type="button"

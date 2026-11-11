@@ -14,19 +14,21 @@ import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import type { Product, ProductColorVariant } from "@/lib/types";
 
+type ShadeChoice = {
+  id: string;
+  label: string;
+  hex: string;
+  isCurrent: boolean;
+  /** Can open this SKU on the storefront */
+  linkable: boolean;
+};
+
 type GroupChoice = {
   group: PaletteGroup;
-  /** Product to open when this chip is pressed */
   hrefId: string;
-  /** True when this chip is the colourway currently open */
   isCurrent: boolean;
-  /** All sibling SKUs that fall into this palette (for shade chips) */
-  shades: Array<{
-    id: string;
-    label: string;
-    hex: string;
-    isCurrent: boolean;
-  }>;
+  linkable: boolean;
+  shades: ShadeChoice[];
 };
 
 function dabStyle(hex: string, index: number): CSSProperties {
@@ -72,6 +74,14 @@ function memberPaletteId(m: {
   );
 }
 
+function isLinkableVariant(
+  m: ProductColorVariant,
+  currentId: string
+): boolean {
+  if (m.id === currentId) return true;
+  return m.isVisible !== false;
+}
+
 export default function ProductColorPalette({
   product,
   lang,
@@ -82,7 +92,6 @@ export default function ProductColorPalette({
   const { t } = useI18n();
   const groups = getPaletteGroups();
 
-  /** Real colourways only — current SKU + linked siblings (not same-SKU swatches). */
   const family = useMemo(() => {
     const byId = new Map<string, ProductColorVariant>();
     const self: ProductColorVariant = {
@@ -91,51 +100,47 @@ export default function ProductColorPalette({
       color: product.color,
       image: product.images[0] || "",
       hex: product.colorHex,
+      isVisible: product.isVisible !== false,
       paletteId: resolvePaletteId({
         color: product.color,
         colorHex: product.colorHex,
       }),
     };
     byId.set(self.id, self);
+
     for (const v of (product.colorVariants ?? []) as ProductColorVariant[]) {
       if (!v?.id) continue;
       byId.set(v.id, {
         ...v,
         paletteId: memberPaletteId(v),
+        isVisible: v.isVisible !== false,
       });
     }
+
     return [...byId.values()];
   }, [product]);
 
   const choices = useMemo(() => {
-    const byGroup = new Map<
-      string,
-      Array<{
-        id: string;
-        label: string;
-        hex: string;
-        isCurrent: boolean;
-        paletteId: string;
-      }>
-    >();
+    const byGroup = new Map<string, ShadeChoice[]>();
 
     for (const m of family) {
       const paletteId = memberPaletteId(m);
       const group = groupForPaletteId(paletteId);
       if (!group || !paletteId) continue;
+
+      const linkable = isLinkableVariant(m, product.id);
+      // Hide other drafts from the switcher entirely
+      if (!linkable && m.id !== product.id) continue;
+
       const list = byGroup.get(group.id) ?? [];
-      const already = list.some((x) => x.id === m.id);
-      if (!already) {
+      if (!list.some((x) => x.id === m.id)) {
         list.push({
           id: m.id,
           label: m.color || (lang === "en" ? group.labelEn : group.label),
           hex: m.hex || group.shades[0]?.hex || "#ccc",
           isCurrent: m.id === product.id,
-          paletteId,
+          linkable,
         });
-      } else if (m.id === product.id) {
-        const idx = list.findIndex((x) => x.id === m.id);
-        if (idx >= 0) list[idx] = { ...list[idx], isCurrent: true };
       }
       byGroup.set(group.id, list);
     }
@@ -145,17 +150,18 @@ export default function ProductColorPalette({
       const shades = byGroup.get(group.id);
       if (!shades?.length) continue;
       const current = shades.find((s) => s.isCurrent);
-      const hrefId = current?.id ?? shades[0].id;
+      const target =
+        shades.find((s) => s.linkable && !s.isCurrent) ??
+        shades.find((s) => s.linkable) ??
+        shades[0];
       out.push({
         group,
-        hrefId,
+        hrefId: target.id,
         isCurrent: Boolean(current),
-        shades: shades.map((s) => ({
-          id: s.id,
-          label: s.label,
-          hex: s.hex,
-          isCurrent: s.isCurrent,
-        })),
+        linkable: Boolean(
+          target && target.linkable && target.id !== product.id
+        ),
+        shades,
       });
     }
     return out;
@@ -171,6 +177,7 @@ export default function ProductColorPalette({
       : currentGroup.label
     : colorName;
   const hasInactive = choices.length < groups.length;
+  const switchableCount = choices.filter((c) => c.linkable || c.isCurrent).length;
 
   return (
     <div className="pdp-palette-block">
@@ -219,18 +226,32 @@ export default function ProductColorPalette({
             );
           }
 
+          if (choice.linkable) {
+            return (
+              <Link
+                key={group.id}
+                href={`/${lang}/product/${encodeURIComponent(choice.hrefId)}`}
+                className="pdp-palette-item pdp-palette-item--card is-on"
+                title={label}
+                aria-label={label}
+                prefetch
+              >
+                {face}
+                <span className="pdp-palette-name">{label}</span>
+              </Link>
+            );
+          }
+
           return (
-            <Link
+            <span
               key={group.id}
-              href={`/${lang}/product/${encodeURIComponent(choice.hrefId)}`}
-              className="pdp-palette-item pdp-palette-item--card is-on"
+              className="pdp-palette-item pdp-palette-item--card is-off"
               title={label}
-              aria-label={label}
-              prefetch
+              aria-disabled="true"
             >
               {face}
               <span className="pdp-palette-name">{label}</span>
-            </Link>
+            </span>
           );
         })}
       </div>
@@ -257,13 +278,13 @@ export default function ProductColorPalette({
               />
             );
 
-            if (shade.isCurrent) {
+            if (shade.isCurrent || !shade.linkable) {
               return (
                 <span
                   key={shade.id}
-                  className="pdp-palette-shade is-current"
+                  className={`pdp-palette-shade${shade.isCurrent ? " is-current" : ""}`}
                   title={shade.label}
-                  aria-current="true"
+                  aria-current={shade.isCurrent ? "true" : undefined}
                 >
                   {swatch}
                   <span className="pdp-palette-shade-name">{shade.label}</span>
@@ -286,6 +307,14 @@ export default function ProductColorPalette({
             );
           })}
         </div>
+      ) : null}
+
+      {switchableCount <= 1 && hasInactive ? (
+        <p className="pdp-palette-hint">
+          {lang === "en"
+            ? "Other palettes light up when this model has a published colourway linked (or the same name)."
+            : "Інші палітри стають клікабельними, коли є опублікований товар цього кольору з тим самим імʼям або в «Звʼязки»."}
+        </p>
       ) : null}
 
       {hasInactive ? (

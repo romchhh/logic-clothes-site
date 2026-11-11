@@ -2247,6 +2247,12 @@
     color:var(--pdp-ink);
     text-transform:lowercase;
   }
+  .pdp-palette-hint{
+    margin:0 0 10px;
+    font-size:12px;
+    line-height:1.4;
+    color:var(--pdp-soft);
+  }
   .pdp-builder-palettes{
     margin:0 0 10px;
   }

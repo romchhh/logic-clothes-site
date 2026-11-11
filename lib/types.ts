@@ -17,6 +17,8 @@ export interface ProductColorVariant {
   hex?: string;
   /** Fixed brand palette slot id (pink, black, …). */
   paletteId?: string | null;
+  /** False for drafts — PDP links only to visible colourways. */
+  isVisible?: boolean;
 }
 
 export type ProductMediaType = "image" | "video";

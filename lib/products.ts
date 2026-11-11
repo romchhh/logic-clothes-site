@@ -10,6 +10,23 @@ import {
 } from "@/lib/productCatalogSections";
 import type { Product, ProductColorVariant } from "@/lib/types";
 
+/** Strip copy suffixes so colourways of one model share a key. */
+export function normalizeModelName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFKC")
+    .replace(/\s*\(копія\)\s*/gi, " ")
+    .replace(/\s*-\s*copy\b/gi, " ")
+    .replace(/\scopy\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isSpecificModelName(key: string): boolean {
+  const words = key.split(" ").filter(Boolean);
+  return words.length >= 2 || key.length >= 12;
+}
+
 function toColorVariant(p: Product): ProductColorVariant {
   const hex = p.colorHex || p.swatches[0]?.hex || undefined;
   const paletteId = resolvePaletteId({
@@ -21,6 +38,7 @@ function toColorVariant(p: Product): ProductColorVariant {
     name: p.name,
     color: p.color || p.name,
     image: p.images[0] || "",
+    isVisible: p.isVisible !== false,
     ...(hex ? { hex } : {}),
     ...(paletteId ? { paletteId } : {}),
   };
@@ -28,20 +46,41 @@ function toColorVariant(p: Product): ProductColorVariant {
 
 function enrichColorVariants(products: Product[]): Product[] {
   const byGroup = new Map<string, Product[]>();
+  const byName = new Map<string, Product[]>();
+
   for (const p of products) {
-    if (!p.colorGroup) continue;
-    const list = byGroup.get(p.colorGroup) ?? [];
-    list.push(p);
-    byGroup.set(p.colorGroup, list);
+    if (p.colorGroup) {
+      const list = byGroup.get(p.colorGroup) ?? [];
+      list.push(p);
+      byGroup.set(p.colorGroup, list);
+    }
+    const key = normalizeModelName(p.name || "");
+    if (key && isSpecificModelName(key)) {
+      const list = byName.get(key) ?? [];
+      list.push(p);
+      byName.set(key, list);
+    }
   }
 
   return products.map((p) => {
-    if (!p.colorGroup) {
-      // Still expose self so PDP can highlight the active palette slot
-      return { ...p, colorVariants: [toColorVariant(p)] };
+    const merged = new Map<string, Product>();
+    merged.set(p.id, p);
+
+    if (p.colorGroup) {
+      for (const s of byGroup.get(p.colorGroup) ?? []) merged.set(s.id, s);
     }
-    const siblings = byGroup.get(p.colorGroup) ?? [p];
-    const colorVariants: ProductColorVariant[] = siblings.map(toColorVariant);
+
+    const nameKey = normalizeModelName(p.name || "");
+    if (nameKey && isSpecificModelName(nameKey)) {
+      for (const s of byName.get(nameKey) ?? []) {
+        // Name fallback: only published colourways (drafts stay out of the switcher)
+        if (s.id === p.id || isCatalogProduct(s)) merged.set(s.id, s);
+      }
+    }
+
+    const colorVariants: ProductColorVariant[] = [...merged.values()].map(
+      toColorVariant
+    );
     return { ...p, colorVariants };
   });
 }
