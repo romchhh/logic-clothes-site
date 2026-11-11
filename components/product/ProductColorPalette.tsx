@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import ProductDiscussOrder from "@/components/product/ProductDiscussOrder";
 import {
+  buildFamilyPaletteSlots,
   getPaletteGroups,
   groupForPaletteId,
   resolvePaletteId,
   type PaletteGroup,
+  type PaletteSlot,
 } from "@/lib/colorPalette";
 import { paintSwatchShape } from "@/lib/paletteSwatchShape";
 import { useI18n } from "@/lib/i18n/I18nProvider";
@@ -46,6 +48,20 @@ function PaletteFace({
   );
 }
 
+function shadeStyle(hex: string, index: number): CSSProperties {
+  const shape = paintSwatchShape(index);
+  return {
+    backgroundColor: hex,
+    borderRadius: shape.borderRadius,
+    transform: shape.transform,
+  };
+}
+
+function targetProductId(slots: PaletteSlot[], currentId: string): string | null {
+  const other = slots.find((s) => s.variant && s.variant.id !== currentId);
+  return other?.variant?.id ?? slots[0]?.variant?.id ?? null;
+}
+
 export default function ProductColorPalette({
   product,
   lang,
@@ -56,33 +72,33 @@ export default function ProductColorPalette({
   const { t } = useI18n();
   const groups = getPaletteGroups();
 
-  const byGroup = useMemo(() => {
-    const map = new Map<string, ProductColorVariant>();
-    const members: ProductColorVariant[] = [
-      {
-        id: product.id,
-        name: product.name,
-        color: product.color,
-        image: product.images[0] || "",
-        hex: product.colorHex,
-        paletteId: resolvePaletteId({
+  const slots = useMemo(
+    () =>
+      buildFamilyPaletteSlots(
+        {
+          id: product.id,
+          name: product.name,
           color: product.color,
           colorHex: product.colorHex,
-        }),
-      },
-      ...((product.colorVariants ?? []) as ProductColorVariant[]),
-    ];
-    for (const member of members) {
-      const paletteId =
-        member.paletteId ||
-        resolvePaletteId({ color: member.color, colorHex: member.hex });
-      const group = groupForPaletteId(paletteId);
+          images: product.images,
+          swatches: product.swatches,
+        },
+        (product.colorVariants ?? []) as ProductColorVariant[]
+      ),
+    [product]
+  );
+
+  const slotsByGroup = useMemo(() => {
+    const map = new Map<string, PaletteSlot[]>();
+    for (const slot of slots) {
+      const group = groupForPaletteId(slot.palette.id);
       if (!group) continue;
-      const prev = map.get(group.id);
-      if (!prev || member.id === product.id) map.set(group.id, member);
+      const list = map.get(group.id) ?? [];
+      list.push(slot);
+      map.set(group.id, list);
     }
     return map;
-  }, [product]);
+  }, [slots]);
 
   const currentGroup = useMemo(() => {
     const id = resolvePaletteId({
@@ -92,13 +108,26 @@ export default function ProductColorPalette({
     return groupForPaletteId(id);
   }, [product.color, product.colorHex]);
 
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(
+    currentGroup?.id ?? null
+  );
+
+  useEffect(() => {
+    setExpandedGroupId(currentGroup?.id ?? null);
+  }, [product.id, currentGroup?.id]);
+
+  const activeGroupId = expandedGroupId ?? currentGroup?.id ?? null;
+  const activeGroupSlots = activeGroupId
+    ? slotsByGroup.get(activeGroupId) ?? []
+    : [];
+
   const colorName = (product.color || "").trim();
   const groupLabel = currentGroup
     ? lang === "en"
       ? currentGroup.labelEn
       : currentGroup.label
     : colorName;
-  const hasInactive = groups.some((g) => !byGroup.has(g.id));
+  const hasInactive = groups.some((g) => !slotsByGroup.has(g.id));
 
   return (
     <div className="pdp-palette-block">
@@ -108,26 +137,35 @@ export default function ProductColorPalette({
           {colorName && currentGroup ? ` · ${colorName}` : null}
         </p>
       ) : null}
+
       <div
         className="pdp-palette-row pdp-palette-row--cards"
         role="listbox"
         aria-label={t.product.color}
       >
         {groups.map((group, index) => {
-          const member = byGroup.get(group.id) ?? null;
-          const active = Boolean(member);
-          const isCurrent = member?.id === product.id;
+          const groupSlots = slotsByGroup.get(group.id) ?? [];
+          const available = groupSlots.length > 0;
+          const isCurrentGroup = currentGroup?.id === group.id;
+          const isExpanded = activeGroupId === group.id;
           const label = lang === "en" ? group.labelEn : group.label;
-          const face = (
-            <PaletteFace group={group} shapeOffset={index * 9} />
+          const face = <PaletteFace group={group} shapeOffset={index * 9} />;
+          const otherId = available
+            ? targetProductId(groupSlots, product.id)
+            : null;
+          // Other family → navigate to that colourway. Current family → expand shades.
+          const goesElsewhere = Boolean(
+            !isCurrentGroup && otherId && otherId !== product.id
           );
 
-          if (member && !isCurrent) {
+          if (goesElsewhere && otherId) {
             return (
               <Link
                 key={group.id}
-                href={`/${lang}/product/${encodeURIComponent(member.id)}`}
-                className="pdp-palette-item pdp-palette-item--card is-on"
+                href={`/${lang}/product/${encodeURIComponent(otherId)}`}
+                className={`pdp-palette-item pdp-palette-item--card is-on${
+                  isExpanded ? " is-current" : ""
+                }`}
                 title={label}
                 aria-label={label}
               >
@@ -137,15 +175,31 @@ export default function ProductColorPalette({
             );
           }
 
+          if (available) {
+            return (
+              <button
+                type="button"
+                key={group.id}
+                className={`pdp-palette-item pdp-palette-item--card is-on${
+                  isCurrentGroup || isExpanded ? " is-current" : ""
+                }`}
+                title={label}
+                aria-label={label}
+                aria-pressed={isExpanded}
+                onClick={() => setExpandedGroupId(group.id)}
+              >
+                {face}
+                <span className="pdp-palette-name">{label}</span>
+              </button>
+            );
+          }
+
           return (
             <span
               key={group.id}
-              className={`pdp-palette-item pdp-palette-item--card${
-                isCurrent ? " is-on is-current" : active ? " is-on" : " is-off"
-              }`}
+              className="pdp-palette-item pdp-palette-item--card is-off"
               title={label}
-              aria-disabled={!active}
-              aria-current={isCurrent ? "true" : undefined}
+              aria-disabled="true"
             >
               {face}
               <span className="pdp-palette-name">{label}</span>
@@ -153,6 +207,68 @@ export default function ProductColorPalette({
           );
         })}
       </div>
+
+      {activeGroupSlots.length > 1 ? (
+        <div
+          className="pdp-palette-shades"
+          role="listbox"
+          aria-label={
+            lang === "en" ? "Shades in this palette" : "Відтінки цієї палітри"
+          }
+        >
+          {activeGroupSlots.map((slot, i) => {
+            const label =
+              lang === "en" ? slot.palette.labelEn : slot.palette.label;
+            const isCurrent =
+              slot.isCurrent ||
+              (slot.variant?.id === product.id &&
+                slot.palette.id ===
+                  resolvePaletteId({
+                    color: product.color,
+                    colorHex: product.colorHex,
+                  }));
+            const href =
+              slot.variant && slot.variant.id !== product.id
+                ? `/${lang}/product/${encodeURIComponent(slot.variant.id)}`
+                : null;
+            const face = (
+              <span
+                className="pdp-palette-shade-swatch"
+                style={shadeStyle(slot.palette.hex, i)}
+                aria-hidden
+              />
+            );
+
+            if (href) {
+              return (
+                <Link
+                  key={slot.palette.id}
+                  href={href}
+                  className={`pdp-palette-shade${isCurrent ? " is-current" : ""}`}
+                  title={label}
+                  aria-label={label}
+                >
+                  {face}
+                  <span className="pdp-palette-shade-name">{label}</span>
+                </Link>
+              );
+            }
+
+            return (
+              <span
+                key={slot.palette.id}
+                className={`pdp-palette-shade${isCurrent ? " is-current" : ""}`}
+                title={label}
+                aria-current={isCurrent ? "true" : undefined}
+              >
+                {face}
+                <span className="pdp-palette-shade-name">{label}</span>
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
+
       {hasInactive ? (
         <ProductDiscussOrder
           lang={lang}
