@@ -397,48 +397,61 @@ export default function ProductsTable() {
           </p>
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <div className="relative">
+          <div className="relative z-30">
             <button
               type="button"
               className="admin-btn-secondary !h-9 !px-3 !text-xs"
               aria-expanded={bulkOpen}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setMenuOpenId(null);
                 setBulkOpen((o) => !o);
               }}
             >
-              Масові дії
+              Масові дії ▾
             </button>
             {bulkOpen ? (
-              <div
-                className="absolute right-0 z-20 mt-1 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
-                onClick={() => setBulkOpen(false)}
-              >
-                <Link
-                  href="/admin/products/categories"
-                  className="block px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+              <>
+                <button
+                  type="button"
+                  className="fixed inset-0 z-40 cursor-default bg-transparent"
+                  aria-label="Закрити меню"
+                  onClick={() => setBulkOpen(false)}
+                />
+                <div
+                  className="absolute right-0 z-50 mt-1 w-52 rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-gray-900"
+                  role="menu"
                 >
-                  Категорії
-                </Link>
-                <Link
-                  href="/admin/products/crops"
-                  className="block px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
-                >
-                  Кадр фото
-                </Link>
-                <Link
-                  href="/admin/products/prices"
-                  className="block px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
-                >
-                  Усі ціни
-                </Link>
-                <Link
-                  href="/admin/products/stock"
-                  className="block px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
-                >
-                  Наявність
-                </Link>
-              </div>
+                  <Link
+                    href="/admin/products/categories"
+                    className="block px-3 py-2.5 text-[13px] font-medium text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-white/5"
+                    onClick={() => setBulkOpen(false)}
+                  >
+                    Категорії
+                  </Link>
+                  <Link
+                    href="/admin/products/crops"
+                    className="block px-3 py-2.5 text-[13px] font-medium text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-white/5"
+                    onClick={() => setBulkOpen(false)}
+                  >
+                    Кадр фото
+                  </Link>
+                  <Link
+                    href="/admin/products/prices"
+                    className="block px-3 py-2.5 text-[13px] font-medium text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-white/5"
+                    onClick={() => setBulkOpen(false)}
+                  >
+                    Усі ціни
+                  </Link>
+                  <Link
+                    href="/admin/products/stock"
+                    className="block px-3 py-2.5 text-[13px] font-medium text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-white/5"
+                    onClick={() => setBulkOpen(false)}
+                  >
+                    Наявність
+                  </Link>
+                </div>
+              </>
             ) : null}
           </div>
           <button

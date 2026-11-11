@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getProductImageSrc } from "@/lib/getFirstProductImage";
 import type { Product } from "@/lib/types";
 
@@ -22,15 +23,14 @@ const STEPS: Record<RelationPickerKind, string[]> = {
 type Props = {
   kind: RelationPickerKind;
   label: string;
-  /** Short line under the title */
   summary?: string;
   catalog: Product[];
   excludeId?: string;
   selectedIds: string[];
   onChange: (ids: string[]) => void;
-  /** For «інші кольори»: prioritize same product name */
   currentProductName?: string;
   emptyHint?: string;
+  onRefreshCatalog?: () => void | Promise<void>;
 };
 
 const SEARCH_LIMIT = 10;
@@ -57,12 +57,26 @@ export default function ProductRelationPicker({
   onChange,
   currentProductName = "",
   emptyHint = "Поки нічого не додано — скористайтесь пошуком нижче",
+  onRefreshCatalog,
 }: Props) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [browseAll, setBrowseAll] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
+  const [menuBox, setMenuBox] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshedRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const byId = useMemo(
     () => new Map(catalog.map((p) => [p.id, p])),
@@ -86,15 +100,34 @@ export default function ProductRelationPicker({
   );
 
   const rankedAvailable = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim().toLowerCase().replace(/['ʼ`]/g, "'");
     let list = available;
     if (q) {
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.id.toLowerCase().includes(q) ||
-          (p.color || "").toLowerCase().includes(q)
-      );
+      const tokens = q.split(/\s+/).filter(Boolean);
+      list = list.filter((p) => {
+        const hay = [
+          p.name,
+          p.nameEn,
+          p.id,
+          p.sku != null ? String(p.sku) : "",
+          p.color,
+          p.fabricName,
+          p.category,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .replace(/['ʼ`]/g, "'");
+        return tokens.every((t) => hay.includes(t));
+      });
+      list = [...list].sort((a, b) => {
+        const an = a.name.toLowerCase();
+        const bn = b.name.toLowerCase();
+        const aStarts = an.startsWith(q) ? 0 : an.includes(q) ? 1 : 2;
+        const bStarts = bn.startsWith(q) ? 0 : bn.includes(q) ? 1 : 2;
+        if (aStarts !== bStarts) return aStarts - bStarts;
+        return a.name.localeCompare(b.name, "uk");
+      });
     } else if (kind === "color-siblings" && currentProductName.trim()) {
       list = [...list].sort(
         (a, b) =>
@@ -108,7 +141,7 @@ export default function ProductRelationPicker({
   }, [available, query, kind, currentProductName]);
 
   const limit = query.trim()
-    ? SEARCH_LIMIT
+    ? Math.max(SEARCH_LIMIT, 24)
     : browseAll
       ? BROWSE_LIMIT
       : kind === "color-siblings"
@@ -123,6 +156,42 @@ export default function ProductRelationPicker({
     (suggestions.length > 0 ||
       query.trim().length > 0 ||
       rankedAvailable.length > 0);
+
+  useLayoutEffect(() => {
+    if (!showDropdown || !inputRef.current) {
+      setMenuBox(null);
+      return;
+    }
+    const update = () => {
+      const el = inputRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const gap = 6;
+      const spaceBelow = window.innerHeight - r.bottom - gap - 16;
+      const spaceAbove = r.top - gap - 16;
+      const preferBelow = spaceBelow >= 180 || spaceBelow >= spaceAbove;
+      const maxHeight = Math.max(
+        160,
+        Math.min(320, preferBelow ? spaceBelow : spaceAbove)
+      );
+      const top = preferBelow
+        ? r.bottom + gap
+        : Math.max(8, r.top - gap - maxHeight);
+      setMenuBox({
+        top,
+        left: r.left,
+        width: r.width,
+        maxHeight,
+      });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [showDropdown, query, suggestions.length, browseAll]);
 
   const add = (id: string) => {
     if (selectedIds.includes(id)) return;
@@ -147,8 +216,99 @@ export default function ProductRelationPicker({
   const steps = STEPS[kind];
   const listHint =
     kind === "color-siblings"
-      ? "Порядок тут не впливає на сайт — головне, щоб усі кольори були в списку."
-      : "Перший у списку з’явиться ліворуч у блоці луку на сайті.";
+      ? "Порядок тут не важливий — головне, щоб усі кольори були в списку."
+      : "Стрілки змінюють порядок у блоці луку на сайті (перший — ліворуч).";
+
+  const dropdown =
+    portalReady && showDropdown && menuBox
+      ? createPortal(
+          <div
+            className="admin-relation-dropdown"
+            style={{
+              position: "fixed",
+              top: menuBox.top,
+              left: menuBox.left,
+              width: menuBox.width,
+              maxHeight: menuBox.maxHeight,
+              zIndex: 10060,
+            }}
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            {!query.trim() && kind === "color-siblings" ? (
+              <p className="admin-relation-dropdown-hint">
+                {currentProductName.trim()
+                  ? "Спочатку схожі за назвою — ймовірно той самий виріб"
+                  : "Оберіть товар з каталогу"}
+              </p>
+            ) : null}
+            {!query.trim() && kind === "look" ? (
+              <p className="admin-relation-dropdown-hint">
+                Товари з каталогу — натисніть «Додати»
+              </p>
+            ) : null}
+            <ul
+              className="admin-relation-dropdown-list"
+              style={{ maxHeight: menuBox.maxHeight - 44 }}
+            >
+              {suggestions.length === 0 ? (
+                <li className="px-3 py-3 text-sm text-gray-400">
+                  {available.length === 0
+                    ? "Усі товари вже додані або каталог порожній"
+                    : "Нічого не знайдено — спробуйте іншу назву"}
+                </li>
+              ) : (
+                suggestions.map((p) => (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-gray-50 dark:hover:bg-white/5"
+                      onClick={() => add(p.id)}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={getProductImageSrc(p.images)}
+                        alt=""
+                        className="h-10 w-8 rounded object-cover"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-gray-900 dark:text-white">
+                          {p.name}
+                          {p.nameEn?.trim() ? (
+                            <span className="font-normal text-gray-400">
+                              {" "}
+                              · {p.nameEn}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="block truncate text-xs text-gray-400">
+                          {p.color || "—"} · {p.id}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-lg bg-gray-900 px-2.5 py-1 text-[11px] font-semibold text-white dark:bg-white dark:text-gray-900">
+                        Додати
+                      </span>
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+            {hasMore && !query.trim() ? (
+              <div className="border-t border-gray-100 px-3 py-2 dark:border-white/10">
+                <button
+                  type="button"
+                  className="admin-btn-ghost w-full !text-xs"
+                  onClick={() => setBrowseAll((v) => !v)}
+                >
+                  {browseAll
+                    ? "Згорнути"
+                    : `Ще ${rankedAvailable.length - suggestions.length}`}
+                </button>
+              </div>
+            ) : null}
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <div className="space-y-4">
@@ -159,7 +319,7 @@ export default function ProductRelationPicker({
           </h3>
           {selected.length > 0 ? (
             <span className="rounded-full bg-[#B7E1DF]/40 px-2 py-0.5 text-[11px] font-semibold text-gray-800 dark:bg-[#B7E1DF]/15 dark:text-[#B7E1DF]">
-              додано: {selected.length}
+              {selected.length}
             </span>
           ) : null}
         </div>
@@ -190,21 +350,13 @@ export default function ProductRelationPicker({
       <div>
         {selected.length > 0 ? (
           <>
-            <p className="mb-2 hidden text-[11px] text-gray-400 sm:block">
-              {listHint}
-            </p>
+            <p className="mb-2 text-[11px] text-gray-400">{listHint}</p>
             <ul className="space-y-2">
               {selected.map((p, i) => (
                 <li
                   key={p.id}
                   className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 dark:border-white/[0.08] dark:bg-white/[0.03]"
                 >
-                  <span
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[11px] font-semibold text-gray-500 dark:bg-white/10"
-                    aria-hidden
-                  >
-                    {i + 1}
-                  </span>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={getProductImageSrc(p.images)}
@@ -228,20 +380,20 @@ export default function ProductRelationPicker({
                           className="admin-btn-ghost !px-1.5 text-xs disabled:opacity-30"
                           disabled={i === 0}
                           onClick={() => move(p.id, -1)}
-                          aria-label="Вище в луці"
-                          title="Вище в луці"
+                          aria-label="Ліворуч у луці"
+                          title="Ліворуч у луці"
                         >
-                          ▲
+                          ←
                         </button>
                         <button
                           type="button"
                           className="admin-btn-ghost !px-1.5 text-xs disabled:opacity-30"
                           disabled={i === selected.length - 1}
                           onClick={() => move(p.id, 1)}
-                          aria-label="Нижче в луці"
-                          title="Нижче в луці"
+                          aria-label="Праворуч у луці"
+                          title="Праворуч у луці"
                         >
-                          ▼
+                          →
                         </button>
                       </>
                     ) : null}
@@ -266,11 +418,12 @@ export default function ProductRelationPicker({
         )}
       </div>
 
-      <div className="relative">
+      <div>
         <label className="mb-1.5 block text-[12px] font-semibold text-gray-700 dark:text-gray-300">
           Додати товар
         </label>
         <input
+          ref={inputRef}
           type="search"
           value={query}
           onChange={(e) => {
@@ -281,6 +434,10 @@ export default function ProductRelationPicker({
           onFocus={() => {
             if (blurTimer.current) clearTimeout(blurTimer.current);
             setOpen(true);
+            if (!refreshedRef.current && onRefreshCatalog) {
+              refreshedRef.current = true;
+              void onRefreshCatalog();
+            }
           }}
           onBlur={() => {
             blurTimer.current = setTimeout(() => setOpen(false), 180);
@@ -288,80 +445,12 @@ export default function ProductRelationPicker({
           placeholder={
             kind === "color-siblings"
               ? "Пошук: назва моделі, колір або ID…"
-              : "Пошук товару для луку…"
+              : "Пошук: назва UK/EN, колір або ID…"
           }
           className="admin-input"
           autoComplete="off"
         />
-        {showDropdown && (
-          <div
-            className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900"
-            onMouseDown={(e) => e.preventDefault()}
-          >
-            {!query.trim() && kind === "color-siblings" ? (
-              <p className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium text-gray-500 dark:border-white/10">
-                {currentProductName.trim()
-                  ? "Спочатку схожі за назвою — ймовірно той самий виріб"
-                  : "Оберіть товар з каталогу"}
-              </p>
-            ) : null}
-            {!query.trim() && kind === "look" ? (
-              <p className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium text-gray-500 dark:border-white/10">
-                Товари з каталогу — натисніть «Додати»
-              </p>
-            ) : null}
-            <ul className="max-h-72 overflow-auto py-1">
-              {suggestions.length === 0 ? (
-                <li className="px-3 py-3 text-sm text-gray-400">
-                  {available.length === 0
-                    ? "Усі товари вже додані або каталог порожній"
-                    : "Нічого не знайдено — спробуйте іншу назву"}
-                </li>
-              ) : (
-                suggestions.map((p) => (
-                  <li key={p.id}>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-gray-50 dark:hover:bg-white/5"
-                      onClick={() => add(p.id)}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={getProductImageSrc(p.images)}
-                        alt=""
-                        className="h-10 w-8 rounded object-cover"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium text-gray-900 dark:text-white">
-                          {p.name}
-                        </span>
-                        <span className="block truncate text-xs text-gray-400">
-                          {p.color || "—"} · {p.id}
-                        </span>
-                      </span>
-                      <span className="shrink-0 rounded-lg bg-gray-900 px-2.5 py-1 text-[11px] font-semibold text-white dark:bg-white dark:text-gray-900">
-                        Додати
-                      </span>
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
-            {hasMore && !query.trim() ? (
-              <div className="border-t border-gray-100 px-3 py-2 dark:border-white/10">
-                <button
-                  type="button"
-                  className="admin-btn-ghost w-full !text-xs"
-                  onClick={() => setBrowseAll((v) => !v)}
-                >
-                  {browseAll
-                    ? "Згорнути"
-                    : `Ще ${rankedAvailable.length - suggestions.length}`}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        )}
+        {dropdown}
       </div>
     </div>
   );

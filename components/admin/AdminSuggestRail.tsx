@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type Props = {
   suggestions: string[];
@@ -12,7 +12,15 @@ type Props = {
   addPlaceholder?: string;
 };
 
-/** Max 3 rows, horizontal scroll — compact chip rail. */
+function normalize(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/['ʼ`]/g, "'")
+    .replace(/\s+/g, " ");
+}
+
+/** Max 3 rows, horizontal scroll — compact chip rail with live filter. */
 export default function AdminSuggestRail({
   suggestions,
   value = "",
@@ -23,9 +31,27 @@ export default function AdminSuggestRail({
 }: Props) {
   const [draft, setDraft] = useState("");
   const active = value.trim();
-  const pool = Array.from(
-    new Set(suggestions.map((s) => s.trim()).filter(Boolean))
-  );
+  const query = normalize(active);
+
+  const pool = useMemo(() => {
+    const all = Array.from(
+      new Set(suggestions.map((s) => s.trim()).filter(Boolean))
+    );
+    if (!query) return all;
+    const scored = all
+      .map((item) => {
+        const n = normalize(item);
+        let score = 0;
+        if (n === query) score = 300;
+        else if (n.startsWith(query)) score = 200;
+        else if (n.includes(query)) score = 100;
+        else return null;
+        return { item, score };
+      })
+      .filter((x): x is { item: string; score: number } => Boolean(x))
+      .sort((a, b) => b.score - a.score || a.item.localeCompare(b.item, "uk"));
+    return scored.map((x) => x.item);
+  }, [suggestions, query]);
 
   function commitDraft() {
     const next = draft.trim();
@@ -35,7 +61,7 @@ export default function AdminSuggestRail({
     setDraft("");
   }
 
-  if (!pool.length && !onRemember) {
+  if (!suggestions.length && !onRemember) {
     return emptyHint ? (
       <p className="mt-1.5 text-[11px] text-gray-400">{emptyHint}</p>
     ) : null;
@@ -64,6 +90,10 @@ export default function AdminSuggestRail({
             );
           })}
         </div>
+      ) : query ? (
+        <p className="mt-1.5 text-[11px] text-gray-400">
+          Немає збігів для «{active}» — можна додати нижче
+        </p>
       ) : (
         <p className="mt-1.5 text-[11px] text-gray-400">
           {emptyHint || "Список порожній — додайте варіант нижче"}

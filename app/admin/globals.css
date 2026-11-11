@@ -337,10 +337,12 @@
 
 /* —— Canonical ecommerce admin primitives —— */
 .admin-panel {
-  @apply overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.08)] dark:border-white/[0.06] dark:bg-white/[0.03] dark:shadow-none;
+  /* overflow visible so dropdowns (масові дії, лук-пошук) are not clipped */
+  @apply overflow-visible rounded-2xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.08)] dark:border-white/[0.06] dark:bg-white/[0.03] dark:shadow-none;
 }
-
 .admin-panel-head {
+  position: relative;
+  z-index: 5;
   @apply flex flex-wrap items-start justify-between gap-3 border-b border-gray-100/90 bg-[#fafafa]/70 px-5 py-4 dark:border-white/[0.06] dark:bg-white/[0.02];
 }
 
@@ -592,6 +594,42 @@
   gap: 8px;
   align-items: center;
   max-width: 28rem;
+}
+
+/* Relation search menu — portaled to body, never clipped by cards */
+.admin-relation-dropdown {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(229 231 235);
+  background: #fff;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+.dark .admin-relation-dropdown {
+  border-color: rgb(55 65 81);
+  background: rgb(17 24 39);
+}
+.admin-relation-dropdown-hint {
+  margin: 0;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgb(243 244 246);
+  padding: 0.5rem 0.75rem;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgb(107 114 128);
+}
+.dark .admin-relation-dropdown-hint {
+  border-bottom-color: rgb(255 255 255 / 0.1);
+}
+.admin-relation-dropdown-list {
+  margin: 0;
+  padding: 0.25rem 0;
+  overflow: auto;
+  list-style: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-main {

@@ -555,17 +555,35 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       await openImageEdit(original, item.url, item.adjust);
       return;
     }
+    setUploading(true);
+    setUploadProgress("Відкриваю фото для кадру…");
     try {
-      const res = await fetch(item.url);
-      if (!res.ok) throw new Error("fetch");
+      const url = item.url.startsWith("http")
+        ? item.url
+        : new URL(item.url, window.location.origin).href;
+      const res = await fetch(url, { credentials: "include", cache: "no-store" });
+      if (!res.ok) throw new Error(`fetch ${res.status}`);
       const blob = await res.blob();
-      const file = new File([blob], "edit-source.webp", {
+      if (!blob.size) throw new Error("empty");
+      const ext =
+        blob.type.includes("png")
+          ? "png"
+          : blob.type.includes("jpeg") || blob.type.includes("jpg")
+            ? "jpg"
+            : "webp";
+      const file = new File([blob], `edit-source.${ext}`, {
         type: blob.type || "image/webp",
       });
+      originalsRef.current.set(item.url, file);
       await openImageEdit(file, item.url, item.adjust);
     } catch (e) {
       console.error(e);
-      setError("Не вдалося відкрити медіа для редагування");
+      setError(
+        "Не вдалося відкрити фото для кадру. Спробуйте ще раз або завантажте файл заново."
+      );
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -706,7 +724,7 @@ export default function ProductMediaManager({ media, onChange }: Props) {
                 disabled={uploading || Boolean(editSession)}
                 onClick={() => void startEditFor(idx)}
               >
-                {m.type === "video" ? "Кадр / обкладинка" : "Редагувати"}
+                {m.type === "video" ? "Кадр / обкладинка" : "Кадр і тон"}
               </button>
             </div>
           </div>

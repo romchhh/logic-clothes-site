@@ -107,7 +107,10 @@ const PRODUCT_FORM_SECTIONS = [
   { id: "section-material", label: "Тканина" },
   { id: "section-description", label: "Опис" },
   { id: "section-media", label: "Фото" },
-  { id: "section-more", label: "Ще" },
+  { id: "section-length", label: "Довжина" },
+  { id: "section-model", label: "Модель" },
+  { id: "section-links", label: "Кольори" },
+  { id: "section-look", label: "Лук" },
 ] as const;
 
 const EMPTY: FormState = {
@@ -243,6 +246,20 @@ export default function ProductForm({ productId }: Props) {
       setForm((prev) => ({ ...prev, [key]: value })),
     []
   );
+
+  const reloadCatalog = useCallback(async () => {
+    try {
+      const productsRes = await fetch("/api/admin/products", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!productsRes.ok) return;
+      const data = (await productsRes.json()) as Product[];
+      if (Array.isArray(data)) setCatalog(data);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -414,28 +431,16 @@ export default function ProductForm({ productId }: Props) {
     };
   }, [productId, draftKey]);
 
-  // Restore create-form draft once (keeps typed fields after media cancel/delete).
+  // New product always starts empty — do not restore the previous create draft.
   useEffect(() => {
     if (isEdit) return;
-    const draft = readAdminFormDraft<ProductFormDraft>(draftKey);
-    if (!draft?.form) {
-      setDraftReady(true);
-      return;
-    }
-    setForm(draft.form);
-    if (draft.paletteSelection) setPaletteSelection(draft.paletteSelection);
-    if (Array.isArray(draft.colorVariantIds)) {
-      setColorVariantIds(draft.colorVariantIds);
-    }
-    if (Array.isArray(draft.lookProductIds)) {
-      setLookProductIds(draft.lookProductIds);
-    }
+    clearAdminFormDraft(draftKey);
     setDraftReady(true);
   }, [draftKey, isEdit]);
 
-  // Autosave local draft while editing / creating.
+  // Autosave local draft only while editing an existing product.
   useEffect(() => {
-    if (!draftReady || loading || saving) return;
+    if (!isEdit || !draftReady || loading || saving) return;
     writeAdminFormDraft(draftKey, {
       form,
       paletteSelection,
@@ -443,6 +448,7 @@ export default function ProductForm({ productId }: Props) {
       lookProductIds,
     } satisfies ProductFormDraft);
   }, [
+    isEdit,
     draftReady,
     loading,
     saving,
@@ -857,27 +863,26 @@ export default function ProductForm({ productId }: Props) {
           </button>
         }
       >
-        <div>
-          <Label htmlFor="nameUk">Українською *</Label>
-          <Input
-            id="nameUk"
-            value={form.nameUk}
-            onChange={(e) => set("nameUk", e.target.value)}
-            placeholder="Сукня з сітки"
-          />
-          <p className="mt-1.5 text-xs text-gray-400">
-            URL: /product/
-            <code>
-              {isEdit && form.id
-                ? form.id
-                : slugifyId(form.nameUk.trim() || "new-product")}
-            </code>
-          </p>
-        </div>
-        <details className="admin-details">
-          <summary>English {form.nameEn.trim() ? "· заповнено" : ""}</summary>
-          <div className="mt-3 space-y-2">
-            <div className="flex items-center justify-between gap-2">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <Label htmlFor="nameUk">Українською *</Label>
+            <Input
+              id="nameUk"
+              value={form.nameUk}
+              onChange={(e) => set("nameUk", e.target.value)}
+              placeholder="Сукня з сітки"
+            />
+            <p className="mt-1.5 text-xs text-gray-400">
+              URL: /product/
+              <code>
+                {isEdit && form.id
+                  ? form.id
+                  : slugifyId(form.nameUk.trim() || "new-product")}
+              </code>
+            </p>
+          </div>
+          <div>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
               <Label htmlFor="nameEn">English</Label>
               <TranslateBtn
                 busy={translating === "name-en"}
@@ -899,7 +904,7 @@ export default function ProductForm({ productId }: Props) {
               placeholder="Mesh dress"
             />
           </div>
-        </details>
+        </div>
       </ComponentCard>
 
       <ComponentCard title="Ціна" sectionId="section-price">
@@ -1306,117 +1311,126 @@ export default function ProductForm({ productId }: Props) {
         />
       </ComponentCard>
 
-      <ComponentCard
-        title="Ще поля"
-        sectionId="section-more"
-        desc="Довжина, модель, заміри, звʼязки"
-      >
-        <div className="space-y-6">
-          <div>
-            <Label>Довжина</Label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {Array.from(
-                new Set([...PRESET_LENGTHS, ...form.lengthOptions])
-              ).map((value) => {
-                const active = form.lengthOptions.includes(value);
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => toggleOption("lengthOptions", value)}
-                    className={`admin-chip ${active ? "admin-chip-active" : ""}`}
-                  >
-                    {value}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-3 flex max-w-md items-center gap-2">
-              <Input
-                value={customLength}
-                onChange={(e) => setCustomLength(e.target.value)}
-                placeholder="Своя довжина, напр. 7/8"
-              />
+      <ComponentCard title="Довжина" sectionId="section-length">
+        <div className="flex flex-wrap gap-2">
+          {Array.from(
+            new Set([...PRESET_LENGTHS, ...form.lengthOptions])
+          ).map((value) => {
+            const active = form.lengthOptions.includes(value);
+            return (
               <button
+                key={value}
                 type="button"
-                onClick={() =>
-                  addCustomParts("lengthOptions", customLength, () =>
-                    setCustomLength("")
-                  )
-                }
-                className="admin-btn-secondary shrink-0"
+                onClick={() => toggleOption("lengthOptions", value)}
+                className={`admin-chip ${active ? "admin-chip-active" : ""}`}
               >
-                Додати
+                {value}
               </button>
-            </div>
-          </div>
-
-          <ModelPresetPicker
-            photoSize={form.photoSize}
-            modelParams={form.modelParams}
-            onChange={({ photoSize, modelParams }) =>
-              setForm((prev) => ({ ...prev, photoSize, modelParams }))
-            }
-          />
-
-          <details className="admin-details">
-            <summary>Фактичні заміри виробу</summary>
-            <div className="mt-3 space-y-3">
-              <p className="text-[12px] text-gray-500">
-                Порожні поля на сайті не показуються.
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {GARMENT_MEASURE_FIELDS.map((field) => (
-                  <div key={field.key}>
-                    <Label htmlFor={`gm-${field.key}`}>{field.label}</Label>
-                    <Input
-                      id={`gm-${field.key}`}
-                      value={form.garmentMeasures[field.key]}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          garmentMeasures: {
-                            ...prev.garmentMeasures,
-                            [field.key]: e.target.value,
-                          },
-                        }))
-                      }
-                      placeholder="см"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </details>
-
-          <div className="border-t border-gray-100 pt-6 dark:border-white/[0.06]">
-            <ProductRelationPicker
-              kind="color-siblings"
-              label="Інші кольори моделі"
-              catalog={catalog}
-              excludeId={productId}
-              currentProductName={form.nameUk}
-              selectedIds={colorVariantIds}
-              onChange={setColorVariantIds}
-              emptyHint="Пошуком додайте копії цієї моделі"
-            />
-          </div>
-          {!isEdit ? (
-            <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-[12px] leading-snug text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-              Спочатку створіть товар — лук можна додати після збереження.
-            </p>
-          ) : null}
-          <ProductRelationPicker
-            kind="look"
-            label="Також у цьому луці"
-            catalog={catalog}
-            excludeId={productId}
-            currentProductName={form.nameUk}
-            selectedIds={lookProductIds}
-            onChange={setLookProductIds}
-            emptyHint="Додайте 2–4 товари з каталогу"
-          />
+            );
+          })}
         </div>
+        <div className="mt-3 flex max-w-md items-center gap-2">
+          <Input
+            value={customLength}
+            onChange={(e) => setCustomLength(e.target.value)}
+            placeholder="Своя довжина, напр. 7/8"
+          />
+          <button
+            type="button"
+            onClick={() =>
+              addCustomParts("lengthOptions", customLength, () =>
+                setCustomLength("")
+              )
+            }
+            className="admin-btn-secondary shrink-0"
+          >
+            Додати
+          </button>
+        </div>
+      </ComponentCard>
+
+      <ComponentCard
+        title="Модель і заміри"
+        sectionId="section-model"
+        desc="Що на фото + пресети для себе в адмінці"
+      >
+        <ModelPresetPicker
+          photoSize={form.photoSize}
+          modelParams={form.modelParams}
+          onChange={({ photoSize, modelParams }) =>
+            setForm((prev) => ({ ...prev, photoSize, modelParams }))
+          }
+        />
+        <details className="admin-details">
+          <summary>Фактичні заміри виробу</summary>
+          <div className="mt-3 space-y-3">
+            <p className="text-[12px] text-gray-500">
+              Порожні поля на сайті не показуються.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {GARMENT_MEASURE_FIELDS.map((field) => (
+                <div key={field.key}>
+                  <Label htmlFor={`gm-${field.key}`}>{field.label}</Label>
+                  <Input
+                    id={`gm-${field.key}`}
+                    value={form.garmentMeasures[field.key]}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        garmentMeasures: {
+                          ...prev.garmentMeasures,
+                          [field.key]: e.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="см"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </details>
+      </ComponentCard>
+
+      <ComponentCard
+        title="Інші кольори моделі"
+        sectionId="section-links"
+        desc="Окремі товари-копії цієї моделі"
+      >
+        <ProductRelationPicker
+          kind="color-siblings"
+          label="Звʼязані кольори"
+          catalog={catalog}
+          excludeId={productId}
+          currentProductName={form.nameUk}
+          selectedIds={colorVariantIds}
+          onChange={setColorVariantIds}
+          emptyHint="Пошуком додайте копії цієї моделі"
+          onRefreshCatalog={reloadCatalog}
+        />
+      </ComponentCard>
+
+      <ComponentCard
+        title="Лук"
+        sectionId="section-look"
+        desc="Товари «також у цьому луці» на сторінці"
+      >
+        {!isEdit ? (
+          <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-[12px] leading-snug text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+            Спочатку збережіть товар — тоді можна додати лук.
+          </p>
+        ) : null}
+        <ProductRelationPicker
+          kind="look"
+          label="Товари в луці"
+          catalog={catalog}
+          excludeId={productId}
+          currentProductName={form.nameUk}
+          selectedIds={lookProductIds}
+          onChange={setLookProductIds}
+          emptyHint="Додайте 2–4 товари з каталогу"
+          onRefreshCatalog={reloadCatalog}
+        />
       </ComponentCard>
 
       <div className="admin-sticky-clearance" aria-hidden="true" />
