@@ -779,6 +779,7 @@ export default function MediaEditModal({
         aria-modal="true"
         aria-labelledby="media-editor-title"
         data-scroll-lock-allow
+        data-media-editor-fullscreen="1"
       >
         <header className="media-editor-head">
           <h2 id="media-editor-title" className="media-editor-title">
