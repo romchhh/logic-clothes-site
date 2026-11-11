@@ -97,10 +97,21 @@ export async function renderAdjustedImageBlob(
   const bctx = base.getContext("2d", { alpha: false, willReadFrequently: true });
   if (!bctx) throw new Error("canvas");
 
-  const sx = Math.max(0, Math.round(crop.x * sourceW));
-  const sy = Math.max(0, Math.round(crop.y * sourceH));
-  const sw = Math.max(1, Math.round(crop.w * sourceW));
-  const sh = Math.max(1, Math.round(crop.h * sourceH));
+  // View window in source pixels — may extend outside the image (letterbox).
+  const viewX = crop.x * sourceW;
+  const viewY = crop.y * sourceH;
+  const viewW = Math.max(1, crop.w * sourceW);
+  const viewH = Math.max(1, crop.h * sourceH);
+  const imgLeft = Math.max(0, viewX);
+  const imgTop = Math.max(0, viewY);
+  const imgRight = Math.min(sourceW, viewX + viewW);
+  const imgBottom = Math.min(sourceH, viewY + viewH);
+  const srcW = Math.max(1, imgRight - imgLeft);
+  const srcH = Math.max(1, imgBottom - imgTop);
+  const dx = ((imgLeft - viewX) / viewW) * outW;
+  const dy = ((imgTop - viewY) / viewH) * outH;
+  const dw = (srcW / viewW) * outW;
+  const dh = (srcH / viewH) * outH;
   const rot = adjust.rotate ?? 0;
   bctx.fillStyle = "#111";
   bctx.fillRect(0, 0, outW, outH);
@@ -112,18 +123,18 @@ export async function renderAdjustedImageBlob(
     const over = 1.12;
     bctx.drawImage(
       source,
-      sx,
-      sy,
-      sw,
-      sh,
-      (-outW * over) / 2,
-      (-outH * over) / 2,
-      outW * over,
-      outH * over
+      imgLeft,
+      imgTop,
+      srcW,
+      srcH,
+      dx * over - (outW * (over - 1)) / 2,
+      dy * over - (outH * (over - 1)) / 2,
+      dw * over,
+      dh * over
     );
     bctx.restore();
   } else {
-    bctx.drawImage(source, sx, sy, sw, sh, 0, 0, outW, outH);
+    bctx.drawImage(source, imgLeft, imgTop, srcW, srcH, dx, dy, dw, dh);
   }
 
   const needsColorTone =

@@ -98,17 +98,9 @@ const TONE_TOOLS: {
   },
 ];
 
-/** Cover = 1. Allow zoom-out to contain so wide photos are not force-cropped. */
-function minZoomFor(
-  naturalW: number,
-  naturalH: number,
-  frameW: number,
-  frameH: number
-): number {
-  if (naturalW <= 0 || naturalH <= 0 || frameW <= 0 || frameH <= 0) return 0.5;
-  const cover = Math.max(frameW / naturalW, frameH / naturalH);
-  const contain = Math.min(frameW / naturalW, frameH / naturalH);
-  return clamp(contain / cover, 0.35, 1);
+/** Zoom 1 = contain (full photo visible in 3:5). Zoom in to crop. */
+function minZoomFor(): number {
+  return 1;
 }
 
 export default function MediaEditModal({
@@ -251,27 +243,32 @@ export default function MediaEditModal({
       if (!frame) return null;
       const frameW = frame.clientWidth;
       const frameH = frame.clientHeight;
-      if (frameW <= 0 || frameH <= 0) return null;
-      const cover = Math.max(frameW / naturalW, frameH / naturalH);
-      const scale = cover * zoomLevel;
+      if (frameW <= 0 || frameH <= 0 || naturalW <= 0 || naturalH <= 0) {
+        return null;
+      }
+      // Contain at zoom=1 — never crop top/bottom (or sides) by default.
+      const contain = Math.min(frameW / naturalW, frameH / naturalH);
+      const scale = contain * zoomLevel;
       const dispW = naturalW * scale;
       const dispH = naturalH * scale;
-      const minX = Math.min(0, frameW - dispW);
-      const maxX = Math.max(0, frameW - dispW);
-      const minY = Math.min(0, frameH - dispH);
-      const maxY = Math.max(0, frameH - dispH);
+      const minX =
+        dispW <= frameW + 0.5 ? (frameW - dispW) / 2 : frameW - dispW;
+      const maxX = dispW <= frameW + 0.5 ? (frameW - dispW) / 2 : 0;
+      const minY =
+        dispH <= frameH + 0.5 ? (frameH - dispH) / 2 : frameH - dispH;
+      const maxY = dispH <= frameH + 0.5 ? (frameH - dispH) / 2 : 0;
       return {
         frameW,
         frameH,
         scale,
-        cover,
+        cover: contain,
         dispW,
         dispH,
         minX,
         maxX,
         minY,
         maxY,
-        minZoom: minZoomFor(naturalW, naturalH, frameW, frameH),
+        minZoom: minZoomFor(),
       };
     },
     []
@@ -416,6 +413,7 @@ export default function MediaEditModal({
     return () => ro.disconnect();
   }, [session, applyCoverSize]);
 
+  /** View window in normalized source coords (may extend outside 0…1 for letterbox). */
   const getCropRect = useCallback(() => {
     if (!session || session.mode !== "image") {
       return { x: 0, y: 0, w: 1, h: 1 };
@@ -429,15 +427,12 @@ export default function MediaEditModal({
     const srcY = -panY / scale;
     const srcW = frameW / scale;
     const srcH = frameH / scale;
-    const crop = {
-      x: clamp(srcX / naturalW, 0, 1),
-      y: clamp(srcY / naturalH, 0, 1),
-      w: clamp(srcW / naturalW, 0.01, 1),
-      h: clamp(srcH / naturalH, 0.01, 1),
+    return {
+      x: srcX / naturalW,
+      y: srcY / naturalH,
+      w: Math.max(0.01, srcW / naturalW),
+      h: Math.max(0.01, srcH / naturalH),
     };
-    if (crop.x + crop.w > 1) crop.x = Math.max(0, 1 - crop.w);
-    if (crop.y + crop.h > 1) crop.y = Math.max(0, 1 - crop.h);
-    return crop;
   }, [coverLayout, session]);
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -948,21 +943,9 @@ export default function MediaEditModal({
                   }
                   onLoad={() => {
                     const saved = session.initialAdjust?.frame;
-                    // Start slightly zoomed out for wide photos so less is cut off.
-                    const layout = coverLayout(
-                      session.naturalW,
-                      session.naturalH,
-                      1
-                    );
-                    if (saved?.zoom) {
+                    if (saved?.zoom && saved.zoom > 1.001) {
                       setZoomAround(
                         saved.zoom,
-                        session.naturalW,
-                        session.naturalH
-                      );
-                    } else if (layout && layout.minZoom < 0.98) {
-                      setZoomAround(
-                        Math.max(layout.minZoom, 0.72),
                         session.naturalW,
                         session.naturalH
                       );
@@ -1270,16 +1253,6 @@ export default function MediaEditModal({
 
               {tab === "crop" && (
                 <div className="media-editor-crop-help">
-                  <p className="media-editor-hint">
-                    {isVideo
-                      ? "Рамка 3:5 — як у каталозі. Перетягніть і наблизьте відео."
-                      : "Рамка — як у каталозі (3:5). Перетягніть фото, наблизьте коліщатком / щипком, потім «Додати в галерею»."}
-                  </p>
-                  <ul className="media-editor-crop-tips">
-                    <li>− / + або слайдер під кадром — масштаб</li>
-                    <li>Коліщатко миші або два пальці — зум</li>
-                    <li>Тон — на вкладці поруч</li>
-                  </ul>
                   <div className="media-editor-zoom-side">
                     <label className="media-editor-slider">
                       <div className="media-editor-slider-top">
