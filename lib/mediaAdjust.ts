@@ -129,8 +129,9 @@ export function mediaAdjustCssFilter(adjust: MediaAdjust | undefined): string | 
   if (warm < 0) {
     parts.push(`hue-rotate(${(warm * 0.15).toFixed(1)}deg)`);
   }
+  // Mild contrast nudge only — matches preview; avoid heavy unsharp on bake.
   if (adjust.sharpness > 0) {
-    parts.push(`contrast(${(1 + adjust.sharpness / 220).toFixed(3)})`);
+    parts.push(`contrast(${(1 + adjust.sharpness / 280).toFixed(3)})`);
   }
   return parts.join(" ");
 }

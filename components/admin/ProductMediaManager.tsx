@@ -13,6 +13,7 @@ import {
   captureVideoPosterFromUrl,
 } from "@/lib/captureVideoPoster";
 import {
+  DEFAULT_MEDIA_ADJUST,
   isDefaultAdjust,
   type MediaAdjust,
 } from "@/lib/mediaAdjust";
@@ -408,7 +409,9 @@ export default function ProductMediaManager({ media, onChange }: Props) {
       const source = replaceUrl
         ? originalsRef.current.get(replaceUrl) ?? editSession?.file ?? file
         : editSession?.file ?? file;
-      patchMedia(replaceUrl, fresh, source, adjust);
+      // Tone/crop already baked into the JPEG — do not keep adjust or CSS
+      // would apply the same edits again on top (looks ~2× stronger).
+      patchMedia(replaceUrl, fresh, source, DEFAULT_MEDIA_ADJUST);
       closeEdit();
       if (imageQueueRef.current.length) {
         setUploadProgress(

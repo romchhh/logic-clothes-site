@@ -46,6 +46,7 @@ import {
   ADMIN_SIZE_PRESETS,
   MADE_TO_ORDER_SIZE_GRID,
   normalizeBrandSize,
+  suggestBrandSizes,
 } from "@/lib/productSizes";
 import { slugifyId } from "@/lib/slug";
 import {
@@ -1185,14 +1186,21 @@ export default function ProductForm({ productId }: Props) {
           </div>
           <AdminChipField
             label="Додаткові / свої розміри"
-            hint="Якщо треба щось поза сіткою — додайте тут."
-            placeholderChip="Свій розмір"
-            bulkPlaceholder="ONESIZE, XS-S, S-M"
-            suggestions={form.sizeOptions.filter(
-              (s) =>
-                !(ADMIN_SIZE_PRESETS as readonly string[]).includes(s)
-            )}
+            hint="Пишіть латиницею як на сайті: ONESIZE, XS-S, S-M, M-L, L-XL, A–D. Підказки з’являться під час введення."
+            placeholderChip="напр. S-M або XS-S"
+            bulkPlaceholder="ONESIZE, XS-S, S-M, M-L, L-XL"
+            suggestions={[
+              ...ADMIN_SIZE_PRESETS.filter(
+                (s) => !form.sizeOptions.includes(s)
+              ),
+              ...form.sizeOptions.filter(
+                (s) =>
+                  !(ADMIN_SIZE_PRESETS as readonly string[]).includes(s)
+              ),
+            ]}
             selected={form.sizeOptions}
+            typeahead={suggestBrandSizes}
+            normalizeValue={normalizeBrandSize}
             onToggle={(value) =>
               toggleOption("sizeOptions", normalizeBrandSize(value))
             }

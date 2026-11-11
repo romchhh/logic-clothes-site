@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Label from "@/components/admin/form/Label";
 import TextArea from "@/components/admin/form/input/TextArea";
 
@@ -18,6 +18,9 @@ type Props = {
   onSingleSelect?: (value: string) => void;
   /** add: chip click only adds to selection, never removes */
   chipMode?: "toggle" | "add";
+  /** Extra typeahead while typing in the custom field (e.g. brand sizes). */
+  typeahead?: (query: string) => string[];
+  normalizeValue?: (raw: string) => string;
 };
 
 export default function AdminChipField({
@@ -33,18 +36,25 @@ export default function AdminChipField({
   activeValue = "",
   onSingleSelect,
   chipMode = "toggle",
+  typeahead,
+  normalizeValue,
 }: Props) {
   const [custom, setCustom] = useState("");
   const [bulk, setBulk] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
 
   const pool = Array.from(new Set([...suggestions, ...selected]));
+  const typeaheadHits = useMemo(() => {
+    if (!typeahead || !custom.trim()) return [];
+    return typeahead(custom).filter((v) => !selected.includes(v));
+  }, [typeahead, custom, selected]);
 
   function addCustom() {
     const parts = custom
       .split(/[\n,;]+/)
       .map((s) => s.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((s) => (normalizeValue ? normalizeValue(s) : s));
     if (!parts.length) return;
     onBulkAdd(parts);
     setCustom("");
@@ -54,11 +64,22 @@ export default function AdminChipField({
     const parts = bulk
       .split(/[\n,;]+/)
       .map((s) => s.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((s) => (normalizeValue ? normalizeValue(s) : s));
     if (!parts.length) return;
     onBulkAdd(parts);
     setBulk("");
     setBulkOpen(false);
+  }
+
+  function pickTypeahead(value: string) {
+    const next = normalizeValue ? normalizeValue(value) : value;
+    if (singleSelect && onSingleSelect) {
+      onSingleSelect(next);
+    } else if (!selected.includes(next)) {
+      onToggle(next);
+    }
+    setCustom("");
   }
 
   return (
@@ -104,18 +125,44 @@ export default function AdminChipField({
         })}
       </div>
       <div className="flex flex-col gap-2 sm:max-w-md sm:flex-row sm:items-center">
-        <input
-          className="admin-input flex-1"
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-          placeholder={placeholderChip}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addCustom();
-            }
-          }}
-        />
+        <div className="relative min-w-0 flex-1">
+          <input
+            className="admin-input w-full"
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            placeholder={placeholderChip}
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (typeaheadHits[0]) {
+                  pickTypeahead(typeaheadHits[0]);
+                  return;
+                }
+                addCustom();
+              }
+            }}
+          />
+          {typeaheadHits.length > 0 ? (
+            <ul className="admin-chip-typeahead" role="listbox">
+              {typeaheadHits.map((value) => (
+                <li key={value}>
+                  <button
+                    type="button"
+                    role="option"
+                    className="admin-chip-typeahead-item"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pickTypeahead(value)}
+                  >
+                    {value}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
         <button
           type="button"
           onClick={addCustom}

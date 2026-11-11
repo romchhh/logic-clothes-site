@@ -606,6 +606,51 @@
   @apply border-gray-900 bg-gray-900 text-white hover:border-black hover:bg-black dark:border-[#B7E1DF] dark:bg-[#B7E1DF] dark:text-gray-900 dark:hover:bg-[#c8ebe9];
 }
 
+.admin-chip-typeahead {
+  position: absolute;
+  z-index: 40;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid rgb(229 231 235);
+  background: #fff;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+.dark .admin-chip-typeahead {
+  border-color: rgb(55 65 81);
+  background: rgb(17 24 39);
+}
+.admin-chip-typeahead-item {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgb(31 41 55);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.admin-chip-typeahead-item:hover {
+  background: rgb(249 250 251);
+}
+.dark .admin-chip-typeahead-item {
+  color: rgb(243 244 246);
+}
+.dark .admin-chip-typeahead-item:hover {
+  background: rgb(255 255 255 / 0.05);
+}
+
 /* Suggest lists: max 3 rows, scroll horizontally */
 .admin-suggest {
   margin-top: 8px;

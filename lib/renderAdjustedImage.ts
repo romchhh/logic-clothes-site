@@ -25,75 +25,51 @@ function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
-/** Apply tone in pixel space — works even when canvas.filter is ignored (Safari). */
-function applyTonePixels(
-  data: ImageData,
-  adjust: MediaAdjust
-): void {
+/**
+ * Fallback tone when canvas.filter is unavailable.
+ * Tuned to approximate mediaAdjustCssFilter (preview), not a stronger look.
+ */
+function applyTonePixels(data: ImageData, adjust: MediaAdjust): void {
   const br = 1 + adjust.brightness / 100;
-  const ct = 1 + adjust.contrast / 100;
+  const ct =
+    (1 + adjust.contrast / 100) *
+    (adjust.sharpness > 0 ? 1 + adjust.sharpness / 280 : 1);
   const sat = 1 + adjust.saturation / 100;
   const warm = adjust.warmth / 100;
-  const sharp = adjust.sharpness / 100;
   const px = data.data;
-  const w = data.width;
-  const h = data.height;
-
-  // Optional light unsharp-mask for sharpness > 0
-  let blurCopy: Uint8ClampedArray | null = null;
-  if (sharp > 0.01) {
-    blurCopy = new Uint8ClampedArray(px);
-    // 3x3 box blur into blurCopy (RGB only)
-    for (let y = 1; y < h - 1; y++) {
-      for (let x = 1; x < w - 1; x++) {
-        const i = (y * w + x) * 4;
-        for (let c = 0; c < 3; c++) {
-          let sum = 0;
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              sum += px[((y + dy) * w + (x + dx)) * 4 + c];
-            }
-          }
-          blurCopy[i + c] = sum / 9;
-        }
-      }
-    }
-  }
 
   for (let i = 0; i < px.length; i += 4) {
-    let r = px[i];
-    let g = px[i + 1];
-    let b = px[i + 2];
+    let r = px[i] * br;
+    let g = px[i + 1] * br;
+    let b = px[i + 2] * br;
 
-    if (blurCopy) {
-      const amt = sharp * 0.55;
-      r = r + (r - blurCopy[i]) * amt;
-      g = g + (g - blurCopy[i + 1]) * amt;
-      b = b + (b - blurCopy[i + 2]) * amt;
-    }
-
-    // brightness
-    r *= br;
-    g *= br;
-    b *= br;
-
-    // contrast around mid-gray
     r = (r - 128) * ct + 128;
     g = (g - 128) * ct + 128;
     b = (b - 128) * ct + 128;
 
-    // saturation
     const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     r = gray + (r - gray) * sat;
     g = gray + (g - gray) * sat;
     b = gray + (b - gray) * sat;
 
-    // warmth: warm = more R/less B, cool = opposite
+    // Approximate CSS sepia + hue-rotate warmth (milder than old RGB shove).
     if (warm !== 0) {
-      r += warm * 28;
-      b -= warm * 28;
-      if (warm > 0) g += warm * 8;
-      else g += warm * 4;
+      if (warm > 0) {
+        const s = warm * 0.35;
+        const sr = r * (1 - s) + (r * 0.393 + g * 0.769 + b * 0.189) * s;
+        const sg = g * (1 - s) + (r * 0.349 + g * 0.686 + b * 0.168) * s;
+        const sb = b * (1 - s) + (r * 0.272 + g * 0.534 + b * 0.131) * s;
+        r = sr;
+        g = sg;
+        b = sb;
+        // slight yellow shift
+        r += warm * 6;
+        b -= warm * 8;
+      } else {
+        r += warm * 10;
+        b -= warm * 14;
+        g += warm * 4;
+      }
     }
 
     px[i] = Math.min(255, Math.max(0, Math.round(r)));
@@ -158,7 +134,8 @@ export async function renderAdjustedImageBlob(
     adjust.sharpness !== 0;
   if (!needsColorTone) return canvasToJpeg(base);
 
-  // Prefer CSS filter path when supported (matches live preview filter string).
+  // Same CSS filter string as the live editor preview — no extra pixel
+  // sharpness on top (that was making Apply look much stronger).
   const filter = mediaAdjustCssFilter(adjust);
   const supportsCanvasFilter =
     typeof (bctx as CanvasRenderingContext2D).filter === "string";
@@ -172,15 +149,7 @@ export async function renderAdjustedImageBlob(
       if (octx) {
         octx.filter = filter;
         octx.drawImage(base, 0, 0);
-        // Also bake sharpness in pixels if needed (not in CSS filter).
-        if (adjust.sharpness > 0) {
-          const img = octx.getImageData(0, 0, outW, outH);
-          applyTonePixels(img, {
-            ...DEFAULT_MEDIA_ADJUST,
-            sharpness: adjust.sharpness,
-          });
-          octx.putImageData(img, 0, 0);
-        }
+        octx.filter = "none";
         return canvasToJpeg(out);
       }
     } catch {

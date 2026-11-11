@@ -12,7 +12,7 @@ import {
   type AdminListSort,
 } from "@/lib/adminListSort";
 import { CACHE_KEYS, clearCachedData } from "@/lib/cache";
-import { isDefaultAdjust, type MediaAdjust } from "@/lib/mediaAdjust";
+import type { MediaAdjust } from "@/lib/mediaAdjust";
 import type { Product, ProductMedia } from "@/lib/types";
 
 type CropJob = {
@@ -233,12 +233,14 @@ export default function BulkCropEditor() {
 
       const nextMedia = currentMedia.map((m) => {
         if (m.url !== replaceUrl) return m;
-        const item: ProductMedia = {
+        // Tone/crop baked into the uploaded file — clear adjust so CSS
+        // does not re-apply the same edits on the storefront.
+        void adjust;
+        return {
           ...fresh,
-          type: "image",
+          type: "image" as const,
+          adjust: undefined,
         };
-        if (!isDefaultAdjust(adjust)) item.adjust = adjust;
-        return item;
       });
       const images = nextMedia
         .filter((m) => m.type !== "video")
