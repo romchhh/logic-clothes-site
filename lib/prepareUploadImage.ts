@@ -3,8 +3,8 @@
 import { looksLikeVideoBytes } from "@/lib/mediaBytes";
 import { isImageUploadFile as isImageUploadMedia } from "@/lib/mediaUploadKind";
 
-/** Long edge cap — enough for 960×1600 export, much faster in the crop editor. */
-const MAX_EDITOR_EDGE = 2200;
+/** Long edge cap — enough for 1200×2000 export with headroom for crop. */
+const MAX_EDITOR_EDGE = 2800;
 
 export function isImageUploadFile(file: File): boolean {
   return isImageUploadMedia(file);
@@ -55,7 +55,7 @@ async function downscaleForEditor(file: File): Promise<File> {
     if (!ctx) return file;
     ctx.drawImage(bmp, 0, 0, w, h);
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", 0.88)
+      canvas.toBlob(resolve, "image/jpeg", 0.92)
     );
     if (!blob) return file;
     const base = file.name.replace(/\.[^.]+$/, "") || "photo";
@@ -76,7 +76,7 @@ export async function prepareImageUploadFile(file: File): Promise<File> {
     const converted = await heic2any({
       blob: file,
       toType: "image/jpeg",
-      quality: 0.82,
+      quality: 0.92,
     });
     const blob = Array.isArray(converted) ? converted[0] : converted;
     const base = file.name.replace(/\.(heic|heif)$/i, "") || "photo";

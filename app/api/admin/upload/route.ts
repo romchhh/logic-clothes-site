@@ -189,12 +189,12 @@ export async function POST(request: NextRequest) {
         );
       } else if (fitHero) {
         pipeline = pipeline.resize({
-          width: 2000,
+          width: 2400,
           withoutEnlargement: true,
         });
       } else {
         pipeline = pipeline.resize({
-          width: 1400,
+          width: 2000,
           withoutEnlargement: true,
         });
       }
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
       const filename = `${base}.webp`;
       const outPath = path.join(dir, filename);
       const info = await pipeline
-        .webp({ quality: 78, effort: 3 })
+        .webp({ quality: 90, effort: 4, smartSubsample: true })
         .toFile(outPath);
       items.push({
         url: productMediaPublicUrl(filename),

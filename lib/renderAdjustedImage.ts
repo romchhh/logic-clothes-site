@@ -20,7 +20,7 @@ function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("toBlob"))),
       "image/jpeg",
-      0.92
+      0.94
     );
   });
 }
