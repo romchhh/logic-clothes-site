@@ -847,6 +847,7 @@ export default function MediaEditModal({
           }`}
         >
           <div className="media-editor-preview-wrap">
+            <div className="media-editor-frame-slot">
             <div
               ref={frameRef}
               className={`media-editor-frame${
@@ -957,6 +958,7 @@ export default function MediaEditModal({
               )}
               <div className="media-editor-frame-guide" aria-hidden="true" />
               <span className="media-editor-frame-ratio">3 : 5</span>
+            </div>
             </div>
 
             {tab === "fine" ? (
