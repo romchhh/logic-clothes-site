@@ -2,14 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, type CSSProperties } from "react";
-import ProductDiscussOrder from "@/components/product/ProductDiscussOrder";
 import {
   getPaletteGroups,
   groupForPaletteId,
   resolvePaletteId,
   type PaletteGroup,
 } from "@/lib/colorPalette";
-import { paintSwatchShape } from "@/lib/paletteSwatchShape";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import type { Product, ProductColorVariant } from "@/lib/types";
@@ -19,7 +17,6 @@ type ShadeChoice = {
   label: string;
   hex: string;
   isCurrent: boolean;
-  /** Can open this SKU on the storefront */
   linkable: boolean;
 };
 
@@ -31,32 +28,25 @@ type GroupChoice = {
   shades: ShadeChoice[];
 };
 
-function dabStyle(hex: string, index: number): CSSProperties {
-  const shape = paintSwatchShape(index);
-  const isMulti = hex.toUpperCase() === "#FFFFFF" && index % 9 === 8;
+function dabStyle(hex: string, shadeId: string): CSSProperties {
+  const isMulti = shadeId === "multi" || hex.toUpperCase() === "#FFFFFF";
   return {
     background: isMulti
-      ? "conic-gradient(from 120deg, #c4c4c4, #8a8a8a, #d4c4a8, #e07b39, #8a8a8a, #c4c4c4)"
+      ? "conic-gradient(from 120deg, #c4282e, #e06a28, #e8c84a, #3f7a4e, #1a3a5c, #6a3a7a, #e868a0, #c4282e)"
       : hex,
-    borderRadius: shape.borderRadius,
-    transform: shape.transform,
+    borderRadius: 0,
+    filter: isMulti ? undefined : "saturate(1.35)",
   };
 }
 
-function PaletteFace({
-  group,
-  shapeOffset,
-}: {
-  group: PaletteGroup;
-  shapeOffset: number;
-}) {
+function PaletteFace({ group }: { group: PaletteGroup }) {
   return (
     <span className="pdp-palette-card-grid" aria-hidden>
-      {group.shades.slice(0, 9).map((shade, i) => (
+      {group.shades.slice(0, 9).map((shade) => (
         <span
           key={shade.id}
           className="pdp-palette-card-dab"
-          style={dabStyle(shade.hex, shapeOffset + i)}
+          style={dabStyle(shade.hex, shade.id)}
         />
       ))}
     </span>
@@ -85,9 +75,11 @@ function isLinkableVariant(
 export default function ProductColorPalette({
   product,
   lang,
+  onRequestSew,
 }: {
   product: Product;
   lang: Locale;
+  onRequestSew?: () => void;
 }) {
   const { t } = useI18n();
   const groups = getPaletteGroups();
@@ -129,7 +121,6 @@ export default function ProductColorPalette({
       if (!group || !paletteId) continue;
 
       const linkable = isLinkableVariant(m, product.id);
-      // Hide other drafts from the switcher entirely
       if (!linkable && m.id !== product.id) continue;
 
       const list = byGroup.get(group.id) ?? [];
@@ -176,8 +167,6 @@ export default function ProductColorPalette({
       ? currentGroup.labelEn
       : currentGroup.label
     : colorName;
-  const hasInactive = choices.length < groups.length;
-  const switchableCount = choices.filter((c) => c.linkable || c.isCurrent).length;
 
   return (
     <div className="pdp-palette-block">
@@ -193,26 +182,12 @@ export default function ProductColorPalette({
         role="listbox"
         aria-label={t.product.color}
       >
-        {groups.map((group, index) => {
+        {groups.map((group) => {
           const choice = choices.find((c) => c.group.id === group.id) ?? null;
           const label = lang === "en" ? group.labelEn : group.label;
-          const face = <PaletteFace group={group} shapeOffset={index * 9} />;
+          const face = <PaletteFace group={group} />;
 
-          if (!choice) {
-            return (
-              <span
-                key={group.id}
-                className="pdp-palette-item pdp-palette-item--card is-off"
-                title={label}
-                aria-disabled="true"
-              >
-                {face}
-                <span className="pdp-palette-name">{label}</span>
-              </span>
-            );
-          }
-
-          if (choice.isCurrent) {
+          if (choice?.isCurrent) {
             return (
               <span
                 key={group.id}
@@ -226,7 +201,7 @@ export default function ProductColorPalette({
             );
           }
 
-          if (choice.linkable) {
+          if (choice?.linkable) {
             return (
               <Link
                 key={group.id}
@@ -243,15 +218,19 @@ export default function ProductColorPalette({
           }
 
           return (
-            <span
+            <button
               key={group.id}
+              type="button"
               className="pdp-palette-item pdp-palette-item--card is-off"
               title={label}
-              aria-disabled="true"
+              onClick={() => onRequestSew?.()}
             >
               {face}
               <span className="pdp-palette-name">{label}</span>
-            </span>
+              <span className="pdp-palette-sew-cta" aria-hidden>
+                {t.product.sewMyColor}
+              </span>
+            </button>
           );
         })}
       </div>
@@ -264,15 +243,18 @@ export default function ProductColorPalette({
             lang === "en" ? "Shades in this palette" : "Відтінки цієї палітри"
           }
         >
-          {currentChoice.shades.map((shade, i) => {
-            const shape = paintSwatchShape(i);
+          {currentChoice.shades.map((shade) => {
             const swatch = (
               <span
                 className="pdp-palette-shade-swatch"
                 style={{
-                  backgroundColor: shade.hex,
-                  borderRadius: shape.borderRadius,
-                  transform: shape.transform,
+                  background:
+                    shade.id === "multi"
+                      ? "conic-gradient(from 120deg, #c4282e, #e06a28, #e8c84a, #3f7a4e, #1a3a5c, #6a3a7a, #e868a0, #c4282e)"
+                      : shade.hex,
+                  borderRadius: 0,
+                  filter:
+                    shade.id === "multi" ? undefined : "saturate(1.35)",
                 }}
                 aria-hidden
               />
@@ -307,25 +289,6 @@ export default function ProductColorPalette({
             );
           })}
         </div>
-      ) : null}
-
-      {switchableCount <= 1 && hasInactive ? (
-        <p className="pdp-palette-hint">
-          {lang === "en"
-            ? "Other palettes light up when this model has a published colourway linked (or the same name)."
-            : "Інші палітри стають клікабельними, коли є опублікований товар цього кольору з тим самим імʼям або в «Звʼязки»."}
-        </p>
-      ) : null}
-
-      {hasInactive ? (
-        <ProductDiscussOrder
-          lang={lang}
-          productId={product.id}
-          productName={product.name}
-          shadeLabel={groupLabel || colorName}
-          label={t.product.sewMyColor}
-          intent="color"
-        />
       ) : null}
     </div>
   );

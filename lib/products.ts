@@ -163,23 +163,35 @@ export async function getHomeProductRails(limit = 14): Promise<{
   };
 }
 
-/** Curated look first; otherwise catalog neighbors. */
+export type RelatedRail = {
+  products: Product[];
+  /** Look links when set; otherwise «новинки» fallback. */
+  kind: "look" | "newcomers";
+};
+
+/** Curated look first; if empty — novelties (not random catalog). */
 export async function getRelatedProducts(
   id: string,
   limit = 4
-): Promise<Product[]> {
-  const products = await getProducts();
+): Promise<RelatedRail> {
+  const products = (await getProducts()).filter(isCatalogProduct);
   const current = products.find((p) => p.id === id);
   if (current?.lookProductIds?.length) {
     const map = new Map(products.map((p) => [p.id, p]));
-    return current.lookProductIds
+    const look = current.lookProductIds
       .map((rid) => map.get(rid))
-      .filter((p): p is Product => !!p && p.id !== id && isCatalogProduct(p))
+      .filter((p): p is Product => !!p && p.id !== id)
       .slice(0, limit);
+    if (look.length) return { products: look, kind: "look" };
   }
-  return products
-    .filter((p) => p.id !== id && isCatalogProduct(p))
+  const newcomers = products
+    .filter((p) => p.id !== id && productInNewSection(p))
     .slice(0, limit);
+  if (newcomers.length) return { products: newcomers, kind: "newcomers" };
+  return {
+    products: products.filter((p) => p.id !== id).slice(0, limit),
+    kind: "newcomers",
+  };
 }
 
 export async function getAllProductIds(): Promise<string[]> {

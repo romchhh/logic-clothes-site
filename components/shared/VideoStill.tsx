@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import {
   mediaAdjustStyle,
   mediaFrameStyle,
@@ -21,10 +22,33 @@ export default function VideoStill({
   className?: string;
   autoPlay?: boolean;
 }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const tone = mediaAdjustStyle(adjust);
   const base = src.split("#")[0];
   const stillSrc = autoPlay ? base : `${base}#t=0.1`;
   const frame = mediaFrameStyle(adjust?.frame);
+
+  // Returning to a video slide must restart play — autoPlay attr alone often won't.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (autoPlay) {
+      v.muted = true;
+      const play = () => {
+        void v.play().catch(() => {
+          /* autoplay policies / abort */
+        });
+      };
+      if (v.readyState >= 2) play();
+      else v.addEventListener("loadeddata", play, { once: true });
+      return () => v.removeEventListener("loadeddata", play);
+    }
+    try {
+      v.pause();
+    } catch {
+      /* ignore */
+    }
+  }, [autoPlay, stillSrc]);
 
   // Thumb / paused: prefer static cover so a bad first frame never flashes.
   if (!autoPlay && poster) {
@@ -48,6 +72,8 @@ export default function VideoStill({
 
   return (
     <video
+      ref={videoRef}
+      key={autoPlay ? `play-${base}` : `still-${base}`}
       src={stillSrc}
       poster={poster || undefined}
       className={className}
@@ -64,7 +90,10 @@ export default function VideoStill({
       autoPlay={autoPlay}
       preload={autoPlay ? "auto" : "metadata"}
       onLoadedData={(e) => {
-        if (autoPlay) return;
+        if (autoPlay) {
+          void e.currentTarget.play().catch(() => {});
+          return;
+        }
         try {
           e.currentTarget.pause();
         } catch {

@@ -82,7 +82,7 @@ export const PALETTE_GROUPS: PaletteGroup[] = [
       { id: "orange-salmon", label: "Лосось", labelEn: "Salmon", hex: "#F2B078" },
       { id: "orange-peach", label: "Персик", labelEn: "Peach", hex: "#F5C498" },
       { id: "orange-pale", label: "Світлий персик", labelEn: "Pale peach", hex: "#FAD9C0" },
-      { id: "multi", label: "Мульти", labelEn: "Multi", hex: "#FFFFFF" },
+      { id: "orange-mist", label: "Тілесний", labelEn: "Nude mist", hex: "#F6E6DA" },
     ],
   },
   {
@@ -147,6 +147,22 @@ export const PALETTE_GROUPS: PaletteGroup[] = [
       { id: "pink-shell", label: "Перламутр", labelEn: "Shell", hex: "#F8D4E4" },
       { id: "pink-powder", label: "Пудровий", labelEn: "Powder pink", hex: "#FCE8F0" },
       { id: "pink-pale", label: "Ніжний", labelEn: "Pale pink", hex: "#FFF4F8" },
+    ],
+  },
+  {
+    id: "multicolor",
+    label: "мультикольорова",
+    labelEn: "multicolour palette",
+    shades: [
+      { id: "multi-red", label: "Червоний", labelEn: "Red", hex: "#C4282E" },
+      { id: "multi-orange", label: "Помаранч", labelEn: "Orange", hex: "#E06A28" },
+      { id: "multi-yellow", label: "Жовтий", labelEn: "Yellow", hex: "#E8C84A" },
+      { id: "multi-green", label: "Зелений", labelEn: "Green", hex: "#3F7A4E" },
+      { id: "multi", label: "Мульти", labelEn: "Multi", hex: "#FFFFFF" },
+      { id: "multi-blue", label: "Синій", labelEn: "Blue", hex: "#1A3A5C" },
+      { id: "multi-purple", label: "Фіолет", labelEn: "Purple", hex: "#6A3A7A" },
+      { id: "multi-pink", label: "Рожевий", labelEn: "Pink", hex: "#E868A0" },
+      { id: "multi-grey", label: "Сірий", labelEn: "Grey", hex: "#7A7A7A" },
     ],
   },
 ];

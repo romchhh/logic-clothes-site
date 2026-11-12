@@ -76,9 +76,12 @@ export type Messages = {
     cardAdd: string;
     addWish: string;
     sewMyColor: string;
+    sewMySize: string;
     orderMySize: string;
     orderMyColorSize: string;
+    orderSew: string;
     openSizeChart: string;
+    closeSizeChart: string;
     actualMeasures: string;
     fabricKind: string;
     fabricComposition: string;
@@ -353,10 +356,13 @@ const uk: Messages = {
     addToCart: "Додати в кошик",
     cardAdd: "До кошика",
     addWish: "додати в wishlist",
-    sewMyColor: "хочу пошити у своєму кольорі",
-    orderMySize: "хочу замовити в своєму розмірі",
+    sewMyColor: "хочу пошити в своєму кольорі",
+    sewMySize: "хочу пошити в своєму розмірі",
+    orderMySize: "хочу пошити в своєму розмірі",
     orderMyColorSize: "хочу замовити в своєму кольорі в своєму розмірі",
+    orderSew: "Замовити пошив",
     openSizeChart: "відкрити розмірну сітку",
+    closeSizeChart: "згорнути",
     actualMeasures: "фактичні заміри виробу",
     fabricKind: "основна тканина",
     fabricComposition: "склад основної тканини",
@@ -649,9 +655,12 @@ const en: Messages = {
     cardAdd: "Add to bag",
     addWish: "add to wishlist",
     sewMyColor: "I want it sewn in my colour",
-    orderMySize: "I want my size",
+    sewMySize: "I want it sewn in my size",
+    orderMySize: "I want it sewn in my size",
     orderMyColorSize: "I want my colour and my size",
+    orderSew: "Order a custom sew",
     openSizeChart: "open size chart",
+    closeSizeChart: "collapse",
     actualMeasures: "actual garment measurements",
     fabricKind: "main fabric",
     fabricComposition: "main fabric composition",

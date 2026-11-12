@@ -88,7 +88,7 @@ export default async function ProductPage({
   const product = await getProductById(id);
   if (!product || product.isVisible === false) notFound();
 
-  const related = await getRelatedProducts(id, 4);
+  const relatedRail = await getRelatedProducts(id, 4);
   const t = getMessages(lang);
   const baseUrl = getSiteUrl();
 
@@ -108,7 +108,12 @@ export default async function ProductPage({
           baseUrl
         )}
       />
-      <ProductClient product={product} related={related} lang={lang} />
+      <ProductClient
+        product={product}
+        related={relatedRail.products}
+        relatedKind={relatedRail.kind}
+        lang={lang}
+      />
     </PageShell>
   );
 }
