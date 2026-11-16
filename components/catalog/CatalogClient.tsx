@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -53,6 +54,8 @@ export default function CatalogClient({
   const { t } = useI18n();
   const router = useRouter();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
+  const categoryMenuRef = useRef<HTMLDivElement>(null);
   const [openAccordion, setOpenAccordion] = useState<number | null>(0);
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -364,6 +367,28 @@ export default function CatalogClient({
 
   useScrollLock(isFilterOpen);
 
+  useEffect(() => {
+    if (!categoryMenuOpen) return;
+    function onPointerDown(e: MouseEvent | TouchEvent) {
+      const el = categoryMenuRef.current;
+      if (!el) return;
+      if (e.target instanceof Node && !el.contains(e.target)) {
+        setCategoryMenuOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setCategoryMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [categoryMenuOpen]);
+
   const visibleProducts = sortedProducts.slice(0, visibleCount);
   const hasMore = visibleCount < sortedProducts.length;
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -416,8 +441,46 @@ export default function CatalogClient({
   return (
     <div className="cat-shell">
       <div className="cat-toolbar">
-        <div>
+        <div
+          className={`cat-title-wrap${categoryMenuOpen ? " is-open" : ""}`}
+          ref={categoryMenuRef}
+        >
           <h1 className="cat-title">{activeLabel}</h1>
+          <button
+            type="button"
+            className="cat-title-toggle"
+            aria-expanded={categoryMenuOpen}
+            aria-haspopup="listbox"
+            aria-label={t.catalog.category}
+            onClick={() => setCategoryMenuOpen((v) => !v)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          {categoryMenuOpen ? (
+            <div className="cat-title-menu" role="listbox">
+              {categories.map((cat) => {
+                const href =
+                  cat.id === "all"
+                    ? `/${lang}/catalog`
+                    : `/${lang}/catalog?category=${encodeURIComponent(cat.id)}`;
+                const label = cat.label[lang] || cat.label.uk;
+                return (
+                  <Link
+                    key={cat.id}
+                    href={href}
+                    role="option"
+                    aria-selected={category === cat.id}
+                    className={category === cat.id ? "is-active" : undefined}
+                    onClick={() => setCategoryMenuOpen(false)}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
         <div className="cat-toolbar-actions">
           <div className="cat-sort" role="group" aria-label={t.catalog.price}>

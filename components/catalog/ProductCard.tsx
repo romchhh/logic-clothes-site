@@ -36,7 +36,7 @@ export default function ProductCard({
             src={src}
             alt={title}
             fill
-            sizes="(max-width: 899px) 50vw, (max-width: 1399px) 33vw, 25vw"
+            sizes="(max-width: 899px) 50vw, (max-width: 1199px) 25vw, (max-width: 1599px) 20vw, 16vw"
             quality={85}
             priority={priority}
             style={{ objectFit: "cover", objectPosition: "center" }}
