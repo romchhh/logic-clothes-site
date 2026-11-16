@@ -80,6 +80,7 @@ export type Messages = {
     orderMySize: string;
     orderMyColorSize: string;
     orderSew: string;
+    orderByMeasures: string;
     openSizeChart: string;
     closeSizeChart: string;
     actualMeasures: string;
@@ -287,7 +288,7 @@ const uk: Messages = {
     concept: "Concept store",
     about: "Про бренд",
     new: "Новинки",
-    stores: "Магазини",
+    stores: "Магазин",
     menu: "Меню",
     whoWeAre: "Хто ми",
     custom14: "Ваш колір + ваш розмір за 14 днів",
@@ -304,7 +305,7 @@ const uk: Messages = {
     featured: "Популярне",
     newcomers: "Новинки",
     sale: "Sale",
-    seeAll: "Усі",
+    seeAll: "дивитись все",
     aboutTitle: "Український бренд одягу Logic Clothes",
     aboutText:
       "Уявіть гардероб, де кожна річ про вас, незалежно від сезону, трендів чи настрою. З цієї концепції народжується український дизайнерський одяг Logic Clothes. Колекції, натхненні жінками, простотою крою, натуральними тканинами й обмеженими тиражами — кожна річ зшита в Україні з увагою до деталей.",
@@ -360,7 +361,8 @@ const uk: Messages = {
     sewMySize: "хочу пошити в своєму розмірі",
     orderMySize: "хочу пошити в своєму розмірі",
     orderMyColorSize: "хочу замовити в своєму кольорі в своєму розмірі",
-    orderSew: "Замовити пошив",
+    orderSew: "Замовити пошиття",
+    orderByMeasures: "хочу замовити по своїх мірках",
     openSizeChart: "відкрити розмірну сітку",
     closeSizeChart: "згорнути",
     actualMeasures: "фактичні заміри виробу",
@@ -385,7 +387,7 @@ const uk: Messages = {
     sizeTooltipMadeToOrder: "Зшиємо за 14 днів",
     customOrderTitle: "Конструктор власного замовлення",
     customOrderLead:
-      "Оберіть палітру (зелена, червона…), не всі відтінки одразу. Розмір з сітки або по мірках — тон узгодимо з вами.",
+      "Оберіть загальну гаму. Можливі відтінки відправимо вам на вибір та затвердження.",
     customOrderCta: "Обговорити замовлення з живою людиною",
     customOrderSelected: "Обрані палітри",
     discussChoose: "Куди надіслати повідомлення?",
@@ -537,7 +539,7 @@ const uk: Messages = {
     sloganAccent: "LOGIC",
     newsletterLabel: "Приєднуйся до Logic Clothes",
     newsletterPlaceholder: "E-mail",
-    region: "Україна | Українська",
+    region: "українська",
     address: "Адреса",
     contacts: "Контакти",
     clients: "Клієнтам",
@@ -585,7 +587,7 @@ const en: Messages = {
     concept: "Concept store",
     about: "About",
     new: "New in",
-    stores: "Stores",
+    stores: "Store",
     menu: "Menu",
     whoWeAre: "Who we are",
     custom14: "Your colour + your size in 14 days",
@@ -602,7 +604,7 @@ const en: Messages = {
     featured: "Popular",
     newcomers: "New",
     sale: "Sale",
-    seeAll: "See all",
+    seeAll: "see all",
     aboutTitle: "Ukrainian clothing brand Logic Clothes",
     aboutText:
       "Imagine a wardrobe where every piece is about you — beyond season, trends or mood. From this idea comes Ukrainian designer wear Logic Clothes. Collections inspired by women, clean cuts, natural fabrics and limited runs — each piece made in Ukraine with care for detail.",
@@ -659,6 +661,7 @@ const en: Messages = {
     orderMySize: "I want it sewn in my size",
     orderMyColorSize: "I want my colour and my size",
     orderSew: "Order a custom sew",
+    orderByMeasures: "I want it made to my measurements",
     openSizeChart: "open size chart",
     closeSizeChart: "collapse",
     actualMeasures: "actual garment measurements",
@@ -683,7 +686,7 @@ const en: Messages = {
     sizeTooltipMadeToOrder: "Made to order in 14 days",
     customOrderTitle: "Build your custom order",
     customOrderLead:
-      "Pick a colour family (not every shade). Standard sizes or made to measure — we refine the tone with you.",
+      "Choose a colour family. We’ll send possible shades for you to pick and approve.",
     customOrderCta: "Discuss your order with a real person",
     customOrderSelected: "Selected palettes",
     discussChoose: "Where should we receive your message?",
@@ -834,7 +837,7 @@ const en: Messages = {
     sloganAccent: "LOGIC",
     newsletterLabel: "Join Logic Clothes",
     newsletterPlaceholder: "E-mail",
-    region: "Ukraine | English",
+    region: "english",
     address: "Address",
     contacts: "Contacts",
     clients: "Clients",

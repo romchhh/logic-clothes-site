@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   getPaletteGroups,
   groupForPaletteId,
@@ -83,6 +83,11 @@ export default function ProductColorPalette({
 }) {
   const { t } = useI18n();
   const groups = getPaletteGroups();
+  const [pinnedSewId, setPinnedSewId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPinnedSewId(null);
+  }, [product.id]);
 
   const family = useMemo(() => {
     const byId = new Map<string, ProductColorVariant>();
@@ -217,20 +222,34 @@ export default function ProductColorPalette({
             );
           }
 
+          const pinned = pinnedSewId === group.id;
           return (
-            <button
+            <span
               key={group.id}
-              type="button"
-              className="pdp-palette-item pdp-palette-item--card is-off"
+              className={`pdp-palette-item pdp-palette-item--card is-off${
+                pinned ? " is-pinned" : ""
+              }`}
               title={label}
-              onClick={() => onRequestSew?.()}
             >
-              {face}
-              <span className="pdp-palette-name">{label}</span>
-              <span className="pdp-palette-sew-cta" aria-hidden>
-                {t.product.sewMyColor}
-              </span>
-            </button>
+              <button
+                type="button"
+                className="pdp-palette-item-hit"
+                aria-label={label}
+                onClick={() => setPinnedSewId(group.id)}
+              >
+                {face}
+                <span className="pdp-palette-name">{label}</span>
+              </button>
+              {pinned ? (
+                <button
+                  type="button"
+                  className="pdp-palette-sew-cta is-fixed"
+                  onClick={() => onRequestSew?.()}
+                >
+                  {t.product.sewMyColor}
+                </button>
+              ) : null}
+            </span>
           );
         })}
       </div>

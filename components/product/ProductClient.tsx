@@ -57,6 +57,7 @@ export default function ProductClient({
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [measuresOpen, setMeasuresOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [pinnedSewSize, setPinnedSewSize] = useState<string | null>(null);
   const [lengthHint, setLengthHint] = useState(false);
   const [materialHint, setMaterialHint] = useState(false);
   const sizeBlockRef = useRef<HTMLDivElement>(null);
@@ -115,6 +116,8 @@ export default function ProductClient({
     setSizeHint(false);
     setLengthHint(false);
     setMaterialHint(false);
+    setPinnedSewSize(null);
+    setBuilderOpen(false);
   }, [product.id]); // eslint-disable-line react-hooks/exhaustive-deps -- reset on SKU change
 
   useEffect(() => {
@@ -142,12 +145,17 @@ export default function ProductClient({
 
   function openBuilder() {
     setBuilderOpen(true);
-    window.requestAnimationFrame(() => {
+  }
+
+  useEffect(() => {
+    if (!builderOpen) return;
+    const id = window.setTimeout(() => {
       document
         .querySelector(".pdp-builder")
         ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-  }
+    }, 50);
+    return () => window.clearTimeout(id);
+  }, [builderOpen]);
 
   function addToCart() {
     if (!canAddToCart) {
@@ -300,8 +308,12 @@ export default function ProductClient({
                     </button>
                   );
                 }
+                const pinned = pinnedSewSize === sz;
                 return (
-                  <span key={sz} className="pdp-size-wrap">
+                  <span
+                    key={sz}
+                    className={`pdp-size-wrap${pinned ? " is-pinned" : ""}`}
+                  >
                     <button
                       className={`pdp-size pdp-size--text is-off${
                         plus ? " is-plus" : ""
@@ -309,17 +321,19 @@ export default function ProductClient({
                       type="button"
                       role="option"
                       aria-selected={false}
-                      onClick={openBuilder}
+                      onClick={() => setPinnedSewSize(sz)}
                     >
                       {formatSizeLabel(sz)}
                     </button>
-                    <button
-                      type="button"
-                      className="pdp-size-sew-cta"
-                      onClick={openBuilder}
-                    >
-                      {t.product.sewMySize}
-                    </button>
+                    {pinned ? (
+                      <button
+                        type="button"
+                        className="pdp-size-sew-cta is-fixed"
+                        onClick={openBuilder}
+                      >
+                        {t.product.sewMySize}
+                      </button>
+                    ) : null}
                   </span>
                 );
               })}
@@ -619,7 +633,7 @@ export default function ProductClient({
                 href={`/${lang}/shipping-payment`}
                 className="pdp-service-link"
               >
-                {t.footer.shipping}
+                {t.footer.payment}
               </Link>
             </section>
           </div>

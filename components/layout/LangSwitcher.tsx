@@ -5,9 +5,17 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/lib/i18n/config";
 import { switchLocalePath } from "@/lib/i18n/path";
-import { getMessages } from "@/lib/i18n/messages";
 
 type Variant = "icon" | "region" | "menu";
+
+const LANG_OPTIONS: {
+  locale: Locale;
+  label: string;
+  flag: string;
+}[] = [
+  { locale: "uk", label: "українська", flag: "🇺🇦" },
+  { locale: "en", label: "english", flag: "🇬🇧" },
+];
 
 export default function LangSwitcher({
   lang,
@@ -23,13 +31,11 @@ export default function LangSwitcher({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const ukPath = switchLocalePath(pathname, lang, "uk");
-  const enPath = switchLocalePath(pathname, lang, "en");
-  const regionLabel = getMessages(lang).footer.region;
-  const options = [
-    { locale: "uk" as const, href: ukPath, label: getMessages("uk").footer.region },
-    { locale: "en" as const, href: enPath, label: getMessages("en").footer.region },
-  ];
+  const options = LANG_OPTIONS.map((opt) => ({
+    ...opt,
+    href: switchLocalePath(pathname, lang, opt.locale),
+  }));
+  const current = options.find((o) => o.locale === lang) ?? options[0];
 
   useEffect(() => {
     setOpen(false);
@@ -71,12 +77,15 @@ export default function LangSwitcher({
             <Link
               key={opt.locale}
               href={opt.href}
-              className={`mobile-menu-lang-opt${
+              className={`mobile-menu-lang-opt lang-pill lang-pill--${opt.locale}${
                 lang === opt.locale ? " is-active" : ""
               }`}
               onClick={() => onNavigate?.()}
             >
-              {opt.label}
+              <span className="lang-pill-flag" aria-hidden>
+                {opt.flag}
+              </span>
+              <span>{opt.label}</span>
             </Link>
           ))}
         </div>
@@ -102,18 +111,22 @@ export default function LangSwitcher({
         onClick={() => setOpen((v) => !v)}
       >
         {variant === "icon" ? (
-          <svg
-            className="lang-menu-icon"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="9" />
-            <path d="M3 12h18" />
-            <path d="M12 3c2.5 2.8 3.8 5.8 3.8 9s-1.3 6.2-3.8 9c-2.5-2.8-3.8-5.8-3.8-9S9.5 5.8 12 3z" />
-          </svg>
+          <span className={`lang-pill lang-pill--compact lang-pill--${lang}`}>
+            <span className="lang-pill-flag" aria-hidden>
+              {current.flag}
+            </span>
+            <span className="lang-pill-code">
+              {lang === "uk" ? "UA" : "EN"}
+            </span>
+          </span>
         ) : (
           <>
-            <span>{regionLabel}</span>
+            <span className={`lang-pill lang-pill--${lang}`}>
+              <span className="lang-pill-flag" aria-hidden>
+                {current.flag}
+              </span>
+              <span>{current.label}</span>
+            </span>
             <svg
               className="lang-menu-chevron"
               viewBox="0 0 24 24"
@@ -130,11 +143,16 @@ export default function LangSwitcher({
           <Link
             key={opt.locale}
             href={opt.href}
-            className={`lang-menu-opt${lang === opt.locale ? " is-active" : ""}`}
+            className={`lang-menu-opt lang-pill lang-pill--${opt.locale}${
+              lang === opt.locale ? " is-active" : ""
+            }`}
             role="menuitem"
             onClick={() => setOpen(false)}
           >
-            {variant === "region" ? opt.label : opt.locale.toUpperCase()}
+            <span className="lang-pill-flag" aria-hidden>
+              {opt.flag}
+            </span>
+            <span>{opt.label}</span>
           </Link>
         ))}
       </div>

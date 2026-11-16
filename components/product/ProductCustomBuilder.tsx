@@ -7,18 +7,22 @@ import {
   groupForPaletteId,
   resolvePaletteId,
 } from "@/lib/colorPalette";
-import { paintSwatchShape } from "@/lib/paletteSwatchShape";
+import { formatSizeLabel } from "@/lib/productSizes";
 import { formatDualPrice } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import type { Product } from "@/lib/types";
 
-function dabStyle(hex: string, index: number): CSSProperties {
-  const shape = paintSwatchShape(index);
+const PLUS_SIZES = new Set(["A", "B", "C", "D"]);
+
+function dabStyle(hex: string, shadeId: string): CSSProperties {
+  const isMulti = shadeId === "multi" || hex.toUpperCase() === "#FFFFFF";
   return {
-    background: hex,
-    borderRadius: shape.borderRadius,
-    transform: shape.transform,
+    background: isMulti
+      ? "conic-gradient(from 120deg, #c4282e, #e06a28, #e8c84a, #3f7a4e, #1a3a5c, #6a3a7a, #e868a0, #c4282e)"
+      : hex,
+    borderRadius: 0,
+    filter: isMulti ? undefined : "saturate(1.35)",
   };
 }
 
@@ -46,6 +50,7 @@ export default function ProductCustomBuilder({
   const [paletteIds, setPaletteIds] = useState<string[]>(
     defaultGroupId ? [defaultGroupId] : []
   );
+  const [customMeasures, setCustomMeasures] = useState(false);
   const [height, setHeight] = useState("");
   const [bust, setBust] = useState("");
   const [waist, setWaist] = useState("");
@@ -86,13 +91,8 @@ export default function ProductCustomBuilder({
       <p className="pdp-builder-label">
         {lang === "uk" ? "бажані палітри" : "desired palettes"}
       </p>
-      <p className="pdp-builder-note">
-        {lang === "uk"
-          ? "Оберіть загальну гаму — відтінки узгодимо пізніше."
-          : "Pick a colour family — we refine the shade later."}
-      </p>
       <div className="pdp-palette-row pdp-palette-row--cards pdp-builder-palettes">
-        {groups.map((group, gi) => {
+        {groups.map((group) => {
           const on = paletteIds.includes(group.id);
           const label = lang === "en" ? group.labelEn : group.label;
           return (
@@ -107,11 +107,11 @@ export default function ProductCustomBuilder({
               onClick={() => togglePalette(group.id)}
             >
               <span className="pdp-palette-card-grid" aria-hidden>
-                {group.shades.slice(0, 9).map((shade, i) => (
+                {group.shades.slice(0, 9).map((shade) => (
                   <span
                     key={shade.id}
                     className="pdp-palette-card-dab"
-                    style={dabStyle(shade.hex, gi * 9 + i)}
+                    style={dabStyle(shade.hex, shade.id)}
                   />
                 ))}
               </span>
@@ -141,40 +141,71 @@ export default function ProductCustomBuilder({
       ) : null}
 
       <p className="pdp-builder-label">{t.product.size}</p>
-      <div className="pdp-sizes">
-        {sizes.map((sz) => (
-          <button
-            key={sz}
-            type="button"
-            className={`pdp-size${size === sz ? " is-active" : ""}`}
-            onClick={() => setSize(sz)}
-          >
-            {sz.replace(/-/g, "\u2011")}
-          </button>
-        ))}
+      <div className="pdp-sizes pdp-sizes--text">
+        {sizes.map((sz) => {
+          const plus = PLUS_SIZES.has(sz);
+          return (
+            <button
+              key={sz}
+              type="button"
+              className={`pdp-size pdp-size--text is-stocked${
+                size === sz ? " is-active" : ""
+              }${plus ? " is-plus" : ""}`}
+              onClick={() => setSize(sz)}
+            >
+              {formatSizeLabel(sz)}
+            </button>
+          );
+        })}
       </div>
 
-      <p className="pdp-builder-label">
-        {lang === "uk" ? "замовити по власних параметрах" : "order to your measurements"}
-      </p>
-      <div className="pdp-builder-measures">
-        <label>
-          {lang === "uk" ? "зріст" : "height"}
-          <input value={height} onChange={(e) => setHeight(e.target.value)} inputMode="decimal" />
-        </label>
-        <label>
-          {lang === "uk" ? "обʼєм грудей" : "bust"}
-          <input value={bust} onChange={(e) => setBust(e.target.value)} inputMode="decimal" />
-        </label>
-        <label>
-          {lang === "uk" ? "обʼєм талії" : "waist"}
-          <input value={waist} onChange={(e) => setWaist(e.target.value)} inputMode="decimal" />
-        </label>
-        <label>
-          {lang === "uk" ? "обʼєм стегон" : "hips"}
-          <input value={hips} onChange={(e) => setHips(e.target.value)} inputMode="decimal" />
-        </label>
+      <div className="pdp-builder-measures-toggle">
+        <button
+          type="button"
+          className={`pdp-builder-sew-cta${customMeasures ? " is-open" : ""}`}
+          aria-expanded={customMeasures}
+          onClick={() => setCustomMeasures((v) => !v)}
+        >
+          {t.product.orderByMeasures}
+        </button>
       </div>
+
+      {customMeasures ? (
+        <div className="pdp-builder-measures">
+          <label>
+            {lang === "uk" ? "зріст" : "height"}
+            <input
+              value={height}
+              onChange={(e) => setHeight(e.target.value)}
+              inputMode="decimal"
+            />
+          </label>
+          <label>
+            {lang === "uk" ? "обʼєм грудей" : "bust"}
+            <input
+              value={bust}
+              onChange={(e) => setBust(e.target.value)}
+              inputMode="decimal"
+            />
+          </label>
+          <label>
+            {lang === "uk" ? "обʼєм талії" : "waist"}
+            <input
+              value={waist}
+              onChange={(e) => setWaist(e.target.value)}
+              inputMode="decimal"
+            />
+          </label>
+          <label>
+            {lang === "uk" ? "обʼєм стегон" : "hips"}
+            <input
+              value={hips}
+              onChange={(e) => setHips(e.target.value)}
+              inputMode="decimal"
+            />
+          </label>
+        </div>
+      ) : null}
 
       <div className="pdp-builder-total">
         <span>{lang === "uk" ? "калькулятор замовлення" : "order total"}</span>
@@ -187,7 +218,7 @@ export default function ProductCustomBuilder({
         disabled={!size}
         onClick={() => size && onAdd(size, note)}
       >
-        {t.product.addToCart}
+        {t.product.orderSew}
       </button>
 
       <ProductDiscussOrder

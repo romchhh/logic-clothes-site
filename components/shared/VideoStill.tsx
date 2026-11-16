@@ -25,10 +25,10 @@ export default function VideoStill({
   const videoRef = useRef<HTMLVideoElement>(null);
   const tone = mediaAdjustStyle(adjust);
   const base = src.split("#")[0];
-  const stillSrc = autoPlay ? base : `${base}#t=0.1`;
   const frame = mediaFrameStyle(adjust?.frame);
+  const showPosterCover = !autoPlay && Boolean(poster);
 
-  // Returning to a video slide must restart play — autoPlay attr alone often won't.
+  // Keep the same <video> mounted so returning to the slide can restart play.
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -40,23 +40,38 @@ export default function VideoStill({
         });
       };
       if (v.readyState >= 2) play();
-      else v.addEventListener("loadeddata", play, { once: true });
-      return () => v.removeEventListener("loadeddata", play);
+      else {
+        v.addEventListener("loadeddata", play, { once: true });
+        return () => v.removeEventListener("loadeddata", play);
+      }
+      return;
     }
     try {
       v.pause();
+      if (Number.isFinite(v.duration) && v.duration > 0) {
+        v.currentTime = Math.min(0.1, v.duration * 0.05);
+      }
     } catch {
       /* ignore */
     }
-  }, [autoPlay, stillSrc]);
+  }, [autoPlay, base]);
 
-  // Thumb / paused: prefer static cover so a bad first frame never flashes.
-  if (!autoPlay && poster) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={poster}
-        alt=""
+  return (
+    <span
+      className={className ? `video-still ${className}` : "video-still"}
+      style={{
+        position: "relative",
+        display: "block",
+        width: "100%",
+        height: "100%",
+        background: "#111",
+        overflow: "hidden",
+      }}
+    >
+      <video
+        ref={videoRef}
+        src={base}
+        poster={poster || undefined}
         className={className}
         style={{
           width: "100%",
@@ -64,42 +79,42 @@ export default function VideoStill({
           background: "#111",
           ...frame,
           ...tone,
+          ...(showPosterCover ? { opacity: 0 } : null),
         }}
-        draggable={false}
+        muted
+        playsInline
+        loop={autoPlay}
+        autoPlay={autoPlay}
+        preload={autoPlay ? "auto" : "metadata"}
+        onLoadedData={(e) => {
+          if (autoPlay) {
+            void e.currentTarget.play().catch(() => {});
+            return;
+          }
+          try {
+            e.currentTarget.pause();
+          } catch {
+            /* ignore */
+          }
+        }}
       />
-    );
-  }
-
-  return (
-    <video
-      ref={videoRef}
-      key={autoPlay ? `play-${base}` : `still-${base}`}
-      src={stillSrc}
-      poster={poster || undefined}
-      className={className}
-      style={{
-        width: "100%",
-        height: "100%",
-        background: "#111",
-        ...frame,
-        ...tone,
-      }}
-      muted
-      playsInline
-      loop={autoPlay}
-      autoPlay={autoPlay}
-      preload={autoPlay ? "auto" : "metadata"}
-      onLoadedData={(e) => {
-        if (autoPlay) {
-          void e.currentTarget.play().catch(() => {});
-          return;
-        }
-        try {
-          e.currentTarget.pause();
-        } catch {
-          /* ignore */
-        }
-      }}
-    />
+      {showPosterCover ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={poster || ""}
+          alt=""
+          className={className}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            ...frame,
+            ...tone,
+          }}
+          draggable={false}
+        />
+      ) : null}
+    </span>
   );
 }
