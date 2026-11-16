@@ -3033,31 +3033,25 @@
     }
     .pdp-immersive-shell{
       display:grid;
-      grid-template-columns:minmax(0,1fr) minmax(300px,400px);
-      gap:clamp(24px,3vw,48px);
+      grid-template-columns:minmax(0,1.55fr) minmax(320px,420px);
+      gap:clamp(28px,3.2vw,56px);
       align-items:start;
       max-width:1520px;
       margin:0 auto;
       padding:16px 0 40px;
     }
     .pdp-immersive-media{
-      position:sticky;
-      top:calc(var(--site-bar-h) + 12px);
+      position:static;
       align-self:start;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
+      display:block;
       width:100%;
       max-width:100%;
     }
-    .pdp-immerse-root{
-      width:min(
-        100%,
-        calc((100svh - var(--site-bar-h)) * 3 / 5)
-      );
+    .pdp-immerse-root,
+    .pdp-immerse-root.is-desktop-grid{
+      width:100%;
       max-width:100%;
-      margin-left:auto;
-      margin-right:auto;
+      margin:0;
     }
     .pdp-immerse-root .pdp-immerse-hero,
     .pdp-immerse-root .pdp-immerse-track{
@@ -3065,37 +3059,54 @@
       max-width:100%;
       margin-left:0;
     }
+    /* Desktop: 2-column photo/video grid, stacked rows */
     .pdp-immerse-hero{
-      --pdp-hero-max-h:calc(100svh - var(--site-bar-h));
+      position:relative;
       width:100%;
       height:auto;
-      max-height:var(--pdp-hero-max-h);
+      max-height:none;
       min-height:0;
+      aspect-ratio:auto;
+      border-radius:0;
+      overflow:visible;
+      background:transparent;
+    }
+    .pdp-immerse-hero-track{
+      position:static;
+      inset:auto;
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+      width:100%;
+      height:auto;
+      overflow:visible;
+      scroll-snap-type:none;
+      overscroll-behavior-x:auto;
+    }
+    .pdp-immerse-hero-slide{
+      position:relative;
+      flex:none;
+      width:100%;
+      min-width:0;
+      max-width:none;
+      height:auto;
       aspect-ratio:var(--product-card-ratio);
+      scroll-snap-align:none;
       border-radius:0;
       overflow:hidden;
     }
-    .pdp-immerse-hero-nav{display:inline-flex;}
-    .pdp-immerse-thumbs{
-      position:static;
-      top:auto;
-      z-index:auto;
-      flex-wrap:wrap;
-      overflow:visible;
-      padding:12px 2px 0;
-      background:transparent;
-      backdrop-filter:none;
-      border-bottom:0;
-      gap:6px;
+    .pdp-immerse-hero-slide:only-child{
+      grid-column:1 / -1;
+      max-width:min(100%,520px);
     }
-    .pdp-immerse-thumb{
-      flex:0 0 58px;
-      width:58px;
-      border-radius:0;
-    }
+    .pdp-immerse-hero-nav{display:none !important;}
+    .pdp-immerse-angles{display:none;}
     .pdp-detail{
+      position:sticky;
+      top:calc(var(--site-bar-h) + 16px);
       max-width:none;
       padding:8px 0 0;
+      align-self:start;
     }
     .pdp--immersive .pdp-title{
       font-size:clamp(1.35rem, 1.6vw, 1.75rem);
@@ -3132,7 +3143,7 @@
 
   @media (min-width:1280px){
     .pdp-immersive-shell{
-      grid-template-columns:minmax(0,1fr) minmax(340px,440px);
+      grid-template-columns:minmax(0,1.6fr) minmax(360px,460px);
     }
   }
 

@@ -48,9 +48,18 @@ export default function ProductImmersiveGallery({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [portalReady, setPortalReady] = useState(false);
+  const [desktopGrid, setDesktopGrid] = useState(false);
 
   useEffect(() => {
     setPortalReady(true);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setDesktopGrid(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
   }, []);
 
   const multi = slides.length > 1;
@@ -60,6 +69,7 @@ export default function ProductImmersiveGallery({
       const next = Math.max(0, Math.min(slides.length - 1, i));
       indexRef.current = next;
       setIndex(next);
+      if (desktopGrid) return;
       const el = trackRef.current;
       if (!el) return;
       const width = el.clientWidth || 0;
@@ -70,18 +80,19 @@ export default function ProductImmersiveGallery({
         ignoreScrollRef.current = false;
       }, behavior === "smooth" ? 420 : 80);
     },
-    [slides.length]
+    [slides.length, desktopGrid]
   );
 
   useEffect(() => {
     indexRef.current = 0;
     setIndex(0);
     const el = trackRef.current;
-    if (el) el.scrollTo({ left: 0, behavior: "auto" });
-  }, [slides]);
+    if (el && !desktopGrid) el.scrollTo({ left: 0, behavior: "auto" });
+  }, [slides, desktopGrid]);
 
-  // Keep scroll position aligned after layout / resize.
+  // Keep scroll position aligned after layout / resize (mobile slider only).
   useEffect(() => {
+    if (desktopGrid) return;
     const el = trackRef.current;
     if (!el) return;
     const sync = () => {
@@ -93,7 +104,7 @@ export default function ProductImmersiveGallery({
     const ro = new ResizeObserver(sync);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [slides.length]);
+  }, [slides.length, desktopGrid]);
 
   useEffect(() => {
     const root = thumbsRef.current;
@@ -156,6 +167,7 @@ export default function ProductImmersiveGallery({
   }, [lightboxOpen, lightboxIndex, goTo]);
 
   function onTrackScroll() {
+    if (desktopGrid) return;
     const el = trackRef.current;
     if (!el || ignoreScrollRef.current) return;
     const w = el.clientWidth || 1;
@@ -214,7 +226,7 @@ export default function ProductImmersiveGallery({
   if (!slides.length) return null;
 
   return (
-    <div className="pdp-immerse-root">
+    <div className={`pdp-immerse-root${desktopGrid ? " is-desktop-grid" : ""}`}>
       <section className="pdp-immerse-hero" aria-label={alt}>
         <div
           className="pdp-immerse-hero-track"
@@ -234,7 +246,7 @@ export default function ProductImmersiveGallery({
                   src={slide.url}
                   adjust={slide.adjust}
                   poster={slide.poster}
-                  autoPlay={i === index}
+                  autoPlay={desktopGrid || i === index}
                   className="pdp-immerse-hero-img"
                 />
               ) : (
@@ -242,8 +254,8 @@ export default function ProductImmersiveGallery({
                   src={slide.url}
                   alt={`${alt} — ${i + 1}`}
                   fill
-                  priority={i === 0}
-                  sizes="(max-width: 1023px) 100vw, (min-width: 1024px) 42vw, 58vw"
+                  priority={i < 2}
+                  sizes="(max-width: 1023px) 100vw, 30vw"
                   quality={90}
                   draggable={false}
                   className="pdp-immerse-hero-img"
@@ -254,7 +266,7 @@ export default function ProductImmersiveGallery({
           ))}
         </div>
 
-        {multi && (
+        {multi && !desktopGrid && (
           <>
             <button
               type="button"
@@ -290,39 +302,41 @@ export default function ProductImmersiveGallery({
         )}
       </section>
 
-      <section className="pdp-immerse-angles" aria-label={alt}>
-        <div className="pdp-immerse-thumbs" role="tablist" ref={thumbsRef}>
-          {slides.map((slide, i) => (
-            <button
-              key={`${slide.url}-thumb-${i}`}
-              type="button"
-              role="tab"
-              aria-selected={i === index}
-              className={`pdp-immerse-thumb${i === index ? " is-active" : ""}${
-                slide.type === "video" ? " is-video" : ""
-              }`}
-              onClick={() => goTo(i)}
-            >
-              {slide.type === "video" ? (
-                <VideoStill
-                  src={slide.url}
-                  adjust={slide.adjust}
-                  poster={slide.poster}
-                />
-              ) : (
-                <Image
-                  src={slide.url}
-                  alt=""
-                  fill
-                  sizes="72px"
-                  draggable={false}
-                  style={{ objectFit: "cover" }}
-                />
-              )}
-            </button>
-          ))}
-        </div>
-      </section>
+      {!desktopGrid && (
+        <section className="pdp-immerse-angles" aria-label={alt}>
+          <div className="pdp-immerse-thumbs" role="tablist" ref={thumbsRef}>
+            {slides.map((slide, i) => (
+              <button
+                key={`${slide.url}-thumb-${i}`}
+                type="button"
+                role="tab"
+                aria-selected={i === index}
+                className={`pdp-immerse-thumb${i === index ? " is-active" : ""}${
+                  slide.type === "video" ? " is-video" : ""
+                }`}
+                onClick={() => goTo(i)}
+              >
+                {slide.type === "video" ? (
+                  <VideoStill
+                    src={slide.url}
+                    adjust={slide.adjust}
+                    poster={slide.poster}
+                  />
+                ) : (
+                  <Image
+                    src={slide.url}
+                    alt=""
+                    fill
+                    sizes="72px"
+                    draggable={false}
+                    style={{ objectFit: "cover" }}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {portalReady &&
         lightboxOpen &&
