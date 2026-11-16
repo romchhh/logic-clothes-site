@@ -136,6 +136,9 @@ export default function FinalCheckout({
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [otherRecipientOpen, setOtherRecipientOpen] = useState(false);
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
   const [deliveryMethod, setDeliveryMethod] =
     useState<DeliveryMethod>("nova_poshta_branch");
   const [paymentType, setPaymentType] = useState<PaymentType>("full");
@@ -239,7 +242,30 @@ export default function FinalCheckout({
     setAddress("");
     setCityListOpen(false);
     setWarehouseListOpen(false);
+    if (paymentType === "pay_after") setPaymentType("full");
   }, [deliveryMethod]);
+
+  const visiblePaymentMethods = useMemo(() => {
+    if (deliveryMethod === "pickup") return PAYMENT_METHODS;
+    return PAYMENT_METHODS.filter((m) => m !== "pay_after");
+  }, [deliveryMethod]);
+
+  function buildOrderComment(): string | undefined {
+    const parts: string[] = [];
+    if (comment.trim()) parts.push(comment.trim());
+    if (otherRecipientOpen) {
+      const name = recipientName.trim();
+      const tel = recipientPhone.trim();
+      if (name || tel) {
+        parts.push(
+          lang === "uk"
+            ? `Отримувач: ${[name, tel].filter(Boolean).join(", ")}`
+            : `Recipient: ${[name, tel].filter(Boolean).join(", ")}`
+        );
+      }
+    }
+    return parts.length ? parts.join("\n") : undefined;
+  }
 
   useEffect(() => {
     if (!done) return;
@@ -302,7 +328,7 @@ export default function FinalCheckout({
           paymentType,
           city: city.trim(),
           address: address.trim(),
-          comment: comment.trim() || undefined,
+          comment: buildOrderComment(),
           locale: lang,
           items: items.map((item) => ({
             productId: item.id,
@@ -350,7 +376,7 @@ export default function FinalCheckout({
         paidOnline: false,
         city: city.trim(),
         address: address.trim(),
-        comment: comment.trim() || undefined,
+        comment: buildOrderComment(),
         items: items.map((item) => ({
           productId: item.id,
           name: item.name,
@@ -519,7 +545,6 @@ export default function FinalCheckout({
     return (
       <section className="checkout-page checkout-page--empty">
         <div className="checkout-empty">
-          <p className="checkout-eyebrow">Logic Clothes</p>
           <h1 className="checkout-title">{t.checkout.emptyTitle}</h1>
           <p className="checkout-lead checkout-lead--center">
             {t.checkout.subtitle}
@@ -622,23 +647,8 @@ export default function FinalCheckout({
   return (
     <section className="checkout-page">
       <header className="checkout-head">
-        <p className="checkout-eyebrow">Logic Clothes</p>
         <h1 className="checkout-title">{t.checkout.title}</h1>
         <p className="checkout-lead">{t.checkout.subtitle}</p>
-        <ol className="checkout-progress" aria-label={t.checkout.title}>
-          <li className="is-active">
-            <span>1</span>
-            {t.checkout.contact}
-          </li>
-          <li>
-            <span>2</span>
-            {t.checkout.delivery}
-          </li>
-          <li>
-            <span>3</span>
-            {t.checkout.payment}
-          </li>
-        </ol>
       </header>
 
       <div className="checkout-layout">
@@ -653,12 +663,7 @@ export default function FinalCheckout({
               onClick={() => setBagOpen((v) => !v)}
               aria-expanded={bagOpen}
             >
-              <span>
-                {t.checkout.bagToggle}
-                <em>
-                  {positionCount} · {formatMoney(total)}
-                </em>
-              </span>
+              <span>{t.checkout.youChose}</span>
               <span className="checkout-bag-chevron" aria-hidden="true" />
             </button>
 
@@ -707,7 +712,7 @@ export default function FinalCheckout({
         >
           <fieldset className="checkout-panel" id="checkout-step-contact">
             <legend className="checkout-panel-title">
-              <span className="checkout-step" aria-hidden="true">
+              <span className="checkout-step checkout-step--mint" aria-hidden="true">
                 1
               </span>
               {t.checkout.contact}
@@ -724,6 +729,40 @@ export default function FinalCheckout({
                 required
               />
             </label>
+            <button
+              type="button"
+              className="checkout-other-recipient"
+              aria-expanded={otherRecipientOpen}
+              onClick={() => setOtherRecipientOpen((v) => !v)}
+            >
+              {t.checkout.otherRecipient}
+            </button>
+            {otherRecipientOpen ? (
+              <div className="checkout-recipient-card">
+                <label className="checkout-field">
+                  <span>{t.checkout.otherRecipientName}</span>
+                  <input
+                    type="text"
+                    name="recipientName"
+                    autoComplete="name"
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                  />
+                </label>
+                <label className="checkout-field">
+                  <span>{t.checkout.otherRecipientPhone}</span>
+                  <input
+                    type="tel"
+                    name="recipientPhone"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    placeholder="+380…"
+                    value={recipientPhone}
+                    onChange={(e) => setRecipientPhone(e.target.value)}
+                  />
+                </label>
+              </div>
+            ) : null}
             <div className="checkout-row">
               <label className="checkout-field">
                 <span>{t.checkout.phone}</span>
@@ -758,7 +797,7 @@ export default function FinalCheckout({
 
           <fieldset className="checkout-panel" id="checkout-step-delivery">
             <legend className="checkout-panel-title">
-              <span className="checkout-step" aria-hidden="true">
+              <span className="checkout-step checkout-step--pink" aria-hidden="true">
                 2
               </span>
               {t.checkout.delivery}
@@ -936,7 +975,7 @@ export default function FinalCheckout({
                 <textarea
                   name="comment"
                   rows={2}
-                  placeholder={t.checkout.commentPlaceholder}
+                  placeholder=""
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                 />
@@ -946,7 +985,7 @@ export default function FinalCheckout({
 
           <fieldset className="checkout-panel" id="checkout-step-payment">
             <legend className="checkout-panel-title">
-              <span className="checkout-step" aria-hidden="true">
+              <span className="checkout-step checkout-step--peach" aria-hidden="true">
                 3
               </span>
               {t.checkout.payment}
@@ -957,7 +996,7 @@ export default function FinalCheckout({
               role="radiogroup"
               aria-label={t.checkout.paymentMethod}
             >
-              {PAYMENT_METHODS.map((method) => {
+              {visiblePaymentMethods.map((method) => {
                 const due =
                   method === "prepay"
                     ? PREPAY_AMOUNT_UAH

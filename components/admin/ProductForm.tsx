@@ -50,6 +50,10 @@ import {
 } from "@/lib/productSizes";
 import { slugifyId } from "@/lib/slug";
 import {
+  CARE_INSTRUCTIONS,
+  type CareId,
+} from "@/lib/careInstructions";
+import {
   emptyGarmentMeasures,
   GARMENT_MEASURE_FIELDS,
   type GarmentMeasureKey,
@@ -81,6 +85,7 @@ type FormState = {
   photoSize: string;
   modelParams: string;
   garmentMeasures: Record<GarmentMeasureKey, string>;
+  careId: CareId | null;
   sizeOptions: string[];
   lengthOptions: string[];
   materialOptions: string[];
@@ -110,6 +115,7 @@ const PRODUCT_FORM_SECTIONS = [
   { id: "section-media", label: "Фото" },
   { id: "section-length", label: "Довжина" },
   { id: "section-model", label: "Модель" },
+  { id: "section-care", label: "Догляд" },
   { id: "section-links", label: "Кольори" },
   { id: "section-look", label: "Лук" },
 ] as const;
@@ -131,6 +137,7 @@ const EMPTY: FormState = {
   photoSize: "",
   modelParams: "",
   garmentMeasures: emptyGarmentMeasures(),
+  careId: null,
   sizeOptions: [],
   lengthOptions: [],
   materialOptions: [],
@@ -382,6 +389,7 @@ export default function ProductForm({ productId }: Props) {
             ...emptyGarmentMeasures(),
             ...(p.garmentMeasures ?? {}),
           },
+          careId: p.careId ?? null,
           sizeOptions: Array.isArray(p.sizeOptions)
             ? p.sizeOptions.map(normalizeBrandSize)
             : [],
@@ -648,6 +656,7 @@ export default function ProductForm({ productId }: Props) {
       photoSize: form.photoSize.trim(),
       modelParams: form.modelParams.trim(),
       garmentMeasures: form.garmentMeasures,
+      careId: form.careId,
       sizeOptions: form.sizeOptions.map(normalizeBrandSize),
       lengthOptions: form.lengthOptions,
       materialOptions: form.fabricName.trim()
@@ -1440,6 +1449,45 @@ export default function ProductForm({ productId }: Props) {
             </div>
           </div>
         </details>
+      </ComponentCard>
+
+      <ComponentCard
+        title="Догляд"
+        sectionId="section-care"
+        desc="Оберіть один з чотирьох варіантів — на картці товару розгорнеться відповідний текст"
+      >
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {CARE_INSTRUCTIONS.map((care) => {
+            const active = form.careId === care.id;
+            return (
+              <button
+                key={care.id}
+                type="button"
+                className={`overflow-hidden border text-left transition${
+                  active
+                    ? " border-gray-900 ring-1 ring-gray-900"
+                    : " border-gray-200 hover:border-gray-400"
+                }`}
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    careId: prev.careId === care.id ? null : care.id,
+                  }))
+                }
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={care.image}
+                  alt=""
+                  className="aspect-[3/4] w-full object-cover bg-gray-50"
+                />
+                <span className="block px-2 py-2 text-[12px] lowercase text-gray-700">
+                  {care.label.uk}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </ComponentCard>
 
       <ComponentCard

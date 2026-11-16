@@ -1,13 +1,16 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import ProductCard from "@/components/catalog/ProductCard";
 import ProductCustomBuilder from "@/components/product/ProductCustomBuilder";
+import ProductDiscussOrder from "@/components/product/ProductDiscussOrder";
 import ProductImmersiveGallery from "@/components/product/ProductImmersiveGallery";
 import { useAppContext } from "@/lib/GeneralProvider";
 import { useBasket } from "@/lib/BasketProvider";
 import { useWishlist } from "@/lib/WishlistProvider";
+import { careBody, getCareInstruction } from "@/lib/careInstructions";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { GARMENT_MEASURE_FIELDS, hasGarmentMeasures } from "@/lib/garmentMeasures";
 import type { Locale } from "@/lib/i18n/config";
@@ -20,6 +23,7 @@ import {
   orderBrandSizes,
 } from "@/lib/productSizes";
 import { SIZE_CHART_ROWS } from "@/lib/sizeChart";
+import { STORE_PHOTOS } from "@/lib/storePhotos";
 import {
   productDescription,
   productName,
@@ -56,7 +60,10 @@ export default function ProductClient({
   const [sizeHint, setSizeHint] = useState(false);
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [measuresOpen, setMeasuresOpen] = useState(false);
+  const [careOpen, setCareOpen] = useState(false);
+  const [shippingOpen, setShippingOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const care = getCareInstruction(product.careId);
   const [pinnedSewSize, setPinnedSewSize] = useState<string | null>(null);
   const [lengthHint, setLengthHint] = useState(false);
   const [materialHint, setMaterialHint] = useState(false);
@@ -255,6 +262,29 @@ export default function ProductClient({
             <p className="pdp-desc pdp-desc--lead">{displayDesc}</p>
           ) : null}
 
+          {care ? (
+            <div className="pdp-care">
+              <button
+                type="button"
+                className="pdp-disclosure"
+                aria-expanded={careOpen}
+                onClick={() => setCareOpen((v) => !v)}
+              >
+                {careOpen ? t.product.closeCare : t.product.care}
+              </button>
+              {careOpen ? (
+                <div className="pdp-care-panel">
+                  <p className="pdp-care-label">
+                    {lang === "en" ? care.label.en : care.label.uk}
+                  </p>
+                  <p className="pdp-care-body">
+                    {careBody(care.id, lang)}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {showFabricSpecs ? (
             <dl className="pdp-fabric-grid">
               {fabricValue ? (
@@ -308,16 +338,12 @@ export default function ProductClient({
                     </button>
                   );
                 }
-                const pinned = pinnedSewSize === sz;
                 return (
-                  <span
-                    key={sz}
-                    className={`pdp-size-wrap${pinned ? " is-pinned" : ""}`}
-                  >
+                  <span key={sz} className="pdp-size-wrap">
                     <button
                       className={`pdp-size pdp-size--text is-off${
                         plus ? " is-plus" : ""
-                      }`}
+                      }${pinnedSewSize === sz ? " is-pinned" : ""}`}
                       type="button"
                       role="option"
                       aria-selected={false}
@@ -325,19 +351,19 @@ export default function ProductClient({
                     >
                       {formatSizeLabel(sz)}
                     </button>
-                    {pinned ? (
-                      <button
-                        type="button"
-                        className="pdp-size-sew-cta is-fixed"
-                        onClick={openBuilder}
-                      >
-                        {t.product.sewMySize}
-                      </button>
-                    ) : null}
                   </span>
                 );
               })}
             </div>
+            {pinnedSewSize ? (
+              <button
+                type="button"
+                className="pdp-size-sew-cta is-inline"
+                onClick={openBuilder}
+              >
+                {t.product.sewMySize}
+              </button>
+            ) : null}
             <button
               type="button"
               className="pdp-disclosure"
@@ -566,6 +592,59 @@ export default function ProductClient({
             >
               {t.product.orderMyColorSize}
             </button>
+
+            <ProductDiscussOrder
+              lang={lang}
+              productId={product.id}
+              productName={displayName}
+              shadeLabel={product.color || ""}
+              label={t.product.customOrderCta}
+            />
+
+            <div className="pdp-ship-pay">
+              <button
+                type="button"
+                className="pdp-disclosure pdp-disclosure--end"
+                aria-expanded={shippingOpen}
+                onClick={() => setShippingOpen((v) => !v)}
+              >
+                {shippingOpen
+                  ? t.product.closeShippingPayment
+                  : t.product.shippingPayment}
+              </button>
+              {shippingOpen ? (
+                <div className="pdp-microtable" id="pdp-ship-pay">
+                  <div className="pdp-microtable-row">
+                    <span>{t.product.shipUa}</span>
+                    <span className="pdp-carrier-icons" aria-hidden>
+                      <span className="pdp-carrier pdp-carrier--np">НП</span>
+                      <span className="pdp-carrier pdp-carrier--up">УП</span>
+                    </span>
+                  </div>
+                  <div className="pdp-microtable-row">
+                    <span>{t.product.shipAbroad}</span>
+                    <span className="pdp-carrier-icons" aria-hidden>
+                      <span className="pdp-carrier pdp-carrier--np">НП</span>
+                      <span className="pdp-carrier pdp-carrier--up">УП</span>
+                    </span>
+                  </div>
+                  <div className="pdp-microtable-row">
+                    <span>{t.product.shipStore}</span>
+                    <span>{t.product.shipStoreAddress}</span>
+                  </div>
+                  <div className="pdp-microtable-row">
+                    <span>{t.product.payMethods}</span>
+                    <span>{t.product.payMethodsText}</span>
+                  </div>
+                  <div className="pdp-microtable-row">
+                    <span>{t.product.returnsLabel}</span>
+                    <Link href={`/${lang}/returns`}>
+                      {t.product.returnsLink}
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
 
           {builderOpen ? (
@@ -605,40 +684,29 @@ export default function ProductClient({
         </section>
       )}
 
-      <div className="pdp-immersive-tail">
-      <div className="pdp-below pdp-below--immersive">
-          <div className="pdp-service">
-            <section className="pdp-service-block">
-              <h2 className="pdp-section-title">{t.product.deliveryTitle}</h2>
-              <ul>
-                {t.product.deliveryText.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-              <Link
-                href={`/${lang}/shipping-payment`}
-                className="pdp-service-link"
-              >
-                {t.footer.shipping}
-              </Link>
-            </section>
-            <section className="pdp-service-block">
-              <h2 className="pdp-section-title">{t.product.paymentTitle}</h2>
-              <ul>
-                {t.product.paymentText.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-              <Link
-                href={`/${lang}/shipping-payment`}
-                className="pdp-service-link"
-              >
-                {t.footer.payment}
-              </Link>
-            </section>
+      {STORE_PHOTOS.length > 0 ? (
+        <section
+          className="pdp-store-photos"
+          aria-label={t.product.storePhotosTitle}
+        >
+          <h2 className="pdp-section-title pdp-store-photos-title">
+            {t.product.storePhotosTitle}
+          </h2>
+          <div className="pdp-store-photos-grid">
+            {STORE_PHOTOS.map((photo) => (
+              <figure key={photo.src} className="pdp-store-photo">
+                <Image
+                  src={photo.src}
+                  alt={lang === "en" ? photo.altEn : photo.altUk}
+                  fill
+                  sizes="(max-width: 899px) 100vw, 50vw"
+                  style={{ objectFit: "cover" }}
+                />
+              </figure>
+            ))}
           </div>
-        </div>
-      </div>
+        </section>
+      ) : null}
     </div>
   );
 }

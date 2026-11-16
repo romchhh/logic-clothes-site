@@ -1,3 +1,4 @@
+import type { CareId } from "@/lib/careInstructions";
 import type { Locale } from "@/lib/i18n/config";
 import type { GarmentMeasures } from "@/lib/garmentMeasures";
 import type { MediaAdjust } from "@/lib/mediaAdjust";
@@ -75,6 +76,8 @@ export interface Product {
   modelParams?: string;
   /** Filled garment measurements. Hidden on PDP when empty. */
   garmentMeasures?: GarmentMeasures;
+  /** One of four care variants selected in admin. */
+  careId?: CareId | null;
   images: string[];
   media?: ProductMedia[];
   swatches: ProductSwatch[];

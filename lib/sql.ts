@@ -66,6 +66,7 @@ type ProductRow = {
   photo_size: string | null;
   model_params: string | null;
   garment_measures: string | null;
+  care_id?: string | null;
   in_stock: boolean;
   made_to_order?: boolean | null;
   season?: string | null;
@@ -196,6 +197,13 @@ function mapProduct(row: ProductRow): Product {
     ...(hasGarmentMeasures(parseGarmentMeasures(row.garment_measures))
       ? { garmentMeasures: parseGarmentMeasures(row.garment_measures) }
       : {}),
+    ...(row.care_id &&
+    (row.care_id === "gentle" ||
+      row.care_id === "hand" ||
+      row.care_id === "dryclean" ||
+      row.care_id === "outer")
+      ? { careId: row.care_id }
+      : {}),
     images,
     media: mediaResolved,
     swatches,
@@ -248,6 +256,7 @@ const PRODUCT_SELECT = `
     p.photo_size,
     p.model_params,
     p.garment_measures,
+    p.care_id,
     p.in_stock,
     COALESCE(p.made_to_order, FALSE) AS made_to_order,
     p.season,
@@ -449,7 +458,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         price_eur, price_usd, compare_at_price_num,
         color, color_hex, fabric_name, material, lining, lining_composition, insulation,
         description, description_en, long_description, long_description_en,
-        short_description, photo_size, model_params, garment_measures,
+        short_description, photo_size, model_params, garment_measures, care_id,
         in_stock, made_to_order, season, is_visible, sku, category, is_new, is_popular, is_sale, color_group,
         sort_order, updated_at
       ) VALUES (
@@ -457,9 +466,9 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         $7,$8,$9,
         $10,$11,$12,$13,$14,$15,$16,
         $17,$18,$19,$20,
-        $21,$22,$23,$24,
-        $25,$26,$27,$28,$29,$30,$31,$32,$33,$34,
-        $35, NOW()
+        $21,$22,$23,$24,$25,
+        $26,$27,$28,$29,$30,$31,$32,$33,$34,$35,
+        $36, NOW()
       )
       ON CONFLICT (slug) DO UPDATE SET
         name = EXCLUDED.name,
@@ -485,6 +494,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         photo_size = EXCLUDED.photo_size,
         model_params = EXCLUDED.model_params,
         garment_measures = EXCLUDED.garment_measures,
+        care_id = EXCLUDED.care_id,
         in_stock = EXCLUDED.in_stock,
         made_to_order = EXCLUDED.made_to_order,
         season = EXCLUDED.season,
@@ -525,6 +535,7 @@ export async function sqlUpsertProduct(product: Product): Promise<Product> {
         hasGarmentMeasures(product.garmentMeasures)
           ? JSON.stringify(product.garmentMeasures)
           : null,
+        product.careId || null,
         product.inStock,
         Boolean(product.madeToOrder),
         normalizeProductSeason(product.season),

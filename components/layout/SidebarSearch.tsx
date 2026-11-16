@@ -43,14 +43,21 @@ export default function SidebarSearch({ lang }: { lang: Locale }) {
         </button>
       </div>
       <div className="side-panel-body" style={{ paddingTop: 8 }}>
-        <input
-          type="search"
-          className="search-input"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t.search.placeholder}
-          autoFocus={isSearchOpen}
-        />
+        <label className="search-field">
+          <svg className="search-field-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3.5-3.5" />
+          </svg>
+          <input
+            type="search"
+            className="search-input"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder=""
+            aria-label={t.search.title}
+            autoFocus={isSearchOpen}
+          />
+        </label>
         {loading && <p className="panel-empty">…</p>}
         {!loading && !results.length && (
           <p className="panel-empty">{t.search.empty}</p>

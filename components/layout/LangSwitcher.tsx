@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/lib/i18n/config";
 import { switchLocalePath } from "@/lib/i18n/path";
 
@@ -28,40 +27,11 @@ export default function LangSwitcher({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
 
   const options = LANG_OPTIONS.map((opt) => ({
     ...opt,
     href: switchLocalePath(pathname, lang, opt.locale),
   }));
-  const current = options.find((o) => o.locale === lang) ?? options[0];
-
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname, lang]);
-
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(e: MouseEvent | TouchEvent) {
-      const el = ref.current;
-      if (!el) return;
-      if (e.target instanceof Node && !el.contains(e.target)) {
-        setOpen(false);
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("touchstart", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("touchstart", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
 
   const ariaLabel =
     lang === "uk" ? "Перемкнути мову" : "Switch language";
@@ -95,64 +65,30 @@ export default function LangSwitcher({
 
   return (
     <div
-      className={`lang-menu lang-menu--${variant}${open ? " is-open" : ""}`}
-      ref={ref}
+      className={`lang-menu lang-menu--${variant} lang-menu--always`}
+      aria-label={ariaLabel}
     >
-      <button
-        type="button"
-        className={
-          variant === "icon"
-            ? "icon-btn lang-menu-toggle"
-            : "lang-menu-region"
-        }
-        aria-label={ariaLabel}
-        aria-expanded={open}
-        aria-haspopup="true"
-        onClick={() => setOpen((v) => !v)}
-      >
-        {variant === "icon" ? (
-          <span className={`lang-pill lang-pill--compact lang-pill--${lang}`}>
-            <span className="lang-pill-flag" aria-hidden>
-              {current.flag}
-            </span>
-            <span className="lang-pill-code">
-              {lang === "uk" ? "UA" : "EN"}
-            </span>
-          </span>
-        ) : (
-          <>
-            <span className={`lang-pill lang-pill--${lang}`}>
-              <span className="lang-pill-flag" aria-hidden>
-                {current.flag}
-              </span>
-              <span>{current.label}</span>
-            </span>
-            <svg
-              className="lang-menu-chevron"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </>
-        )}
-      </button>
-
-      <div className="lang-menu-panel" role="menu">
+      <div className="lang-menu-opts-inline" role="group">
         {options.map((opt) => (
           <Link
             key={opt.locale}
             href={opt.href}
-            className={`lang-menu-opt lang-pill lang-pill--${opt.locale}${
-              lang === opt.locale ? " is-active" : ""
-            }`}
-            role="menuitem"
-            onClick={() => setOpen(false)}
+            className={`lang-pill lang-pill--${opt.locale}${
+              variant === "icon" ? " lang-pill--compact" : ""
+            }${lang === opt.locale ? " is-active" : ""}`}
+            aria-current={lang === opt.locale ? "true" : undefined}
+            onClick={() => onNavigate?.()}
           >
             <span className="lang-pill-flag" aria-hidden>
               {opt.flag}
             </span>
-            <span>{opt.label}</span>
+            {variant === "icon" ? (
+              <span className="lang-pill-code">
+                {opt.locale === "uk" ? "UA" : "EN"}
+              </span>
+            ) : (
+              <span>{opt.label}</span>
+            )}
           </Link>
         ))}
       </div>

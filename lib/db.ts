@@ -81,6 +81,10 @@ async function ensureSchemaPatches(pool: Pool): Promise<void> {
       ADD COLUMN IF NOT EXISTS insulation text
   `);
   await pool.query(`
+    ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS care_id text
+  `);
+  await pool.query(`
     DO $$ BEGIN
       ALTER TABLE products
         ADD CONSTRAINT products_season_check

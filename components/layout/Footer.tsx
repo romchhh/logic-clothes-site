@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
-import { SITE_INSTAGRAM, SITE_NAME } from "@/lib/siteContact";
+import {
+  SITE_INSTAGRAM,
+  SITE_INSTAGRAM_HANDLE,
+  SITE_MAP_LINK,
+  SITE_NAME,
+} from "@/lib/siteContact";
 import LangSwitcher from "@/components/layout/LangSwitcher";
 
 export default function Footer({ lang }: { lang: Locale }) {
@@ -13,14 +18,8 @@ export default function Footer({ lang }: { lang: Locale }) {
     { href: `/${lang}/about`, label: t.footer.about },
     { href: `/${lang}/contacts`, label: t.footer.contactsPage },
     { href: `/${lang}/shipping-payment`, label: t.footer.shipping },
-    { href: `/${lang}/shipping-payment`, label: t.footer.payment },
     { href: `/${lang}/returns`, label: t.footer.returns },
     { href: `/${lang}/contacts`, label: t.nav.stores },
-    {
-      href: SITE_INSTAGRAM,
-      label: t.footer.instagram,
-      external: true,
-    },
   ];
 
   const legalLinks = [
@@ -45,23 +44,40 @@ export default function Footer({ lang }: { lang: Locale }) {
         </p>
 
         <nav className="site-foot-nav" aria-label="Footer">
-          {navLinks.map((item) =>
-            item.external ? (
-              <a
-                key={item.label}
-                href={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {item.label}
-              </a>
-            ) : (
-              <Link key={item.label + item.href} href={item.href}>
-                {item.label}
-              </Link>
-            )
-          )}
+          {navLinks.map((item) => (
+            <Link key={item.label + item.href} href={item.href}>
+              {item.label}
+            </Link>
+          ))}
         </nav>
+
+        <div className="site-foot-social">
+          <a
+            href={SITE_INSTAGRAM}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="site-foot-social-link"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="5" />
+              <circle cx="12" cy="12" r="4" />
+              <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+            </svg>
+            <span>{SITE_INSTAGRAM_HANDLE}</span>
+          </a>
+          <a
+            href={SITE_MAP_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="site-foot-social-link"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21s7-7.2 7-12a7 7 0 10-14 0c0 4.8 7 12 7 12z" />
+              <circle cx="12" cy="9" r="2.5" />
+            </svg>
+            <span>Київ, Софіївська 5</span>
+          </a>
+        </div>
 
         <div className="site-foot-region">
           <LangSwitcher lang={lang} variant="region" />

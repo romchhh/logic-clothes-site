@@ -132,6 +132,18 @@ export default function CatalogCategoryHub({
           );
         })}
       </div>
+
+      <nav className="catalog-hub-list" aria-label={t.catalog.category}>
+        {items.map((cat) => (
+          <Link
+            key={`list-${cat.id}`}
+            href={categoryHref(lang, cat.id)}
+            className="catalog-hub-list-link"
+          >
+            {cat.label[lang]}
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }

@@ -240,19 +240,19 @@ export default function ProductColorPalette({
                 {face}
                 <span className="pdp-palette-name">{label}</span>
               </button>
-              {pinned ? (
-                <button
-                  type="button"
-                  className="pdp-palette-sew-cta is-fixed"
-                  onClick={() => onRequestSew?.()}
-                >
-                  {t.product.sewMyColor}
-                </button>
-              ) : null}
             </span>
           );
         })}
       </div>
+      {pinnedSewId ? (
+        <button
+          type="button"
+          className="pdp-palette-sew-cta is-inline"
+          onClick={() => onRequestSew?.()}
+        >
+          {t.product.sewMyColor}
+        </button>
+      ) : null}
 
       {currentChoice && currentChoice.shades.length > 1 ? (
         <div

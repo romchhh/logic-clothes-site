@@ -13,6 +13,7 @@ export type Messages = {
     custom14: string;
     shippingWorld: string;
     storeKyiv: string;
+    contacts: string;
   };
   home: {
     cta: string;
@@ -83,6 +84,19 @@ export type Messages = {
     orderByMeasures: string;
     openSizeChart: string;
     closeSizeChart: string;
+    care: string;
+    closeCare: string;
+    shippingPayment: string;
+    closeShippingPayment: string;
+    shipUa: string;
+    shipAbroad: string;
+    shipStore: string;
+    shipStoreAddress: string;
+    payMethods: string;
+    payMethodsText: string;
+    returnsLabel: string;
+    returnsLink: string;
+    storePhotosTitle: string;
     actualMeasures: string;
     fabricKind: string;
     fabricComposition: string;
@@ -146,9 +160,15 @@ export type Messages = {
     contact: string;
     name: string;
     namePlaceholder: string;
+    otherRecipient: string;
+    otherRecipientName: string;
+    otherRecipientPhone: string;
     phone: string;
     email: string;
     emailOptional: string;
+    youChose: string;
+    paymentStore: string;
+    paymentStoreHint: string;
     delivery: string;
     deliveryMethod: string;
     city: string;
@@ -292,8 +312,9 @@ const uk: Messages = {
     menu: "Меню",
     whoWeAre: "Хто ми",
     custom14: "Ваш колір + ваш розмір за 14 днів",
-    shippingWorld: "🌍 Доставка · оплата",
+    shippingWorld: "оплата і доставка 🌍",
     storeKyiv: "Магазин у Києві",
+    contacts: "Контакти",
   },
   home: {
     cta: "Каталог",
@@ -354,17 +375,30 @@ const uk: Messages = {
     color: "Колір",
     sewForYou: "Зшиємо для вас",
     checkStores: "Перевірити наявність в офлайн магазинах",
-    addToCart: "Додати в кошик",
-    cardAdd: "До кошика",
+    addToCart: "замовити",
+    cardAdd: "до кошика",
     addWish: "додати в wishlist",
     sewMyColor: "хочу пошити в своєму кольорі",
     sewMySize: "хочу пошити в своєму розмірі",
     orderMySize: "хочу пошити в своєму розмірі",
-    orderMyColorSize: "хочу замовити в своєму кольорі в своєму розмірі",
-    orderSew: "Замовити пошиття",
+    orderMyColorSize: "пошити за моїми забаганками",
+    orderSew: "замовити пошиття",
     orderByMeasures: "хочу замовити по своїх мірках",
-    openSizeChart: "відкрити розмірну сітку",
+    openSizeChart: "розмірна сітка",
     closeSizeChart: "згорнути",
+    care: "догляд",
+    closeCare: "згорнути",
+    shippingPayment: "оплата і доставка",
+    closeShippingPayment: "згорнути",
+    shipUa: "Доставка по Україні",
+    shipAbroad: "Доставка закордон",
+    shipStore: "Забрати в магазині",
+    shipStoreAddress: "Київ, вул. Софіївська 5",
+    payMethods: "Оплата",
+    payMethodsText: "онлайн карткою, накладений платіж, готівкою в магазині",
+    returnsLabel: "Повернення",
+    returnsLink: "Умови обміну і повернення",
+    storePhotosTitle: "наш магазин у Києві",
     actualMeasures: "фактичні заміри виробу",
     fabricKind: "основна тканина",
     fabricComposition: "склад основної тканини",
@@ -433,16 +467,22 @@ const uk: Messages = {
     size: "Розмір",
   },
   checkout: {
-    title: "Оформлення",
+    title: "давайте оформимо",
     subtitle: "Контакти, доставка й оплата — кілька хвилин.",
     emptyTitle: "У кошику поки порожньо",
     emptyCta: "До каталогу",
     contact: "Контакти",
     name: "Ім’я та прізвище",
     namePlaceholder: "Анна Коваленко",
+    otherRecipient: "вказати іншого отримувача",
+    otherRecipientName: "Ім’я отримувача",
+    otherRecipientPhone: "Телефон отримувача",
     phone: "Телефон",
     email: "Email",
     emailOptional: "не обов’язково",
+    youChose: "ви обрали:",
+    paymentStore: "сплачу в магазині",
+    paymentStoreHint: "картка/готівка",
     delivery: "Доставка",
     deliveryMethod: "Спосіб отримання",
     city: "Місто",
@@ -456,20 +496,20 @@ const uk: Messages = {
     address: "Відділення / адреса",
     addressHint: "Спочатку місто зі списку, потім відділення",
     comment: "Коментар",
-    commentPlaceholder: "Колір / принт / кастом — якщо потрібно",
+    commentPlaceholder: "",
     commentOptional: "за бажанням",
     payment: "Оплата",
     paymentMethod: "Спосіб оплати",
-    paymentHint: "Картка — через WayForPay. Післяплата — при отриманні.",
+    paymentHint: "Картка — через WayForPay. Накладений платіж — з передоплатою 200 грн.",
     paymentTypes: {
       full: "Повна оплата",
-      prepay: "Передоплата 200 ₴",
-      pay_after: "Післяплата",
+      prepay: "оплата накладеним платежем",
+      pay_after: "сплачу в магазині",
     },
     paymentHints: {
-      full: "Уся сума зараз карткою",
-      prepay: "200 ₴ зараз, решта при отриманні",
-      pay_after: "Оплата при отриманні",
+      full: "карткою онлайн",
+      prepay: "(предоплата 200 грн)",
+      pay_after: "картка/готівка",
     },
     methodHints: {
       nova_poshta_branch: "Класичне відділення",
@@ -480,7 +520,7 @@ const uk: Messages = {
     },
     payNow: "Оплатити",
     amountDue: "До сплати зараз",
-    bagToggle: "Кошик",
+    bagToggle: "ви обрали:",
     orderSummary: "Ваше замовлення",
     summaryPositions: "поз.",
     managerNote: "Після оформлення менеджер підтвердить деталі.",
@@ -503,7 +543,7 @@ const uk: Messages = {
       nova_poshta_branch: "Нова Пошта · відділення",
       nova_poshta_locker: "Нова Пошта · поштомат",
       nova_poshta_courier: "Нова Пошта · кур’єр",
-      pickup: "Самовивіз · Софіївська, 5",
+      pickup: "забрати в магазині. Київ софіївська 5",
       international: "Міжнародна доставка",
     },
     errors: {
@@ -527,7 +567,7 @@ const uk: Messages = {
   },
   search: {
     title: "Пошук",
-    placeholder: "Назва або артикул…",
+    placeholder: "",
     empty: "Нічого не знайдено",
     close: "Закрити",
   },
@@ -550,12 +590,12 @@ const uk: Messages = {
     privacy: "Політика конфіденційності",
     offer: "Публічна оферта",
     cookies: "Cookies",
-    shipping: "Доставка",
+    shipping: "оплата і доставка",
     returns: "Повернення та обмін",
     contactsPage: "Контакти",
-    payment: "Оплата",
+    payment: "оплата і доставка",
     about: "Про нас",
-    instagram: "Instagram",
+    instagram: "_logic_clothes",
     developedBy: "Сайт розроблений",
     developedByBrand: "Telebots",
   },
@@ -591,8 +631,9 @@ const en: Messages = {
     menu: "Menu",
     whoWeAre: "Who we are",
     custom14: "Your colour + your size in 14 days",
-    shippingWorld: "🌍 Shipping · payment",
+    shippingWorld: "payment & delivery 🌍",
     storeKyiv: "Store in Kyiv",
+    contacts: "Contacts",
   },
   home: {
     cta: "Shop",
@@ -653,17 +694,30 @@ const en: Messages = {
     color: "Color",
     sewForYou: "We’ll sew it for you",
     checkStores: "Check availability in offline stores",
-    addToCart: "Add to bag",
-    cardAdd: "Add to bag",
+    addToCart: "order",
+    cardAdd: "add to bag",
     addWish: "add to wishlist",
     sewMyColor: "I want it sewn in my colour",
     sewMySize: "I want it sewn in my size",
     orderMySize: "I want it sewn in my size",
-    orderMyColorSize: "I want my colour and my size",
-    orderSew: "Order a custom sew",
+    orderMyColorSize: "sew it my way",
+    orderSew: "order a custom sew",
     orderByMeasures: "I want it made to my measurements",
-    openSizeChart: "open size chart",
+    openSizeChart: "size chart",
     closeSizeChart: "collapse",
+    care: "care",
+    closeCare: "collapse",
+    shippingPayment: "payment & delivery",
+    closeShippingPayment: "collapse",
+    shipUa: "Delivery in Ukraine",
+    shipAbroad: "International delivery",
+    shipStore: "Pick up in store",
+    shipStoreAddress: "Kyiv, Sofiivska 5",
+    payMethods: "Payment",
+    payMethodsText: "online card, cash on delivery, cash in store",
+    returnsLabel: "Returns",
+    returnsLink: "Exchange & returns policy",
+    storePhotosTitle: "our store in Kyiv",
     actualMeasures: "actual garment measurements",
     fabricKind: "main fabric",
     fabricComposition: "main fabric composition",
@@ -731,16 +785,22 @@ const en: Messages = {
     size: "Size",
   },
   checkout: {
-    title: "Checkout",
+    title: "let's check out",
     subtitle: "Contacts, delivery and payment — a few minutes.",
     emptyTitle: "Your bag is empty",
     emptyCta: "Go to catalog",
     contact: "Contacts",
     name: "Full name",
     namePlaceholder: "Anna Kovalenko",
+    otherRecipient: "add another recipient",
+    otherRecipientName: "Recipient name",
+    otherRecipientPhone: "Recipient phone",
     phone: "Phone",
     email: "Email",
     emailOptional: "optional",
+    youChose: "you chose:",
+    paymentStore: "pay in store",
+    paymentStoreHint: "card/cash",
     delivery: "Delivery",
     deliveryMethod: "Delivery method",
     city: "City",
@@ -754,20 +814,20 @@ const en: Messages = {
     address: "Branch / address",
     addressHint: "City from the list first, then a warehouse",
     comment: "Comment",
-    commentPlaceholder: "Colour / print / custom — if needed",
+    commentPlaceholder: "",
     commentOptional: "optional",
     payment: "Payment",
     paymentMethod: "Payment method",
-    paymentHint: "Card via WayForPay. Cash on delivery — pay on receipt.",
+    paymentHint: "Card via WayForPay. Cash on delivery with 200 UAH prepayment.",
     paymentTypes: {
       full: "Pay in full",
-      prepay: "Prepayment 200 UAH",
-      pay_after: "Cash on delivery",
+      prepay: "cash on delivery",
+      pay_after: "pay in store",
     },
     paymentHints: {
-      full: "Full amount by card now",
-      prepay: "200 UAH now, balance on delivery",
-      pay_after: "Pay when you receive it",
+      full: "card online",
+      prepay: "(200 UAH prepayment)",
+      pay_after: "card/cash",
     },
     methodHints: {
       nova_poshta_branch: "Classic branch",
@@ -778,7 +838,7 @@ const en: Messages = {
     },
     payNow: "Pay now",
     amountDue: "Pay now",
-    bagToggle: "Bag",
+    bagToggle: "you chose:",
     orderSummary: "Your order",
     summaryPositions: "items",
     managerNote: "After checkout a manager will confirm the details.",
@@ -801,7 +861,7 @@ const en: Messages = {
       nova_poshta_branch: "Nova Poshta · branch",
       nova_poshta_locker: "Nova Poshta · locker",
       nova_poshta_courier: "Nova Poshta · courier",
-      pickup: "Pickup · Sofiivska 5",
+      pickup: "pick up in store. Kyiv Sofiivska 5",
       international: "International shipping",
     },
     errors: {
@@ -825,7 +885,7 @@ const en: Messages = {
   },
   search: {
     title: "Search",
-    placeholder: "Name or SKU…",
+    placeholder: "",
     empty: "Nothing found",
     close: "Close",
   },
@@ -848,12 +908,12 @@ const en: Messages = {
     privacy: "Privacy Policy",
     offer: "Public Offer",
     cookies: "Cookies",
-    shipping: "Delivery",
+    shipping: "payment & delivery",
     returns: "Returns & Exchanges",
     contactsPage: "Contacts",
-    payment: "Payment",
+    payment: "payment & delivery",
     about: "About us",
-    instagram: "Instagram",
+    instagram: "_logic_clothes",
     developedBy: "Site developed by",
     developedByBrand: "Telebots",
   },
