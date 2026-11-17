@@ -12,10 +12,8 @@ import {
 import { getProductById, getRelatedProducts } from "@/lib/products";
 import { formatCardPrice } from "@/lib/format";
 import { getMessages } from "@/lib/i18n/messages";
-import {
-  findCareInstruction,
-  getCareCatalog,
-} from "@/lib/careInstructions";
+import { getCareCatalog } from "@/lib/careCatalog";
+import { findCareInstruction } from "@/lib/careInstructions";
 import { getStorePhotos } from "@/lib/storePhotos";
 import {
   generateBreadcrumbStructuredData,

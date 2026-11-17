@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
+import { parseCareCatalog } from "@/lib/careInstructions";
 import {
   getCareCatalogFresh,
-  parseCareCatalog,
   saveCareCatalog,
-} from "@/lib/careInstructions";
+} from "@/lib/careCatalog";
 
 export const runtime = "nodejs";
 

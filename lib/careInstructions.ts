@@ -1,6 +1,3 @@
-import { unstable_cache } from "next/cache";
-import { revalidatePath, revalidateTag } from "next/cache";
-import { query } from "@/lib/db";
 import type { Locale } from "@/lib/i18n/config";
 
 export type CareId = "gentle" | "hand" | "dryclean" | "outer";
@@ -71,7 +68,7 @@ export const DEFAULT_CARE_INSTRUCTIONS: CareInstruction[] = [
   },
 ];
 
-/** @deprecated use getCareCatalog / DEFAULT_CARE_INSTRUCTIONS */
+/** @deprecated use DEFAULT_CARE_INSTRUCTIONS */
 export const CARE_INSTRUCTIONS = DEFAULT_CARE_INSTRUCTIONS;
 
 function cleanUrl(url: string): string {
@@ -100,7 +97,11 @@ export function isCareId(value: unknown): value is CareId {
 export function parseCareCatalog(raw: unknown): CareInstruction[] {
   const byId = new Map<CareId, CareInstruction>();
   for (const base of DEFAULT_CARE_INSTRUCTIONS) {
-    byId.set(base.id, { ...base, label: { ...base.label }, body: { ...base.body } });
+    byId.set(base.id, {
+      ...base,
+      label: { ...base.label },
+      body: { ...base.body },
+    });
   }
 
   if (!Array.isArray(raw)) {
@@ -125,73 +126,25 @@ export function parseCareCatalog(raw: unknown): CareInstruction[] {
       id: item.id,
       image,
       label: {
-        uk: String(
-          item.labelUk ?? labelObj?.uk ?? base.label.uk
-        ).trim() || base.label.uk,
-        en: String(
-          item.labelEn ?? labelObj?.en ?? base.label.en
-        ).trim() || base.label.en,
+        uk:
+          String(item.labelUk ?? labelObj?.uk ?? base.label.uk).trim() ||
+          base.label.uk,
+        en:
+          String(item.labelEn ?? labelObj?.en ?? base.label.en).trim() ||
+          base.label.en,
       },
       body: {
-        uk: String(item.bodyUk ?? bodyObj?.uk ?? base.body.uk).trim() ||
+        uk:
+          String(item.bodyUk ?? bodyObj?.uk ?? base.body.uk).trim() ||
           base.body.uk,
-        en: String(item.bodyEn ?? bodyObj?.en ?? base.body.en).trim() ||
+        en:
+          String(item.bodyEn ?? bodyObj?.en ?? base.body.en).trim() ||
           base.body.en,
       },
     });
   }
 
   return CARE_IDS.map((id) => byId.get(id)!);
-}
-
-async function loadCareCatalog(): Promise<CareInstruction[]> {
-  try {
-    const rows = await query<{ value: string }>(
-      `SELECT value FROM site_settings WHERE key = $1`,
-      [CARE_SETTING_KEY]
-    );
-    const raw = rows[0]?.value;
-    if (!raw?.trim()) return DEFAULT_CARE_INSTRUCTIONS;
-    return parseCareCatalog(JSON.parse(raw));
-  } catch {
-    return DEFAULT_CARE_INSTRUCTIONS;
-  }
-}
-
-export const getCareCatalog = unstable_cache(
-  loadCareCatalog,
-  ["logic-clothes-care-catalog"],
-  { revalidate: 300, tags: ["care-catalog"] }
-);
-
-export async function getCareCatalogFresh(): Promise<CareInstruction[]> {
-  return loadCareCatalog();
-}
-
-export async function saveCareCatalog(
-  items: CareInstruction[]
-): Promise<CareInstruction[]> {
-  const cleaned = parseCareCatalog(items);
-  await query(
-    `INSERT INTO site_settings (key, value, updated_at)
-     VALUES ($1, $2, NOW())
-     ON CONFLICT (key) DO UPDATE SET
-       value = EXCLUDED.value,
-       updated_at = NOW()`,
-    [CARE_SETTING_KEY, JSON.stringify(cleaned)]
-  );
-  bustCareCatalogCache();
-  return cleaned;
-}
-
-export function bustCareCatalogCache() {
-  try {
-    revalidateTag("care-catalog");
-    revalidatePath("/uk");
-    revalidatePath("/en");
-  } catch {
-    /* ignore */
-  }
 }
 
 export function findCareInstruction(
