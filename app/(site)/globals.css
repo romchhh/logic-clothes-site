@@ -2645,8 +2645,11 @@
     overflow:visible;
   }
   .pdp-carrier--np{
-    width:32px;
-    height:32px;
+    width:34px;
+    height:34px;
+    /* Keep mark clear of any parent clip / subpixel crop */
+    padding:1px;
+    box-sizing:border-box;
   }
   .pdp-carrier--up{
     width:18px;
