@@ -267,7 +267,10 @@
       linear-gradient(180deg, rgba(0,91,187,.18) 0 50%, rgba(255,213,0,.22) 50% 100%);
   }
   .lang-pill--en{
-    background:rgba(1,33,105,.08);
+    color:#fff;
+    background:
+      linear-gradient(rgba(1,33,105,.28), rgba(1,33,105,.28)),
+      url("/assets/icons/flag-uk.svg") center / cover no-repeat;
   }
   .lang-pill--compact{
     padding:4px 8px;
@@ -2628,29 +2631,35 @@
   .pdp-carrier-icons{
     display:inline-flex;
     align-items:center;
-    gap:10px;
+    gap:12px;
     justify-content:flex-end;
     flex-wrap:wrap;
+    min-width:0;
+    overflow:visible;
   }
   .pdp-carrier{
     display:block;
     object-fit:contain;
     object-position:center;
     flex-shrink:0;
+    overflow:visible;
   }
   .pdp-carrier--np{
-    width:28px;
-    height:28px;
+    width:32px;
+    height:32px;
   }
   .pdp-carrier--up{
     width:18px;
-    height:26px;
+    height:28px;
   }
-  /* Same gutter rhythm as home «Новинки» rail */
+  /* Full-bleed like «доповніть ваш лук» / home «Новинки» — edge to page */
   .pdp-store-photos{
-    width:100%;
-    max-width:100%;
-    margin:36px 0 0;
+    width:100vw;
+    max-width:100vw;
+    margin-left:calc(50% - 50vw);
+    margin-right:calc(50% - 50vw);
+    margin-top:36px;
+    margin-bottom:0;
     padding:0 0 24px;
     overflow-x:clip;
   }
