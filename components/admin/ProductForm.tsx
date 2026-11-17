@@ -50,8 +50,9 @@ import {
 } from "@/lib/productSizes";
 import { slugifyId } from "@/lib/slug";
 import {
-  CARE_INSTRUCTIONS,
+  DEFAULT_CARE_INSTRUCTIONS,
   type CareId,
+  type CareInstruction,
 } from "@/lib/careInstructions";
 import {
   emptyGarmentMeasures,
@@ -249,6 +250,9 @@ export default function ProductForm({ productId }: Props) {
   });
   const [lookProductIds, setLookProductIds] = useState<string[]>([]);
   const [eurManual, setEurManual] = useState(false);
+  const [careCatalog, setCareCatalog] = useState<CareInstruction[]>(
+    DEFAULT_CARE_INSTRUCTIONS
+  );
 
   const set = useCallback(
     <K extends keyof FormState>(key: K, value: FormState[K]) =>
@@ -312,6 +316,28 @@ export default function ProductForm({ productId }: Props) {
 
   useEffect(() => {
     reloadSuggestLists();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/care-instructions", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as { items?: CareInstruction[] };
+        if (!cancelled && Array.isArray(json.items) && json.items.length) {
+          setCareCatalog(json.items);
+        }
+      } catch {
+        /* keep defaults */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -1454,10 +1480,10 @@ export default function ProductForm({ productId }: Props) {
       <ComponentCard
         title="Догляд"
         sectionId="section-care"
-        desc="Оберіть один з чотирьох варіантів — на картці товару розгорнеться відповідний текст"
+        desc="Оберіть один з чотирьох варіантів — на картці товару розгорнеться відповідний текст. Фото й тексти редагуються в Сайт → Догляд."
       >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {CARE_INSTRUCTIONS.map((care) => {
+          {careCatalog.map((care) => {
             const active = form.careId === care.id;
             return (
               <button

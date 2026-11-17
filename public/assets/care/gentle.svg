@@ -1,6 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200" fill="none">
-  <rect width="160" height="200" fill="#eef9f8"/>
-  <circle cx="80" cy="78" r="36" stroke="#3a7d79" stroke-width="2.5"/>
-  <path d="M56 78c8-14 24-14 32 0M72 78c4-7 12-7 16 0" stroke="#3a7d79" stroke-width="2" stroke-linecap="round"/>
-  <text x="80" y="150" text-anchor="middle" fill="#3a7d79" font-family="system-ui,sans-serif" font-size="11" letter-spacing=".04em">30°</text>
+  <rect width="160" height="200" fill="#d8f3ef"/>
+  <!-- washtub -->
+  <path d="M38 88h84v8c0 28-18 48-42 48S38 124 38 96v-8z" fill="#6fd4c4"/>
+  <path d="M34 80h92v12H34z" fill="#3a7d79"/>
+  <!-- water waves -->
+  <path d="M52 108c8 6 16 6 24 0s16-6 24 0" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <path d="M52 120c8 6 16 6 24 0s16-6 24 0" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+  <!-- 30° badge -->
+  <circle cx="80" cy="52" r="22" fill="#fff"/>
+  <circle cx="80" cy="52" r="22" stroke="#3a7d79" stroke-width="2.5"/>
+  <text x="80" y="58" text-anchor="middle" fill="#3a7d79" font-family="system-ui,sans-serif" font-size="14" font-weight="600">30°</text>
+  <text x="80" y="172" text-anchor="middle" fill="#3a7d79" font-family="system-ui,sans-serif" font-size="11" letter-spacing=".06em">?????????</text>
 </svg>

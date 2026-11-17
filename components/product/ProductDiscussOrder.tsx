@@ -119,25 +119,34 @@ export default function ProductDiscussOrder({
           <div className="pdp-discuss-channels" role="group">
             <button
               type="button"
-              className={`pdp-discuss-channel${channel === "instagram" ? " is-active" : ""}`}
+              className={`pdp-discuss-channel pdp-discuss-channel--ig${channel === "instagram" ? " is-active" : ""}`}
               aria-pressed={channel === "instagram"}
               onClick={() => {
                 setChannel("instagram");
                 setNotice(null);
               }}
             >
-              {t.product.discussInstagram}
+              <svg className="pdp-discuss-channel-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none" />
+              </svg>
+              <span>{t.product.discussInstagram}</span>
             </button>
             <button
               type="button"
-              className={`pdp-discuss-channel${channel === "viber" ? " is-active" : ""}`}
+              className={`pdp-discuss-channel pdp-discuss-channel--viber${channel === "viber" ? " is-active" : ""}`}
               aria-pressed={channel === "viber"}
               onClick={() => {
                 setChannel("viber");
                 setNotice(null);
               }}
             >
-              {t.product.discussMessenger}
+              <svg className="pdp-discuss-channel-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3.2c-4.6 0-8.3 3.1-8.3 7 0 2.3 1.2 4.4 3.1 5.7l-.7 2.6 2.8-1.5c.9.3 1.9.4 3.1.4 4.6 0 8.3-3.1 8.3-7S16.6 3.2 12 3.2z" />
+                <path d="M9.2 9.1c.2-.5.4-.5.6-.5h.5c.2 0 .4 0 .5.4l.7 1.7c.1.2 0 .4-.1.5l-.3.3c-.1.1-.2.3-.1.5.3.5.9 1.1 1.5 1.4.2.1.4.1.5-.1l.4-.5c.1-.2.3-.2.5-.1l1.7.7c.3.1.4.3.4.5v.5c0 .2 0 .4-.5.6-.4.2-1 .3-1.6.1-1.5-.4-3.1-1.7-4.1-3.2-.5-.7-.8-1.5-.7-2.2.1-.5.2-.8.2-1z" fill="currentColor" stroke="none" />
+              </svg>
+              <span>{t.product.discussMessenger}</span>
             </button>
           </div>
 

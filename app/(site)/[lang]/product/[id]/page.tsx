@@ -13,6 +13,11 @@ import { getProductById, getRelatedProducts } from "@/lib/products";
 import { formatCardPrice } from "@/lib/format";
 import { getMessages } from "@/lib/i18n/messages";
 import {
+  findCareInstruction,
+  getCareCatalog,
+} from "@/lib/careInstructions";
+import { getStorePhotos } from "@/lib/storePhotos";
+import {
   generateBreadcrumbStructuredData,
   generateProductStructuredData,
 } from "@/lib/seo";
@@ -88,7 +93,12 @@ export default async function ProductPage({
   const product = await getProductById(id);
   if (!product || product.isVisible === false) notFound();
 
-  const relatedRail = await getRelatedProducts(id, 4);
+  const [relatedRail, storePhotos, careCatalog] = await Promise.all([
+    getRelatedProducts(id, 4),
+    getStorePhotos(),
+    getCareCatalog(),
+  ]);
+  const careInstruction = findCareInstruction(careCatalog, product.careId);
   const t = getMessages(lang);
   const baseUrl = getSiteUrl();
 
@@ -113,6 +123,8 @@ export default async function ProductPage({
         related={relatedRail.products}
         relatedKind={relatedRail.kind}
         lang={lang}
+        storePhotos={storePhotos}
+        careInstruction={careInstruction}
       />
     </PageShell>
   );

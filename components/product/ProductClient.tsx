@@ -10,7 +10,11 @@ import ProductImmersiveGallery from "@/components/product/ProductImmersiveGaller
 import { useAppContext } from "@/lib/GeneralProvider";
 import { useBasket } from "@/lib/BasketProvider";
 import { useWishlist } from "@/lib/WishlistProvider";
-import { careBody, getCareInstruction } from "@/lib/careInstructions";
+import {
+  careBody,
+  careLabel,
+  type CareInstruction,
+} from "@/lib/careInstructions";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { GARMENT_MEASURE_FIELDS, hasGarmentMeasures } from "@/lib/garmentMeasures";
 import type { Locale } from "@/lib/i18n/config";
@@ -23,7 +27,8 @@ import {
   orderBrandSizes,
 } from "@/lib/productSizes";
 import { SIZE_CHART_ROWS } from "@/lib/sizeChart";
-import { STORE_PHOTOS } from "@/lib/storePhotos";
+import { SITE_MAP_LINK } from "@/lib/siteContact";
+import type { StorePhoto } from "@/lib/storePhotos";
 import {
   productDescription,
   productName,
@@ -37,11 +42,15 @@ export default function ProductClient({
   related,
   relatedKind = "look",
   lang,
+  storePhotos = [],
+  careInstruction = null,
 }: {
   product: Product;
   related: Product[];
   relatedKind?: "look" | "newcomers";
   lang: Locale;
+  storePhotos?: StorePhoto[];
+  careInstruction?: CareInstruction | null;
 }) {
   const { t } = useI18n();
   const { addItem } = useBasket();
@@ -63,7 +72,7 @@ export default function ProductClient({
   const [careOpen, setCareOpen] = useState(false);
   const [shippingOpen, setShippingOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
-  const care = getCareInstruction(product.careId);
+  const care = careInstruction;
   const [pinnedSewSize, setPinnedSewSize] = useState<string | null>(null);
   const [lengthHint, setLengthHint] = useState(false);
   const [materialHint, setMaterialHint] = useState(false);
@@ -274,12 +283,14 @@ export default function ProductClient({
               </button>
               {careOpen ? (
                 <div className="pdp-care-panel">
-                  <p className="pdp-care-label">
-                    {lang === "en" ? care.label.en : care.label.uk}
-                  </p>
-                  <p className="pdp-care-body">
-                    {careBody(care.id, lang)}
-                  </p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={care.image}
+                    alt=""
+                    className="pdp-care-image"
+                  />
+                  <p className="pdp-care-label">{careLabel(care, lang)}</p>
+                  <p className="pdp-care-body">{careBody(care, lang)}</p>
                 </div>
               ) : null}
             </div>
@@ -616,21 +627,55 @@ export default function ProductClient({
                 <div className="pdp-microtable" id="pdp-ship-pay">
                   <div className="pdp-microtable-row">
                     <span>{t.product.shipUa}</span>
-                    <span className="pdp-carrier-icons" aria-hidden>
-                      <span className="pdp-carrier pdp-carrier--np">НП</span>
-                      <span className="pdp-carrier pdp-carrier--up">УП</span>
+                    <span className="pdp-carrier-icons">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        className="pdp-carrier pdp-carrier--np"
+                        src="/assets/icons/nova-poshta.svg"
+                        alt="Нова Пошта"
+                        width={28}
+                        height={28}
+                      />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        className="pdp-carrier pdp-carrier--up"
+                        src="/assets/icons/ukrposhta.svg"
+                        alt="Укрпошта"
+                        width={20}
+                        height={28}
+                      />
                     </span>
                   </div>
                   <div className="pdp-microtable-row">
                     <span>{t.product.shipAbroad}</span>
-                    <span className="pdp-carrier-icons" aria-hidden>
-                      <span className="pdp-carrier pdp-carrier--np">НП</span>
-                      <span className="pdp-carrier pdp-carrier--up">УП</span>
+                    <span className="pdp-carrier-icons">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        className="pdp-carrier pdp-carrier--np"
+                        src="/assets/icons/nova-poshta.svg"
+                        alt="Нова Пошта"
+                        width={28}
+                        height={28}
+                      />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        className="pdp-carrier pdp-carrier--up"
+                        src="/assets/icons/ukrposhta.svg"
+                        alt="Укрпошта"
+                        width={20}
+                        height={28}
+                      />
                     </span>
                   </div>
                   <div className="pdp-microtable-row">
                     <span>{t.product.shipStore}</span>
-                    <span>{t.product.shipStoreAddress}</span>
+                    <a
+                      href={SITE_MAP_LINK}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t.product.shipStoreAddress}
+                    </a>
                   </div>
                   <div className="pdp-microtable-row">
                     <span>{t.product.payMethods}</span>
@@ -684,22 +729,31 @@ export default function ProductClient({
         </section>
       )}
 
-      {STORE_PHOTOS.length > 0 ? (
+      {storePhotos.length > 0 ? (
         <section
           className="pdp-store-photos"
           aria-label={t.product.storePhotosTitle}
         >
-          <h2 className="pdp-section-title pdp-store-photos-title">
-            {t.product.storePhotosTitle}
-          </h2>
-          <div className="pdp-store-photos-grid">
-            {STORE_PHOTOS.map((photo) => (
-              <figure key={photo.src} className="pdp-store-photo">
+          <div className="pdp-store-photos-head">
+            <h2 className="pdp-section-title pdp-store-photos-title">
+              {t.product.storePhotosTitle}
+            </h2>
+          </div>
+          <div className="pdp-store-photos-track">
+            {storePhotos.map((photo, i) => (
+              <figure
+                key={`${photo.src}-${i}`}
+                className="pdp-store-photo"
+              >
                 <Image
                   src={photo.src}
-                  alt={lang === "en" ? photo.altEn : photo.altUk}
+                  alt={
+                    lang === "en"
+                      ? photo.altEn || photo.altUk
+                      : photo.altUk || photo.altEn
+                  }
                   fill
-                  sizes="(max-width: 899px) 100vw, 50vw"
+                  sizes="(max-width: 899px) 50vw, 25vw"
                   style={{ objectFit: "cover" }}
                 />
               </figure>

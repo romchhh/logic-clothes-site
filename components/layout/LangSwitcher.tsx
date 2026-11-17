@@ -10,10 +10,21 @@ type Variant = "icon" | "region" | "menu";
 const LANG_OPTIONS: {
   locale: Locale;
   label: string;
-  flag: string;
+  flagSrc: string;
+  flagAlt: string;
 }[] = [
-  { locale: "uk", label: "українська", flag: "🇺🇦" },
-  { locale: "en", label: "english", flag: "🇬🇧" },
+  {
+    locale: "uk",
+    label: "українська",
+    flagSrc: "/assets/icons/flag-ua.svg",
+    flagAlt: "Україна",
+  },
+  {
+    locale: "en",
+    label: "english",
+    flagSrc: "/assets/icons/flag-uk.svg",
+    flagAlt: "United Kingdom",
+  },
 ];
 
 export default function LangSwitcher({
@@ -52,9 +63,15 @@ export default function LangSwitcher({
               }`}
               onClick={() => onNavigate?.()}
             >
-              <span className="lang-pill-flag" aria-hidden>
-                {opt.flag}
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="lang-pill-flag-img"
+                src={opt.flagSrc}
+                alt=""
+                width={22}
+                height={11}
+                aria-hidden
+              />
               <span>{opt.label}</span>
             </Link>
           ))}
@@ -79,9 +96,15 @@ export default function LangSwitcher({
             aria-current={lang === opt.locale ? "true" : undefined}
             onClick={() => onNavigate?.()}
           >
-            <span className="lang-pill-flag" aria-hidden>
-              {opt.flag}
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="lang-pill-flag-img"
+              src={opt.flagSrc}
+              alt=""
+              width={22}
+              height={11}
+              aria-hidden
+            />
             {variant === "icon" ? (
               <span className="lang-pill-code">
                 {opt.locale === "uk" ? "UA" : "EN"}
