@@ -26,9 +26,24 @@ export const CONTENT_PAGE_DEFS = [
 
 export type ContentPageSlug = (typeof CONTENT_PAGE_DEFS)[number]["slug"];
 
+export type ContentGalleryImage = {
+  src: string;
+  altUk: string;
+  altEn: string;
+};
+
 export type AboutLocaleContent = AboutContent & {
   customTitle: string;
   customBody: string;
+  /** Cover / hero image on /about */
+  heroImage: string;
+  /**
+   * Primary editable body (markdown).
+   * When set, site renders this instead of structured lead/points/closing.
+   */
+  bodyMarkdown: string;
+  /** Optional photo strip under the text */
+  gallery: ContentGalleryImage[];
 };
 
 export type SitePagesStore = {

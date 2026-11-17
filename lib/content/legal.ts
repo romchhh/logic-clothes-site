@@ -12,12 +12,27 @@ export type LegalSection = {
   bullets?: string[];
 };
 
+export type LegalGalleryImage = {
+  src: string;
+  altUk: string;
+  altEn: string;
+};
+
 export type LegalPage = {
   slug: string;
   title: string;
   updated: string;
   intro: string;
   sections: LegalSection[];
+  /** Optional cover image above the page */
+  heroImage?: string;
+  /**
+   * Primary editable body (markdown).
+   * When set, site renders this instead of structured intro/sections.
+   */
+  bodyMarkdown?: string;
+  /** Optional photo strip under the text */
+  gallery?: LegalGalleryImage[];
 };
 
 const contactUk = `${SITE_NAME}, ${SITE_ADDRESS_LINES.join(", ")}. Тел.: ${SITE_PHONE_DISPLAY}. Email: ${SITE_EMAIL}.`;

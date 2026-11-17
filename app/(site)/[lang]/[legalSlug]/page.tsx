@@ -99,7 +99,7 @@ export default async function LegalSlugPage({
       {legalSlug === "contacts" ? (
         <ContactsContent lang={lang} />
       ) : (
-        <LegalContent page={page} />
+        <LegalContent page={page} lang={lang} />
       )}
     </PageShell>
   );

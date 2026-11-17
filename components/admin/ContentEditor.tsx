@@ -1,42 +1,25 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import ContentGalleryEditor from "@/components/admin/ContentGalleryEditor";
+import ContentImageField from "@/components/admin/ContentImageField";
+import MarkdownEditor from "@/components/admin/MarkdownEditor";
 import Label from "@/components/admin/form/Label";
 import Input from "@/components/admin/form/input/InputField";
-import TextArea from "@/components/admin/form/input/TextArea";
+import {
+  aboutToMarkdown,
+  legalToMarkdown,
+} from "@/lib/content/markdownDefaults";
+import type { LegalPage } from "@/lib/content/legal";
+import type { Locale } from "@/lib/i18n/config";
 import {
   CONTENT_PAGE_DEFS,
   type AboutLocaleContent,
   type ContentPageSlug,
   type SitePagesStore,
 } from "@/lib/sitePagesTypes";
-import type { LegalPage, LegalSection } from "@/lib/content/legal";
-import type { Locale } from "@/lib/i18n/config";
 
 type Lang = Locale;
-
-function linesToText(lines: string[] | undefined): string {
-  return (lines ?? []).join("\n");
-}
-
-function textToLines(text: string): string[] {
-  return text
-    .split("\n")
-    .map((l) => l.trimEnd())
-    .filter((l) => l.trim().length > 0);
-}
-
-/** Paragraphs may contain single newlines; separate blocks with a blank line. */
-function paragraphsToText(paragraphs: string[] | undefined): string {
-  return (paragraphs ?? []).join("\n\n");
-}
-
-function textToParagraphs(text: string): string[] {
-  return text
-    .split(/\n\n+/)
-    .map((p) => p.replace(/\s+$/g, "").replace(/^\s+/g, ""))
-    .filter((p) => p.length > 0);
-}
 
 function Field({
   label,
@@ -97,9 +80,7 @@ export default function ContentEditor() {
     void load();
   }, []);
 
-  const about: AboutLocaleContent | null = store
-    ? store.about[lang]
-    : null;
+  const about: AboutLocaleContent | null = store ? store.about[lang] : null;
 
   const legalPage: LegalPage | null =
     store && def.kind === "legal"
@@ -136,31 +117,6 @@ export default function ContentEditor() {
     setMessage(null);
   };
 
-  const patchSection = (index: number, patch: Partial<LegalSection>) => {
-    if (!legalPage) return;
-    const sections = legalPage.sections.map((s, i) =>
-      i === index ? { ...s, ...patch } : s
-    );
-    patchLegal({ sections });
-  };
-
-  const addSection = () => {
-    if (!legalPage) return;
-    patchLegal({
-      sections: [
-        ...legalPage.sections,
-        { heading: "Новий розділ", paragraphs: [""] },
-      ],
-    });
-  };
-
-  const removeSection = (index: number) => {
-    if (!legalPage) return;
-    patchLegal({
-      sections: legalPage.sections.filter((_, i) => i !== index),
-    });
-  };
-
   const save = async () => {
     if (!store) return;
     setSaving(true);
@@ -176,7 +132,7 @@ export default function ContentEditor() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const saved = (await res.json()) as SitePagesStore;
       setStore(saved);
-      setMessage("Збережено. Зміни з’являться на сайті протягом кількох хвилин.");
+      setMessage("Збережено. Зміни з’являться на сайті одразу або за кілька хвилин.");
     } catch (e) {
       console.error(e);
       setError("Не вдалося зберегти");
@@ -194,13 +150,22 @@ export default function ContentEditor() {
   if (!store) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-error-500">{error || "Помилка завантаження"}</p>
-        <button type="button" className="admin-btn-secondary" onClick={() => void load()}>
+        <p className="text-sm text-error-500">
+          {error || "Помилка завантаження"}
+        </p>
+        <button
+          type="button"
+          className="admin-btn-secondary"
+          onClick={() => void load()}
+        >
           Спробувати знову
         </button>
       </div>
     );
   }
+
+  const aboutMarkdown = about ? aboutToMarkdown(about) : "";
+  const legalMarkdown = legalPage ? legalToMarkdown(legalPage) : "";
 
   return (
     <div className="space-y-6">
@@ -262,165 +227,79 @@ export default function ContentEditor() {
         </div>
 
         {def.kind === "about" && about ? (
-          <div className="space-y-5">
-            <Field label="Заголовок">
+          <div className="space-y-6">
+            <Field label="Заголовок сторінки">
               <Input
                 value={about.title}
                 onChange={(e) => patchAbout({ title: e.target.value })}
               />
             </Field>
-            <Field label="Лід (підзаголовок)">
-              <TextArea
-                rows={3}
-                value={about.lead}
-                onChange={(v) => patchAbout({ lead: v })}
-              />
-            </Field>
+
+            <ContentImageField
+              label="Головне фото (hero)"
+              hint="Велике фото зверху сторінки «Про нас»."
+              value={about.heroImage || ""}
+              onChange={(heroImage) => patchAbout({ heroImage })}
+            />
+
             <Field
-              label="Блок кастому — заголовок"
-              hint="Опційно. Якщо порожньо — блок на сайті не показується."
+              label="Текст (Markdown)"
+              hint="Заголовки ##, списки -, **жирний**, _курсив_, [посилання](url). Редагуйте окремо UA і EN."
             >
-              <Input
-                value={about.customTitle}
-                onChange={(e) => patchAbout({ customTitle: e.target.value })}
+              <MarkdownEditor
+                value={aboutMarkdown}
+                onChange={(bodyMarkdown) => patchAbout({ bodyMarkdown })}
+                rows={18}
               />
             </Field>
-            <Field label="Блок кастому — текст">
-              <TextArea
-                rows={4}
-                value={about.customBody}
-                onChange={(v) => patchAbout({ customBody: v })}
-              />
-            </Field>
-            <Field label="Заголовок списку">
-              <Input
-                value={about.sectionTitle}
-                onChange={(e) => patchAbout({ sectionTitle: e.target.value })}
-              />
-            </Field>
-            <Field
-              label="Пункти списку"
-              hint="Кожен рядок — окремий пункт."
-            >
-              <TextArea
-                rows={12}
-                value={linesToText(about.points)}
-                onChange={(v) => patchAbout({ points: textToLines(v) })}
-              />
-            </Field>
-            <Field label="Закриття — заголовок">
-              <Input
-                value={about.closingTitle}
-                onChange={(e) => patchAbout({ closingTitle: e.target.value })}
-              />
-            </Field>
-            <Field
-              label="Закриття — рядки"
-              hint="Кожен рядок — окремий абзац."
-            >
-              <TextArea
-                rows={5}
-                value={linesToText(about.closing)}
-                onChange={(v) => patchAbout({ closing: textToLines(v) })}
-              />
-            </Field>
+
+            <ContentGalleryEditor
+              images={about.gallery || []}
+              onChange={(gallery) => patchAbout({ gallery })}
+            />
           </div>
         ) : null}
 
         {def.kind === "legal" && legalPage ? (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <Field label="Заголовок сторінки">
               <Input
                 value={legalPage.title}
                 onChange={(e) => patchLegal({ title: e.target.value })}
               />
             </Field>
-            <Field label="Мітка оновлення" hint='Наприклад: «Оновлено: жовтень 2026»'>
+            <Field
+              label="Мітка оновлення"
+              hint='Наприклад: «Оновлено: жовтень 2026». Можна залишити порожнім.'
+            >
               <Input
                 value={legalPage.updated}
                 onChange={(e) => patchLegal({ updated: e.target.value })}
               />
             </Field>
-            <Field label="Вступ">
-              <TextArea
-                rows={3}
-                value={legalPage.intro}
-                onChange={(v) => patchLegal({ intro: v })}
+
+            <ContentImageField
+              label="Головне фото (опційно)"
+              hint="Якщо додати — з’явиться зверху сторінки, як на «Про нас»."
+              value={legalPage.heroImage || ""}
+              onChange={(heroImage) => patchLegal({ heroImage })}
+            />
+
+            <Field
+              label="Текст (Markdown)"
+              hint="Весь зміст сторінки: вступ, розділи, списки. Форматування через панель або Markdown."
+            >
+              <MarkdownEditor
+                value={legalMarkdown}
+                onChange={(bodyMarkdown) => patchLegal({ bodyMarkdown })}
+                rows={20}
               />
             </Field>
 
-            <div className="space-y-4 border-t border-gray-100 pt-5 dark:border-white/[0.06]">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Розділи
-                </h3>
-                <button
-                  type="button"
-                  className="admin-btn-secondary"
-                  onClick={addSection}
-                >
-                  + Розділ
-                </button>
-              </div>
-
-              {legalPage.sections.map((section, index) => (
-                <div
-                  key={`${section.heading}-${index}`}
-                  className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/80 p-4 dark:border-white/[0.06] dark:bg-white/[0.03]"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <Field label={`Розділ ${index + 1} — заголовок`}>
-                      <Input
-                        value={section.heading}
-                        onChange={(e) =>
-                          patchSection(index, { heading: e.target.value })
-                        }
-                      />
-                    </Field>
-                    <button
-                      type="button"
-                      className="mt-7 shrink-0 rounded-lg px-2 py-1.5 text-[12px] text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                      onClick={() => removeSection(index)}
-                      aria-label="Видалити розділ"
-                    >
-                      Видалити
-                    </button>
-                  </div>
-                  <Field
-                    label="Абзаци"
-                    hint="Окремі абзаци розділяйте порожнім рядком. Перенос усередині абзацу — звичайний Enter."
-                  >
-                    <TextArea
-                      rows={4}
-                      value={paragraphsToText(section.paragraphs)}
-                      onChange={(v) =>
-                        patchSection(index, {
-                          paragraphs: textToParagraphs(v).length
-                            ? textToParagraphs(v)
-                            : undefined,
-                        })
-                      }
-                    />
-                  </Field>
-                  <Field
-                    label="Список (булети)"
-                    hint="Кожен рядок — пункт списку. Залиште порожнім, якщо список не потрібен."
-                  >
-                    <TextArea
-                      rows={4}
-                      value={linesToText(section.bullets)}
-                      onChange={(v) =>
-                        patchSection(index, {
-                          bullets: textToLines(v).length
-                            ? textToLines(v)
-                            : undefined,
-                        })
-                      }
-                    />
-                  </Field>
-                </div>
-              ))}
-            </div>
+            <ContentGalleryEditor
+              images={legalPage.gallery || []}
+              onChange={(gallery) => patchLegal({ gallery })}
+            />
           </div>
         ) : null}
 
@@ -446,8 +325,8 @@ export default function ContentEditor() {
         </button>
       </div>
       <p className="text-[12px] text-gray-500 dark:text-gray-400">
-        Зберігаються обидві мови (UK і EN) для всіх сторінок одразу. Редагуйте
-        вкладки й мови, потім натисніть «Зберегти».
+        Зберігаються обидві мови (UK і EN) для всіх сторінок одразу. Фото й
+        Markdown можна міняти самостійно без розробника.
       </p>
     </div>
   );

@@ -2,10 +2,16 @@ import type { AboutContent } from "@/lib/content/about";
 import { aboutContent as defaultAbout } from "@/lib/content/about";
 import type { LegalPage } from "@/lib/content/legal";
 import { legalPages as defaultLegal } from "@/lib/content/legal";
+import {
+  aboutToMarkdown,
+  legalToMarkdown,
+} from "@/lib/content/markdownDefaults";
 import { query } from "@/lib/db";
 import type { Locale } from "@/lib/i18n/config";
+import { revalidatePath } from "next/cache";
 import type {
   AboutLocaleContent,
+  ContentGalleryImage,
   SitePagesStore,
 } from "@/lib/sitePagesTypes";
 
@@ -18,32 +24,55 @@ export { CONTENT_PAGE_DEFS } from "@/lib/sitePagesTypes";
 
 export const SITE_PAGES_SETTING_KEY = "site_pages_json";
 
+const DEFAULT_ABOUT_HERO = "/assets/footer-bg.png";
+
 function withAboutExtras(
   base: AboutContent,
   lang: Locale
 ): AboutLocaleContent {
-  return {
+  const customTitle =
+    lang === "uk"
+      ? "Ваш колір + ваш розмір за 14 днів"
+      : "Your colour + your size in 14 days";
+  const customBody =
+    lang === "uk"
+      ? "Будь-який відтінок з нашої палітри — стандартна сітка або по ваших мірках. На сторінці товару оберіть колір і натисніть «Обговорити замовлення з живою людиною» — менеджер відповість у Instagram або Viber."
+      : "Any shade from our palette — standard sizes or made to measure. On the product page pick a colour and tap «Discuss your order with a real person» — our manager will reply on Instagram or Viber.";
+
+  const draft: AboutLocaleContent = {
     ...base,
-    customTitle:
-      lang === "uk"
-        ? "Ваш колір + ваш розмір за 14 днів"
-        : "Your colour + your size in 14 days",
-    customBody:
-      lang === "uk"
-        ? "Будь-який відтінок з нашої палітри — стандартна сітка або по ваших мірках. На сторінці товару оберіть колір і натисніть «Обговорити замовлення з живою людиною» — менеджер відповість у Instagram або Viber."
-        : "Any shade from our palette — standard sizes or made to measure. On the product page pick a colour and tap «Discuss your order with a real person» — our manager will reply on Instagram or Viber.",
+    customTitle,
+    customBody,
+    heroImage: DEFAULT_ABOUT_HERO,
+    bodyMarkdown: "",
+    gallery: [],
   };
+  draft.bodyMarkdown = aboutToMarkdown(draft);
+  return draft;
 }
 
 export function defaultSitePages(): SitePagesStore {
+  const legalUk = structuredClone(defaultLegal.uk).map((p) => ({
+    ...p,
+    heroImage: "",
+    bodyMarkdown: legalToMarkdown(p),
+    gallery: [] as ContentGalleryImage[],
+  }));
+  const legalEn = structuredClone(defaultLegal.en).map((p) => ({
+    ...p,
+    heroImage: "",
+    bodyMarkdown: legalToMarkdown(p),
+    gallery: [] as ContentGalleryImage[],
+  }));
+
   return {
     about: {
       uk: withAboutExtras(defaultAbout.uk, "uk"),
       en: withAboutExtras(defaultAbout.en, "en"),
     },
     legal: {
-      uk: structuredClone(defaultLegal.uk),
-      en: structuredClone(defaultLegal.en),
+      uk: legalUk,
+      en: legalEn,
     },
   };
 }
@@ -52,12 +81,37 @@ function isObj(v: unknown): v is Record<string, unknown> {
   return Boolean(v) && typeof v === "object" && !Array.isArray(v);
 }
 
+function cleanUrl(url: unknown): string {
+  const trimmed = String(url ?? "").trim();
+  if (!trimmed) return "";
+  try {
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      return new URL(trimmed).pathname || trimmed;
+    }
+  } catch {
+    /* keep */
+  }
+  return trimmed.split("?")[0].split("#")[0];
+}
+
+function parseGallery(raw: unknown): ContentGalleryImage[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(isObj)
+    .map((row) => ({
+      src: cleanUrl(row.src || row.url || row.image),
+      altUk: String(row.altUk ?? row.alt ?? "").trim(),
+      altEn: String(row.altEn ?? row.alt ?? "").trim(),
+    }))
+    .filter((row) => row.src);
+}
+
 function parseAboutLocale(
   raw: unknown,
   fallback: AboutLocaleContent
 ): AboutLocaleContent {
   if (!isObj(raw)) return fallback;
-  return {
+  const merged: AboutLocaleContent = {
     title: String(raw.title ?? fallback.title),
     lead: String(raw.lead ?? fallback.lead),
     customTitle: String(raw.customTitle ?? fallback.customTitle),
@@ -70,13 +124,23 @@ function parseAboutLocale(
     closing: Array.isArray(raw.closing)
       ? raw.closing.map(String).filter(Boolean)
       : fallback.closing,
+    heroImage:
+      cleanUrl(raw.heroImage) || fallback.heroImage || DEFAULT_ABOUT_HERO,
+    bodyMarkdown: String(raw.bodyMarkdown ?? "").trim()
+      ? String(raw.bodyMarkdown)
+      : "",
+    gallery: parseGallery(raw.gallery),
   };
+  if (!merged.bodyMarkdown.trim()) {
+    merged.bodyMarkdown = aboutToMarkdown(merged);
+  }
+  return merged;
 }
 
 function parseLegalPage(raw: unknown, fallback: LegalPage): LegalPage {
   if (!isObj(raw)) return fallback;
   const sectionsRaw = Array.isArray(raw.sections) ? raw.sections : null;
-  return {
+  const page: LegalPage = {
     slug: String(raw.slug ?? fallback.slug),
     title: String(raw.title ?? fallback.title),
     updated: String(raw.updated ?? fallback.updated),
@@ -98,7 +162,16 @@ function parseLegalPage(raw: unknown, fallback: LegalPage): LegalPage {
           })
           .filter((s) => s.heading)
       : fallback.sections,
+    heroImage: cleanUrl(raw.heroImage) || fallback.heroImage || "",
+    bodyMarkdown: String(raw.bodyMarkdown ?? "").trim()
+      ? String(raw.bodyMarkdown)
+      : fallback.bodyMarkdown || "",
+    gallery: parseGallery(raw.gallery ?? fallback.gallery),
   };
+  if (!page.bodyMarkdown?.trim()) {
+    page.bodyMarkdown = legalToMarkdown(page);
+  }
+  return page;
 }
 
 function mergeStore(raw: unknown): SitePagesStore {
@@ -163,6 +236,20 @@ export async function saveSitePagesStore(
        updated_at = NOW()`,
     [SITE_PAGES_SETTING_KEY, JSON.stringify(cleaned)]
   );
+  try {
+    revalidatePath("/uk");
+    revalidatePath("/en");
+    revalidatePath("/uk/about");
+    revalidatePath("/en/about");
+    revalidatePath("/uk/shipping-payment");
+    revalidatePath("/en/shipping-payment");
+    revalidatePath("/uk/contacts");
+    revalidatePath("/en/contacts");
+    revalidatePath("/uk/returns");
+    revalidatePath("/en/returns");
+  } catch {
+    /* ignore */
+  }
   return cleaned;
 }
 

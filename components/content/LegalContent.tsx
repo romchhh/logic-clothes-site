@@ -1,31 +1,33 @@
+import ContentGallery from "@/components/content/ContentGallery";
 import ContentPage from "@/components/shared/ContentPage";
+import MarkdownBody from "@/components/shared/MarkdownBody";
+import { legalToMarkdown } from "@/lib/content/markdownDefaults";
 import type { LegalPage } from "@/lib/content/legal";
+import type { Locale } from "@/lib/i18n/config";
 
-export default function LegalContent({ page }: { page: LegalPage }) {
+export default function LegalContent({
+  page,
+  lang = "uk",
+}: {
+  page: LegalPage;
+  lang?: Locale;
+}) {
+  const markdown = legalToMarkdown(page);
+  const hero = page.heroImage?.trim() || "";
+
   return (
-    <ContentPage title={page.title} eyebrow={page.updated} lead={page.intro}>
-      {page.sections.map((section) => (
-        <section className="content-block" key={section.heading}>
-          <h2>{section.heading}</h2>
-          {section.paragraphs?.map((p) => (
-            <p key={p} className="content-p">
-              {p.split("\n").map((line, i) => (
-                <span key={`${p}-${i}`}>
-                  {i > 0 && <br />}
-                  {line}
-                </span>
-              ))}
-            </p>
-          ))}
-          {section.bullets && (
-            <ul className="content-list">
-              {section.bullets.map((b) => (
-                <li key={b}>{b}</li>
-              ))}
-            </ul>
-          )}
-        </section>
-      ))}
-    </ContentPage>
+    <>
+      {hero ? (
+        <div className="about-hero">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={hero} alt="" aria-hidden="true" />
+        </div>
+      ) : null}
+
+      <ContentPage title={page.title} eyebrow={page.updated || undefined}>
+        <MarkdownBody markdown={markdown} />
+        <ContentGallery images={page.gallery || []} lang={lang} />
+      </ContentPage>
+    </>
   );
 }

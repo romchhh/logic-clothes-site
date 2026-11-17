@@ -1,3 +1,6 @@
+import ContentGallery from "@/components/content/ContentGallery";
+import MarkdownBody from "@/components/shared/MarkdownBody";
+import { legalToMarkdown } from "@/lib/content/markdownDefaults";
 import type { Locale } from "@/lib/i18n/config";
 import {
   SITE_ADDRESS_LINES,
@@ -14,66 +17,63 @@ export default async function ContactsContent({ lang }: { lang: Locale }) {
   const page = await getLegalPageContent(lang, "contacts");
   if (!page) return null;
 
-  const storeSection = page.sections.find((s) =>
-    /concept store/i.test(s.heading)
-  );
-  const replySection = page.sections.find((s) => s.bullets?.length);
-  const addressLines =
-    storeSection?.paragraphs
-      ?.flatMap((p) => p.split("\n"))
-      .map((l) => l.trim())
-      .filter(Boolean) ?? SITE_ADDRESS_LINES;
+  const markdown = legalToMarkdown(page);
+  const hero = page.heroImage?.trim() || "";
 
   return (
     <article className="contacts-page">
+      {hero ? (
+        <div className="about-hero" style={{ paddingBottom: 0 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={hero} alt="" aria-hidden="true" />
+        </div>
+      ) : null}
+
       <header className="contacts-head">
         <h1 className="contacts-title">{page.title}</h1>
-        {page.intro && <p className="contacts-lead">{page.intro}</p>}
+        {page.updated ? (
+          <p className="content-page-eyebrow">{page.updated}</p>
+        ) : null}
       </header>
 
       <div className="contacts-grid">
         <div className="contacts-copy">
-          {storeSection && (
+          {markdown.trim() ? (
             <section className="contacts-block">
-              <h2>{storeSection.heading}</h2>
-              <address className="contacts-address">
-                {addressLines.map((line) => (
-                  <span key={line}>{line}</span>
-                ))}
-              </address>
-              <ul className="contacts-meta">
-                <li>
-                  <span>{lang === "uk" ? "Телефон" : "Phone"}</span>
-                  <a href={`tel:${SITE_PHONE}`}>{SITE_PHONE_DISPLAY}</a>
-                </li>
-                <li>
-                  <span>Email</span>
-                  <a href={`mailto:${SITE_EMAIL}`}>{SITE_EMAIL}</a>
-                </li>
-                <li>
-                  <span>Instagram</span>
-                  <a
-                    href={SITE_INSTAGRAM}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    @_logic_clothes
-                  </a>
-                </li>
-              </ul>
+              <MarkdownBody markdown={markdown} />
             </section>
-          )}
+          ) : null}
 
-          {replySection && (
-            <section className="contacts-block">
-              <h2>{replySection.heading}</h2>
-              <ul className="contacts-list">
-                {replySection.bullets?.map((b) => (
-                  <li key={b}>{b}</li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <section className="contacts-block">
+            <h2>{lang === "uk" ? "Concept store" : "Concept store"}</h2>
+            <address className="contacts-address">
+              {SITE_ADDRESS_LINES.map((line) => (
+                <span key={line}>{line}</span>
+              ))}
+            </address>
+            <ul className="contacts-meta">
+              <li>
+                <span>{lang === "uk" ? "Телефон" : "Phone"}</span>
+                <a href={`tel:${SITE_PHONE}`}>{SITE_PHONE_DISPLAY}</a>
+              </li>
+              <li>
+                <span>Email</span>
+                <a href={`mailto:${SITE_EMAIL}`}>{SITE_EMAIL}</a>
+              </li>
+              <li>
+                <span>Instagram</span>
+                <a
+                  href={SITE_INSTAGRAM}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  @_logic_clothes
+                </a>
+              </li>
+            </ul>
+          </section>
+
+          <ContentGallery images={page.gallery || []} lang={lang} />
         </div>
 
         <div className="contacts-map">
