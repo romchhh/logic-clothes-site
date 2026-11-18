@@ -1295,28 +1295,25 @@
   .catalog-hub-toolbar{
     padding-left:var(--page-gutter);
     padding-right:var(--page-gutter);
-    margin-bottom:16px;
+    margin-bottom:0;
+    min-height:0;
   }
-  /* Text list BEFORE collage photos (matches reference) */
-  .catalog-hub-list{
+  .catalog-hub-toolbar .cat-title{
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
+  }
+  .catalog-hub-toolbar .cat-toolbar-actions{
+    margin-left:auto;
+    width:100%;
     display:flex;
-    flex-direction:column;
-    align-items:flex-start;
-    gap:10px;
-    margin:0 0 20px;
-    padding:0 var(--page-gutter);
-  }
-  .catalog-hub-list-link{
-    color:var(--ink);
-    text-decoration:none;
-    font-size:15px;
-    letter-spacing:.02em;
-    text-transform:lowercase;
-    border-bottom:0.5px solid transparent;
-    line-height:1.25;
-  }
-  .catalog-hub-list-link:hover{
-    border-bottom-color:rgba(17,17,17,.35);
+    justify-content:flex-end;
   }
   /* Full-bleed magazine collage — no side fields */
   .catalog-hub{
@@ -1329,6 +1326,86 @@
     position:relative;
     width:100%;
     margin:0;
+    background:var(--white);
+  }
+  /* Category list — top-left of first collage (mobile) */
+  .catalog-hub-nav{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:6px;
+  }
+  .catalog-hub-nav-link,
+  .catalog-hub-nav-ellipsis{
+    pointer-events:auto;
+  }
+  .catalog-hub-nav-link{
+    color:var(--ink);
+    text-decoration:none;
+    font-size:14px;
+    letter-spacing:.02em;
+    text-transform:lowercase;
+    border-bottom:0.5px solid transparent;
+    line-height:1.3;
+  }
+  .catalog-hub-nav-link:hover{
+    border-bottom-color:rgba(17,17,17,.35);
+  }
+  .catalog-hub-nav-ellipsis{
+    color:var(--ink);
+    font-size:14px;
+    line-height:1.3;
+    letter-spacing:.08em;
+  }
+  .catalog-hub-nav--overlay{
+    position:absolute;
+    left:var(--page-gutter);
+    top:0;
+    z-index:3;
+    width:min(38%, 148px);
+    max-width:calc(100% - var(--page-gutter) * 2);
+    pointer-events:none;
+  }
+  .catalog-hub-nav--overlay .catalog-hub-nav-link,
+  .catalog-hub-nav--overlay .catalog-hub-nav-ellipsis{
+    pointer-events:auto;
+  }
+  @media (min-width:768px){
+    .catalog-hub-nav--overlay{
+      width:min(32%, 200px);
+      gap:10px;
+    }
+    .catalog-hub-nav-link,
+    .catalog-hub-nav-ellipsis{
+      font-size:15px;
+    }
+  }
+  @media (min-width:1024px){
+    .catalog-hub-shell{
+      padding-top:12px;
+      padding-bottom:72px;
+    }
+    .catalog-hub-nav--overlay{
+      width:min(28%, 220px);
+      gap:10px;
+    }
+    .catalog-hub-nav-link,
+    .catalog-hub-nav-ellipsis{
+      font-size:15px;
+    }
+    .catalog-hub-label{
+      font-size:13px;
+      bottom:14px;
+    }
+    .catalog-hub-card{
+      transition:opacity .22s ease;
+    }
+    .catalog-hub-card:hover{
+      opacity:.94;
+    }
+    .catalog-hub-card:hover::after{
+      background:linear-gradient(180deg, transparent 55%, rgba(0,0,0,.52) 100%);
+    }
   }
   .catalog-hub-canvas + .catalog-hub-canvas{
     margin-top:2px;
@@ -2634,6 +2711,7 @@
     font-size:12px;
     line-height:1.4;
     color:var(--pdp-soft);
+    overflow:visible;
   }
   .pdp-microtable-row > span:first-child,
   .pdp-microtable-row > a{
@@ -2649,8 +2727,9 @@
     gap:12px;
     justify-content:flex-end;
     flex-wrap:wrap;
-    min-width:0;
+    min-width:max-content;
     overflow:visible;
+    justify-self:end;
   }
   .pdp-carrier{
     display:block;
@@ -2661,10 +2740,12 @@
   }
   .pdp-carrier--np,
   .pdp-carrier--up{
-    width:32px;
-    height:32px;
-    padding:0;
+    width:34px;
+    height:34px;
+    padding:3px;
     box-sizing:border-box;
+    object-fit:contain;
+    object-position:center;
   }
   /* Full-bleed like «доповніть ваш лук» / home «Новинки» — edge to page */
   .pdp-store-photos{

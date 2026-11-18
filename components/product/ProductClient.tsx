@@ -655,16 +655,16 @@ export default function ProductClient({
                         className="pdp-carrier pdp-carrier--np"
                         src="/assets/icons/nova-poshta.svg"
                         alt="Нова Пошта"
-                        width={32}
-                        height={32}
+                        width={34}
+                        height={34}
                       />
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         className="pdp-carrier pdp-carrier--up"
                         src="/assets/icons/logo_pin_ukrpost_2026.png"
                         alt="Укрпошта"
-                        width={32}
-                        height={32}
+                        width={34}
+                        height={34}
                       />
                     </span>
                   </div>
@@ -676,16 +676,16 @@ export default function ProductClient({
                         className="pdp-carrier pdp-carrier--np"
                         src="/assets/icons/nova-poshta.svg"
                         alt="Нова Пошта"
-                        width={32}
-                        height={32}
+                        width={34}
+                        height={34}
                       />
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         className="pdp-carrier pdp-carrier--up"
                         src="/assets/icons/logo_pin_ukrpost_2026.png"
                         alt="Укрпошта"
-                        width={32}
-                        height={32}
+                        width={34}
+                        height={34}
                       />
                     </span>
                   </div>

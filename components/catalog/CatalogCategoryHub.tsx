@@ -17,21 +17,54 @@ function categoryHref(lang: Locale, id: string) {
   return `/${lang}/catalog?category=${encodeURIComponent(id)}`;
 }
 
-/** Magazine collage slots — full-bleed, matches reference rhythm. */
-const COLLAGE_SLOTS: { l: number; t: number; w: number; h: number; focus: string }[] =
-  [
-    { l: 0, t: 0, w: 46, h: 34, focus: "center 18%" },
-    { l: 47.5, t: 0, w: 52.5, h: 42, focus: "center 22%" },
-    { l: 0, t: 35, w: 100, h: 20, focus: "center 42%" },
-    { l: 0, t: 56, w: 49.5, h: 22, focus: "center 28%" },
-    { l: 50.5, t: 56, w: 49.5, h: 22, focus: "center 16%" },
-    { l: 0, t: 79, w: 49.5, h: 21, focus: "center 20%" },
-    { l: 50.5, t: 79, w: 49.5, h: 21, focus: "center 18%" },
-  ];
+type CollageSlot = {
+  l: number;
+  t: number;
+  w: number;
+  h: number;
+  focus: string;
+  z?: number;
+};
 
-function chunk<T>(list: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+/**
+ * Irregular magazine collage (same on mobile and desktop):
+ * tall photo on the right, shorter one tucked under the category column,
+ * a full-bleed strip, then two bottom frames that don't share one baseline.
+ */
+const COLLAGE_SLOTS: CollageSlot[] = [
+  { l: 39.2, t: 0, w: 60.8, h: 56.4, focus: "center 20%", z: 1 },
+  { l: 0, t: 36.8, w: 37.4, h: 21.6, focus: "center 34%", z: 2 },
+  { l: 0, t: 57.2, w: 100, h: 14.6, focus: "center 44%", z: 1 },
+  { l: 0, t: 72.8, w: 47.6, h: 27.2, focus: "center 26%", z: 1 },
+  { l: 49.1, t: 73.9, w: 50.9, h: 26.1, focus: "center 16%", z: 2 },
+];
+
+/** Next screens stay staggered — not a second even grid. */
+const COLLAGE_SLOTS_MORE: CollageSlot[] = [
+  { l: 0, t: 0, w: 44.5, h: 44, focus: "center 24%", z: 1 },
+  { l: 46.2, t: 4.2, w: 53.8, h: 48.5, focus: "center 18%", z: 2 },
+  { l: 0, t: 51.2, w: 100, h: 16.4, focus: "center 40%", z: 1 },
+  { l: 0, t: 68.6, w: 51.4, h: 31.4, focus: "center 28%", z: 1 },
+  { l: 53, t: 70.2, w: 47, h: 29.8, focus: "center 20%", z: 2 },
+];
+
+function chunkCollage(
+  list: Category[],
+  heroSlots: CollageSlot[]
+): { group: Category[]; slots: CollageSlot[] }[] {
+  if (!list.length) return [];
+  const out: { group: Category[]; slots: CollageSlot[] }[] = [];
+  let i = 0;
+  const first = list.slice(0, heroSlots.length);
+  if (first.length) {
+    out.push({ group: first, slots: heroSlots });
+    i = first.length;
+  }
+  while (i < list.length) {
+    const slice = list.slice(i, i + COLLAGE_SLOTS_MORE.length);
+    out.push({ group: slice, slots: COLLAGE_SLOTS_MORE });
+    i += slice.length;
+  }
   return out;
 }
 
@@ -140,7 +173,21 @@ export default function CatalogCategoryHub({
 
   if (!items.length) return null;
 
-  const groups = chunk(items, COLLAGE_SLOTS.length);
+  const groups = chunkCollage(items, COLLAGE_SLOTS);
+
+  const navMarkup = (
+    <>
+      {items.map((cat) => (
+        <Link
+          key={`nav-${cat.id}`}
+          href={categoryHref(lang, cat.id)}
+          className="catalog-hub-nav-link"
+        >
+          {cat.label[lang]}
+        </Link>
+      ))}
+    </>
+  );
 
   return (
     <div className="cat-shell catalog-hub-shell">
@@ -160,63 +207,62 @@ export default function CatalogCategoryHub({
         </div>
       </div>
 
-      {/* Duplicating text list — before photos, as on the reference */}
-      <nav className="catalog-hub-list" aria-label={t.catalog.category}>
-        {items.map((cat) => (
-          <Link
-            key={`list-${cat.id}`}
-            href={categoryHref(lang, cat.id)}
-            className="catalog-hub-list-link"
-          >
-            {cat.label[lang]}
-          </Link>
-        ))}
-      </nav>
-
       <div className="catalog-hub">
-        {groups.map((group, gi) => {
-          const bottom = Math.max(
-            ...group.map((_, i) => {
-              const slot = COLLAGE_SLOTS[i];
-              return slot.t + slot.h;
-            })
-          );
-          return (
-            <div
-              key={gi}
-              className="catalog-hub-canvas"
-              style={{ aspectRatio: `100 / ${bottom}` }}
-              aria-label={t.catalog.title}
-            >
-              {group.map((cat, i) => {
-                const slot = COLLAGE_SLOTS[i] ?? COLLAGE_SLOTS[COLLAGE_SLOTS.length - 1];
-                return (
-                  <Link
-                    key={cat.id}
-                    href={categoryHref(lang, cat.id)}
-                    className={`catalog-hub-card${cat.id === "all" ? " catalog-hub-card--all" : ""}`}
-                    style={{
-                      left: `${slot.l}%`,
-                      top: `${slot.t}%`,
-                      width: `${slot.w}%`,
-                      height: `${slot.h}%`,
-                    }}
+          {groups.map(({ group, slots }, gi) => {
+            const bottom = Math.max(
+              ...group.map((_, i) => {
+                const slot = slots[i] ?? slots[slots.length - 1];
+                return slot.t + slot.h;
+              })
+            );
+            return (
+              <div
+                key={gi}
+                className={`catalog-hub-canvas${gi === 0 ? " catalog-hub-canvas--hero" : ""}`}
+                style={{ aspectRatio: `100 / ${bottom}` }}
+                aria-label={t.catalog.title}
+              >
+                {gi === 0 ? (
+                  <nav
+                    className="catalog-hub-nav catalog-hub-nav--overlay"
+                    aria-label={t.catalog.category}
                   >
-                    <Image
-                      src={cat.image || "/assets/hero.png"}
-                      alt={cat.label[lang]}
-                      fill
-                      sizes="100vw"
-                      quality={85}
-                      style={{ objectFit: "cover", objectPosition: slot.focus }}
-                    />
-                    <span className="catalog-hub-label">{cat.label[lang]}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          );
-        })}
+                    {navMarkup}
+                  </nav>
+                ) : null}
+                {group.map((cat, i) => {
+                  const slot = slots[i] ?? slots[slots.length - 1];
+                  return (
+                    <Link
+                      key={cat.id}
+                      href={categoryHref(lang, cat.id)}
+                      className={`catalog-hub-card${cat.id === "all" ? " catalog-hub-card--all" : ""}`}
+                      style={{
+                        left: `${slot.l}%`,
+                        top: `${slot.t}%`,
+                        width: `${slot.w}%`,
+                        height: `${slot.h}%`,
+                        zIndex: slot.z ?? 1,
+                      }}
+                    >
+                      <Image
+                        src={cat.image || "/assets/hero.png"}
+                        alt={cat.label[lang]}
+                        fill
+                        sizes="100vw"
+                        quality={85}
+                        style={{
+                          objectFit: "cover",
+                          objectPosition: slot.focus,
+                        }}
+                      />
+                      <span className="catalog-hub-label">{cat.label[lang]}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })}
       </div>
 
       <SidebarFilter
