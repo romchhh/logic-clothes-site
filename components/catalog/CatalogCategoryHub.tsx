@@ -27,25 +27,31 @@ type CollageSlot = {
 };
 
 /**
- * Irregular magazine collage (same on mobile and desktop):
- * tall photo on the right, shorter one tucked under the category column,
- * a full-bleed strip, then two bottom frames that don't share one baseline.
+ * Phone-reference frame: collage is taller than the viewport width
+ * (measured 471×890). Same percentages on mobile and desktop.
+ */
+const COLLAGE_FRAME = 189;
+
+/**
+ * Five cards, traced from the reference:
+ * tall photo on the right, shorter one under the category list,
+ * an inset wide strip, then two bottom photos that stop before the right edge.
  */
 const COLLAGE_SLOTS: CollageSlot[] = [
-  { l: 39.2, t: 0, w: 60.8, h: 56.4, focus: "center 20%", z: 1 },
-  { l: 0, t: 36.8, w: 37.4, h: 21.6, focus: "center 34%", z: 2 },
-  { l: 0, t: 57.2, w: 100, h: 14.6, focus: "center 44%", z: 1 },
-  { l: 0, t: 72.8, w: 47.6, h: 27.2, focus: "center 26%", z: 1 },
-  { l: 49.1, t: 73.9, w: 50.9, h: 26.1, focus: "center 16%", z: 2 },
+  { l: 43.5, t: 0, w: 55, h: 54, focus: "center 18%", z: 1 },
+  { l: 6.8, t: 21.3, w: 35.2, h: 35, focus: "center 30%", z: 2 },
+  { l: 14.9, t: 55.1, w: 79.2, h: 19.6, focus: "center 42%", z: 1 },
+  { l: 6.8, t: 75.1, w: 34.8, h: 24.7, focus: "center 28%", z: 1 },
+  { l: 42.9, t: 75.1, w: 42.9, h: 24.7, focus: "center 16%", z: 1 },
 ];
 
-/** Next screens stay staggered — not a second even grid. */
+/** Later categories keep the same staggered frame, not an even grid. */
 const COLLAGE_SLOTS_MORE: CollageSlot[] = [
-  { l: 0, t: 0, w: 44.5, h: 44, focus: "center 24%", z: 1 },
-  { l: 46.2, t: 4.2, w: 53.8, h: 48.5, focus: "center 18%", z: 2 },
-  { l: 0, t: 51.2, w: 100, h: 16.4, focus: "center 40%", z: 1 },
-  { l: 0, t: 68.6, w: 51.4, h: 31.4, focus: "center 28%", z: 1 },
-  { l: 53, t: 70.2, w: 47, h: 29.8, focus: "center 20%", z: 2 },
+  { l: 43.5, t: 0, w: 55, h: 52, focus: "center 20%", z: 1 },
+  { l: 6.8, t: 18, w: 35.2, h: 36, focus: "center 32%", z: 2 },
+  { l: 14.9, t: 53, w: 79.2, h: 18, focus: "center 40%", z: 1 },
+  { l: 6.8, t: 73, w: 34.8, h: 26, focus: "center 26%", z: 1 },
+  { l: 42.9, t: 73, w: 42.9, h: 26, focus: "center 18%", z: 1 },
 ];
 
 function chunkCollage(
@@ -209,17 +215,11 @@ export default function CatalogCategoryHub({
 
       <div className="catalog-hub">
           {groups.map(({ group, slots }, gi) => {
-            const bottom = Math.max(
-              ...group.map((_, i) => {
-                const slot = slots[i] ?? slots[slots.length - 1];
-                return slot.t + slot.h;
-              })
-            );
             return (
               <div
                 key={gi}
                 className={`catalog-hub-canvas${gi === 0 ? " catalog-hub-canvas--hero" : ""}`}
-                style={{ aspectRatio: `100 / ${bottom}` }}
+                style={{ aspectRatio: `100 / ${COLLAGE_FRAME}` }}
                 aria-label={t.catalog.title}
               >
                 {gi === 0 ? (
@@ -236,7 +236,7 @@ export default function CatalogCategoryHub({
                     <Link
                       key={cat.id}
                       href={categoryHref(lang, cat.id)}
-                      className={`catalog-hub-card${cat.id === "all" ? " catalog-hub-card--all" : ""}`}
+                      className={`catalog-hub-card${cat.id === "all" ? " catalog-hub-card--all" : ""}${gi === 0 && i === 1 ? " catalog-hub-card--tuck" : ""}`}
                       style={{
                         left: `${slot.l}%`,
                         top: `${slot.t}%`,
