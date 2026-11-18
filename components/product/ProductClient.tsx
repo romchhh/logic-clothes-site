@@ -653,7 +653,7 @@ export default function ProductClient({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         className="pdp-carrier pdp-carrier--np"
-                        src="/assets/icons/nova-poshta.svg"
+                        src="/assets/icons/nova-poshta.svg?v=3"
                         alt="Нова Пошта"
                         width={34}
                         height={34}
@@ -674,7 +674,7 @@ export default function ProductClient({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         className="pdp-carrier pdp-carrier--np"
-                        src="/assets/icons/nova-poshta.svg"
+                        src="/assets/icons/nova-poshta.svg?v=3"
                         alt="Нова Пошта"
                         width={34}
                         height={34}
