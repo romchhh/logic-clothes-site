@@ -10,9 +10,10 @@ import type { Locale } from "@/lib/i18n/config";
 
 type Channel = "instagram" | "viber";
 
-function viberChatUrl(text: string): string {
+/** Digits only (no +). Prefill text via clipboard — URL text param breaks many Viber clients. */
+function viberChatUrl(): string {
   const digits = SITE_PHONE.replace(/\D/g, "");
-  return `viber://chat?number=%2B${digits}&text=${encodeURIComponent(text)}`;
+  return `viber://chat?number=${digits}`;
 }
 
 function instagramDirectUrl(): string {
@@ -82,7 +83,17 @@ export default function ProductDiscussOrder({
     if (!text || !channel) return;
 
     if (channel === "viber") {
-      window.location.href = viberChatUrl(text);
+      try {
+        await navigator.clipboard.writeText(text);
+        setNotice(
+          lang === "uk"
+            ? "Текст скопійовано — вставте його у Viber."
+            : "Text copied — paste it into Viber."
+        );
+      } catch {
+        /* open chat anyway */
+      }
+      window.location.href = viberChatUrl();
       return;
     }
 
@@ -93,13 +104,13 @@ export default function ProductDiscussOrder({
       setNotice(t.product.discussCopyManual);
     }
     window.open(instagramDirectUrl(), "_blank", "noopener,noreferrer");
-  }, [channel, draft, t.product.discussCopied, t.product.discussCopyManual]);
+  }, [channel, draft, lang, t.product.discussCopied, t.product.discussCopyManual]);
 
   return (
     <div className="pdp-discuss">
       <button
         type="button"
-        className={`pdp-custom-order-cta${intent === "order" ? "" : " pdp-chat-link"}`}
+        className="pdp-chat-link"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => {

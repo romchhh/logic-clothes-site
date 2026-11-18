@@ -1,20 +1,6 @@
-import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import StorePhotosForm from "@/components/admin/StorePhotosForm";
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Магазин у Києві — Logic Clothes Admin",
-};
-
-export default function AdminStorePhotosPage() {
-  return (
-    <div>
-      <AdminPageHeader
-        title="Магазин у Києві"
-        description="Фото для блоку «наш магазин у Києві» на сторінці товару."
-        crumbs={[{ label: "Магазин у Києві" }]}
-      />
-      <StorePhotosForm />
-    </div>
-  );
+/** Merged into Сайт → Контент (вкладка «Магазин у Києві»). */
+export default function AdminStorePhotosRedirect() {
+  redirect("/admin/content");
 }

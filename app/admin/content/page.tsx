@@ -11,7 +11,7 @@ export default function AdminContentPage() {
     <div>
       <AdminPageHeader
         title="Контент сторінок"
-        description="Тексти (Markdown) і фото для «Про нас», оплати/доставки та інших сторінок — UA і EN."
+        description="Тексти (Markdown), фото сторінок, магазин у Києві та догляд — усе в одному місці."
         crumbs={[{ label: "Контент" }]}
       />
       <ContentEditor />

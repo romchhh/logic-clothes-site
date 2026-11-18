@@ -20,7 +20,17 @@ export default async function CatalogServer({
 }) {
   const categories = await getCategories();
   if (showCategoryHub) {
-    return <CatalogCategoryHub lang={lang} categories={categories} />;
+    const allProducts = await getProductsByCategory("all");
+    return (
+      <CatalogCategoryHub
+        lang={lang}
+        categories={categories}
+        sizes={collectSizes(allProducts)}
+        colors={collectColors(allProducts)}
+        priceHint={priceBounds(allProducts)}
+        productCount={allProducts.length}
+      />
+    );
   }
   const active: CategoryId =
     category && categories.some((c) => c.id === category) ? category : "all";

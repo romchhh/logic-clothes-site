@@ -10,15 +10,15 @@ export const SITE_ADDRESS_LINES = [
   "Logic Clothes Concept store",
 ] as const;
 
-/** Sofiivska 5, Kyiv — Logic Clothes Concept store. */
-export const SITE_MAP_COORDS = { lat: 50.45368, lng: 30.51535 } as const;
+/** Sofiivska 5, Kyiv — Logic Clothes Concept store (building, not the square). */
+export const SITE_MAP_COORDS = { lat: 50.451367, lng: 30.520645 } as const;
 
-/** Google Maps embed for Concept store. */
+/** Google Maps embed pinned to the store. */
 export const SITE_MAP_EMBED =
-  `https://maps.google.com/maps?q=${SITE_MAP_COORDS.lat},${SITE_MAP_COORDS.lng}&hl=uk&z=17&output=embed`;
+  `https://maps.google.com/maps?q=${SITE_MAP_COORDS.lat},${SITE_MAP_COORDS.lng}&hl=uk&z=18&output=embed`;
 
 export const SITE_MAP_LINK =
   "https://www.google.com/maps/search/?api=1&query=" +
-  encodeURIComponent("вул. Софіївська, 5, Київ, Україна");
+  encodeURIComponent("Logic Clothes, вул. Софіївська, 5, Київ");
 
 

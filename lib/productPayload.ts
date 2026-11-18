@@ -1,4 +1,4 @@
-import { isCareId } from "@/lib/careInstructions";
+import { isCareId, resolveCareId } from "@/lib/careInstructions";
 import { parseGarmentMeasures } from "@/lib/garmentMeasures";
 import { normalizeMediaAdjust } from "@/lib/mediaAdjust";
 import { normalizeBrandSize } from "@/lib/productSizes";
@@ -180,9 +180,8 @@ export function productFromBody(
     careId:
       body.careId === null || body.careId === ""
         ? null
-        : isCareId(body.careId)
-          ? body.careId
-          : base.careId ?? null,
+        : resolveCareId(body.careId) ??
+          (isCareId(base.careId) ? resolveCareId(base.careId) : null),
     images: imageUrls,
     media,
     swatches: Array.isArray(body.swatches)

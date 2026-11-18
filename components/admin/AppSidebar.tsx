@@ -162,9 +162,9 @@ type NavGroup = {
 
 const SITE_PATHS = [
   "/admin/hero",
+  "/admin/content",
   "/admin/store-photos",
   "/admin/care",
-  "/admin/content",
   "/admin/feeds",
   "/admin/settings",
 ] as const;
@@ -172,16 +172,15 @@ const SITE_PATHS = [
 const siteItems: NavItem[] = [
   { name: "Hero", icon: <HeroIcon />, path: "/admin/hero" },
   {
-    name: "Магазин у Києві",
-    icon: <HeroIcon />,
-    path: "/admin/store-photos",
+    name: "Контент",
+    icon: <ContentIcon />,
+    path: "/admin/content",
   },
   {
     name: "Догляд",
     icon: <ContentIcon />,
     path: "/admin/care",
   },
-  { name: "Контент", icon: <ContentIcon />, path: "/admin/content" },
   { name: "Фіди", icon: <FeedIcon />, path: "/admin/feeds" },
   {
     name: "Налаштування",

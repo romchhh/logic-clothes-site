@@ -2,31 +2,32 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import SidebarFilter from "@/components/layout/SidebarFilter";
 import type { Category } from "@/lib/categories";
+import { saveCatalogState } from "@/lib/catalogState";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import type { Locale } from "@/lib/i18n/config";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { SeasonFilter } from "@/lib/productSeason";
 
 function categoryHref(lang: Locale, id: string) {
   if (id === "all") return `/${lang}/catalog?category=all`;
   return `/${lang}/catalog?category=${encodeURIComponent(id)}`;
 }
 
-/** Positions measured from the catalog collage reference (382×959). */
+/** Magazine collage slots — full-bleed, matches reference rhythm. */
 const COLLAGE_SLOTS: { l: number; t: number; w: number; h: number; focus: string }[] =
   [
-    { l: 16.23, t: 0, w: 45.03, h: 19.92, focus: "center 18%" },
-    { l: 61.78, t: 6.47, w: 34.82, h: 14.91, focus: "center 22%" },
-    { l: 10.21, t: 21.48, w: 87.44, h: 17.21, focus: "center 42%" },
-    { l: 1.57, t: 39.1, w: 37.96, h: 36.39, focus: "center 28%" },
-    { l: 41.1, t: 39.0, w: 47.12, h: 20.75, focus: "center 16%" },
-    { l: 40.84, t: 59.85, w: 59.16, h: 25.76, focus: "center 20%" },
-    { l: 0, t: 76.64, w: 39.53, h: 18.04, focus: "center 18%" },
-    { l: 42.15, t: 85.92, w: 52.36, h: 14.08, focus: "center 30%" },
+    { l: 0, t: 0, w: 46, h: 34, focus: "center 18%" },
+    { l: 47.5, t: 0, w: 52.5, h: 42, focus: "center 22%" },
+    { l: 0, t: 35, w: 100, h: 20, focus: "center 42%" },
+    { l: 0, t: 56, w: 49.5, h: 22, focus: "center 28%" },
+    { l: 50.5, t: 56, w: 49.5, h: 22, focus: "center 16%" },
+    { l: 0, t: 79, w: 49.5, h: 21, focus: "center 20%" },
+    { l: 50.5, t: 79, w: 49.5, h: 21, focus: "center 18%" },
   ];
-
-const COLLAGE_W = 382;
-const COLLAGE_H = 959;
 
 function chunk<T>(list: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -37,11 +38,29 @@ function chunk<T>(list: T[], size: number): T[][] {
 export default function CatalogCategoryHub({
   lang,
   categories,
+  sizes = [],
+  colors = [],
+  priceHint = { min: 0, max: 0 },
+  productCount = 0,
 }: {
   lang: Locale;
   categories: Category[];
+  sizes?: string[];
+  colors?: string[];
+  priceHint?: { min: number; max: number };
+  productCount?: number;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [openAccordion, setOpenAccordion] = useState<number | null>(0);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [season, setSeason] = useState<SeasonFilter>("all");
+  const [minPrice, setMinPrice] = useState<number | null>(null);
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+
+  useScrollLock(isFilterOpen);
 
   const items = useMemo(() => {
     const apparel = categories.filter(
@@ -68,7 +87,7 @@ export default function CatalogCategoryHub({
     const allCard: Category = allFromDb ?? {
       id: "all",
       image: "/assets/products/meshdress-2_255_1.jpg",
-      label: { uk: "Усі товари", en: "All products" },
+      label: { uk: "дивитись все", en: "view all" },
       cta: { uk: t.home.seeAll, en: t.home.seeAll },
       kind: "collection",
       sortOrder: 999,
@@ -76,8 +95,48 @@ export default function CatalogCategoryHub({
       isSystem: true,
     };
 
-    return [...merged, allCard];
+    return [
+      ...merged,
+      {
+        ...allCard,
+        label: {
+          uk: "дивитись все",
+          en: allFromDb?.label.en || "view all",
+        },
+      },
+    ];
   }, [categories, t.home.seeAll]);
+
+  const activeFilters =
+    selectedSizes.length +
+    selectedColors.length +
+    (season !== "all" ? 1 : 0) +
+    (minPrice != null ? 1 : 0) +
+    (maxPrice != null ? 1 : 0);
+
+  function resetFilters() {
+    setSelectedSizes([]);
+    setSelectedColors([]);
+    setSeason("all");
+    setMinPrice(null);
+    setMaxPrice(null);
+  }
+
+  function applyFiltersAndBrowse() {
+    saveCatalogState(lang, "all", {
+      sortOrder: "newest",
+      selectedSizes,
+      selectedColors,
+      season,
+      minPrice,
+      maxPrice,
+      visibleCount: 16,
+      scrollY: 0,
+      lastProductId: null,
+    });
+    setIsFilterOpen(false);
+    router.push(`/${lang}/catalog?category=all`);
+  }
 
   if (!items.length) return null;
 
@@ -85,8 +144,36 @@ export default function CatalogCategoryHub({
 
   return (
     <div className="cat-shell catalog-hub-shell">
+      <div className="cat-toolbar catalog-hub-toolbar">
+        <h1 className="cat-title">{t.catalog.title}</h1>
+        <div className="cat-toolbar-actions">
+          <button
+            type="button"
+            className={`cat-filter-btn${activeFilters > 0 ? " has-active" : ""}`}
+            onClick={() => setIsFilterOpen(true)}
+          >
+            {t.catalog.filters}
+            {activeFilters > 0 ? (
+              <span className="cat-filter-badge">{activeFilters}</span>
+            ) : null}
+          </button>
+        </div>
+      </div>
+
+      {/* Duplicating text list — before photos, as on the reference */}
+      <nav className="catalog-hub-list" aria-label={t.catalog.category}>
+        {items.map((cat) => (
+          <Link
+            key={`list-${cat.id}`}
+            href={categoryHref(lang, cat.id)}
+            className="catalog-hub-list-link"
+          >
+            {cat.label[lang]}
+          </Link>
+        ))}
+      </nav>
+
       <div className="catalog-hub">
-        <h1 className="catalog-hub-title">{t.catalog.title}</h1>
         {groups.map((group, gi) => {
           const bottom = Math.max(
             ...group.map((_, i) => {
@@ -94,16 +181,15 @@ export default function CatalogCategoryHub({
               return slot.t + slot.h;
             })
           );
-          const ratio = COLLAGE_W / (COLLAGE_H * (bottom / 100));
           return (
             <div
               key={gi}
               className="catalog-hub-canvas"
-              style={{ aspectRatio: String(ratio) }}
+              style={{ aspectRatio: `100 / ${bottom}` }}
               aria-label={t.catalog.title}
             >
               {group.map((cat, i) => {
-                const slot = COLLAGE_SLOTS[i];
+                const slot = COLLAGE_SLOTS[i] ?? COLLAGE_SLOTS[COLLAGE_SLOTS.length - 1];
                 return (
                   <Link
                     key={cat.id}
@@ -120,7 +206,7 @@ export default function CatalogCategoryHub({
                       src={cat.image || "/assets/hero.png"}
                       alt={cat.label[lang]}
                       fill
-                      sizes="(max-width: 767px) 92vw, (max-width: 1199px) 74vw, 820px"
+                      sizes="100vw"
                       quality={85}
                       style={{ objectFit: "cover", objectPosition: slot.focus }}
                     />
@@ -133,17 +219,36 @@ export default function CatalogCategoryHub({
         })}
       </div>
 
-      <nav className="catalog-hub-list" aria-label={t.catalog.category}>
-        {items.map((cat) => (
-          <Link
-            key={`list-${cat.id}`}
-            href={categoryHref(lang, cat.id)}
-            className="catalog-hub-list-link"
-          >
-            {cat.label[lang]}
-          </Link>
-        ))}
-      </nav>
+      <SidebarFilter
+        isOpen={isFilterOpen}
+        onClose={() => {
+          if (activeFilters > 0) {
+            applyFiltersAndBrowse();
+            return;
+          }
+          setIsFilterOpen(false);
+        }}
+        openAccordion={openAccordion}
+        setOpenAccordion={setOpenAccordion}
+        selectedSizes={selectedSizes}
+        setSelectedSizes={setSelectedSizes}
+        selectedColors={selectedColors}
+        setSelectedColors={setSelectedColors}
+        season={season}
+        setSeason={setSeason}
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+        setMinPrice={setMinPrice}
+        setMaxPrice={setMaxPrice}
+        sizes={sizes}
+        colors={colors}
+        priceHint={priceHint}
+        category="all"
+        categories={categories}
+        lang={lang}
+        onReset={resetFilters}
+        resultCount={productCount}
+      />
     </div>
   );
 }

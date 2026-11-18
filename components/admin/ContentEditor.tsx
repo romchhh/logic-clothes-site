@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import ContentGalleryEditor from "@/components/admin/ContentGalleryEditor";
 import ContentImageField from "@/components/admin/ContentImageField";
 import MarkdownEditor from "@/components/admin/MarkdownEditor";
+import StorePhotosForm from "@/components/admin/StorePhotosForm";
 import Label from "@/components/admin/form/Label";
 import Input from "@/components/admin/form/input/InputField";
 import {
@@ -192,27 +193,32 @@ export default function ContentEditor() {
             );
           })}
         </div>
-        <div className="flex items-center gap-2">
-          {(["uk", "en"] as Lang[]).map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => {
-                setLang(l);
-                setMessage(null);
-              }}
-              className={`rounded-md px-3 py-1.5 text-[12px] font-semibold uppercase tracking-wide ${
-                lang === l
-                  ? "bg-[#B7E1DF] text-gray-900"
-                  : "bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400"
-              }`}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
+        {def.kind === "about" || def.kind === "legal" ? (
+          <div className="flex items-center gap-2">
+            {(["uk", "en"] as Lang[]).map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => {
+                  setLang(l);
+                  setMessage(null);
+                }}
+                className={`rounded-md px-3 py-1.5 text-[12px] font-semibold uppercase tracking-wide ${
+                  lang === l
+                    ? "bg-[#B7E1DF] text-gray-900"
+                    : "bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400"
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
+      {def.kind === "store" ? <StorePhotosForm /> : null}
+
+      {def.kind === "about" || def.kind === "legal" ? (
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 dark:border-gray-800 dark:bg-[#141414]">
         <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white">
@@ -307,7 +313,9 @@ export default function ContentEditor() {
           <p className="text-sm text-gray-500">Сторінку не знайдено в сховищі.</p>
         ) : null}
       </div>
+      ) : null}
 
+      {def.kind === "about" || def.kind === "legal" ? (
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-h-[1.25rem] text-sm">
           {error ? <p className="text-error-500">{error}</p> : null}
@@ -324,10 +332,13 @@ export default function ContentEditor() {
           {saving ? "Збереження…" : "Зберегти всі мови"}
         </button>
       </div>
+      ) : null}
+      {def.kind === "about" || def.kind === "legal" ? (
       <p className="text-[12px] text-gray-500 dark:text-gray-400">
         Зберігаються обидві мови (UK і EN) для всіх сторінок одразу. Фото й
         Markdown можна міняти самостійно без розробника.
       </p>
+      ) : null}
     </div>
   );
 }

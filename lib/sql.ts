@@ -1,3 +1,4 @@
+import { resolveCareId } from "@/lib/careInstructions";
 import { normalizeSizeOptions } from "@/lib/catalogProduct";
 import {
   hasGarmentMeasures,
@@ -197,12 +198,8 @@ function mapProduct(row: ProductRow): Product {
     ...(hasGarmentMeasures(parseGarmentMeasures(row.garment_measures))
       ? { garmentMeasures: parseGarmentMeasures(row.garment_measures) }
       : {}),
-    ...(row.care_id &&
-    (row.care_id === "gentle" ||
-      row.care_id === "hand" ||
-      row.care_id === "dryclean" ||
-      row.care_id === "outer")
-      ? { careId: row.care_id }
+    ...(resolveCareId(row.care_id)
+      ? { careId: resolveCareId(row.care_id)! }
       : {}),
     images,
     media: mediaResolved,

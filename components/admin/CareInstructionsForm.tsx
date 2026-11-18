@@ -6,6 +6,7 @@ import {
   DEFAULT_CARE_INSTRUCTIONS,
   type CareId,
   type CareInstruction,
+  type CareStep,
 } from "@/lib/careInstructions";
 
 export default function CareInstructionsForm() {
@@ -55,6 +56,32 @@ export default function CareInstructionsForm() {
           ...patch,
           label: patch.label ? { ...item.label, ...patch.label } : item.label,
           body: patch.body ? { ...item.body, ...patch.body } : item.body,
+          steps: patch.steps ?? item.steps,
+        };
+      })
+    );
+  };
+
+  const updateStep = (
+    careId: CareId,
+    stepIndex: number,
+    patch: Partial<CareStep["text"]>
+  ) => {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== careId) return item;
+        const steps = item.steps.map((s, i) =>
+          i === stepIndex
+            ? { ...s, text: { ...s.text, ...patch } }
+            : s
+        );
+        return {
+          ...item,
+          steps,
+          body: {
+            uk: steps.map((s) => `• ${s.text.uk}`).join("\n"),
+            en: steps.map((s) => `• ${s.text.en}`).join("\n"),
+          },
         };
       })
     );
@@ -91,8 +118,17 @@ export default function CareInstructionsForm() {
   };
 
   const resetDefaults = () => {
-    setItems(DEFAULT_CARE_INSTRUCTIONS.map((c) => ({ ...c, label: { ...c.label }, body: { ...c.body } })));
-    setMessage("Повернено стандартні тексти й іконки — натисніть «Зберегти»");
+    setItems(
+      DEFAULT_CARE_INSTRUCTIONS.map((c) => ({
+        ...c,
+        label: { ...c.label },
+        body: { ...c.body },
+        steps: c.steps.map((s) => ({ ...s, text: { ...s.text } })),
+      }))
+    );
+    setMessage(
+      "Повернено фото, тексти й іконки зі скріна — натисніть «Зберегти»"
+    );
     setError(null);
   };
 
@@ -124,7 +160,9 @@ export default function CareInstructionsForm() {
   }
 
   const ordered = CARE_IDS.map(
-    (id) => items.find((i) => i.id === id) ?? DEFAULT_CARE_INSTRUCTIONS.find((i) => i.id === id)!
+    (id) =>
+      items.find((i) => i.id === id) ??
+      DEFAULT_CARE_INSTRUCTIONS.find((i) => i.id === id)!
   );
 
   return (
@@ -136,8 +174,8 @@ export default function CareInstructionsForm() {
               Чотири варіанти догляду
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Фото показуються в картці товару в адмінці; назва й текст — у
-              розкритті «Догляд» на сайті.
+              Фото, підписи й пункти з іконками — як на вашому скріні. На картці
+              товару обирається один варіант.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -146,7 +184,7 @@ export default function CareInstructionsForm() {
               className="admin-btn-secondary"
               onClick={resetDefaults}
             >
-              Скинути за замовчуванням
+              Скинути за скріном
             </button>
             <button
               type="submit"
@@ -237,32 +275,41 @@ export default function CareInstructionsForm() {
                     />
                   </label>
                 </div>
-                <label className="block text-xs text-gray-500">
-                  Текст UA
-                  <textarea
-                    className="mt-1 w-full border border-gray-200 bg-white px-3 py-2 text-sm"
-                    rows={4}
-                    value={care.body.uk}
-                    onChange={(e) =>
-                      updateItem(care.id, {
-                        body: { ...care.body, uk: e.target.value },
-                      })
-                    }
-                  />
-                </label>
-                <label className="block text-xs text-gray-500">
-                  Текст EN
-                  <textarea
-                    className="mt-1 w-full border border-gray-200 bg-white px-3 py-2 text-sm"
-                    rows={4}
-                    value={care.body.en}
-                    onChange={(e) =>
-                      updateItem(care.id, {
-                        body: { ...care.body, en: e.target.value },
-                      })
-                    }
-                  />
-                </label>
+
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500">Пункти з іконками</p>
+                  <ul className="space-y-2">
+                    {(care.steps || []).map((step, index) => (
+                      <li
+                        key={`${care.id}-${index}`}
+                        className="grid gap-2 border border-gray-100 bg-white p-2 sm:grid-cols-[36px_1fr_1fr]"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={step.icon}
+                          alt=""
+                          className="h-9 w-9 object-contain"
+                        />
+                        <input
+                          className="w-full border border-gray-200 px-2 py-1.5 text-sm"
+                          value={step.text.uk}
+                          onChange={(e) =>
+                            updateStep(care.id, index, { uk: e.target.value })
+                          }
+                          placeholder="UA"
+                        />
+                        <input
+                          className="w-full border border-gray-200 px-2 py-1.5 text-sm"
+                          value={step.text.en}
+                          onChange={(e) =>
+                            updateStep(care.id, index, { en: e.target.value })
+                          }
+                          placeholder="EN"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </li>
           ))}

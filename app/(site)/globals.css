@@ -276,23 +276,6 @@
     padding:4px 8px;
     gap:4px;
   }
-  .lang-pill-flag{
-    font-size:14px;
-    line-height:1;
-  }
-  .lang-pill-flag-img{
-    display:block;
-    width:22px;
-    height:11px;
-    object-fit:cover;
-    border-radius:1px;
-    flex-shrink:0;
-    box-shadow:0 0 0 0.5px rgba(17,17,17,.12);
-  }
-  .lang-pill--compact .lang-pill-flag-img{
-    width:18px;
-    height:9px;
-  }
   .lang-pill-code{
     font-size:11px;
     letter-spacing:.06em;
@@ -1306,27 +1289,22 @@
   }
 
   .catalog-hub-shell{
-    padding-top:12px;
+    padding-top:8px;
+    padding-bottom:48px;
   }
-  .catalog-hub{
-    /* Larger tiles, white side margins like the reference */
-    width:min(92vw, 640px);
-    margin:0 auto;
-    padding:4px 0 96px;
+  .catalog-hub-toolbar{
+    padding-left:var(--page-gutter);
+    padding-right:var(--page-gutter);
+    margin-bottom:16px;
   }
-  @media (min-width:768px){
-    .catalog-hub{width:min(74vw, 760px);}
-  }
-  @media (min-width:1200px){
-    .catalog-hub{width:min(58vw, 820px);}
-  }
+  /* Text list BEFORE collage photos (matches reference) */
   .catalog-hub-list{
     display:flex;
     flex-direction:column;
     align-items:flex-start;
     gap:10px;
-    margin:28px 0 8px;
-    padding:0;
+    margin:0 0 20px;
+    padding:0 var(--page-gutter);
   }
   .catalog-hub-list-link{
     color:var(--ink);
@@ -1335,20 +1313,17 @@
     letter-spacing:.02em;
     text-transform:lowercase;
     border-bottom:0.5px solid transparent;
+    line-height:1.25;
   }
   .catalog-hub-list-link:hover{
     border-bottom-color:rgba(17,17,17,.35);
   }
-  .catalog-hub-title{
-    position:absolute;
-    width:1px;
-    height:1px;
-    padding:0;
-    margin:-1px;
-    overflow:hidden;
-    clip:rect(0,0,0,0);
-    white-space:nowrap;
-    border:0;
+  /* Full-bleed magazine collage — no side fields */
+  .catalog-hub{
+    width:100%;
+    max-width:none;
+    margin:0;
+    padding:0 0 24px;
   }
   .catalog-hub-canvas{
     position:relative;
@@ -1356,7 +1331,7 @@
     margin:0;
   }
   .catalog-hub-canvas + .catalog-hub-canvas{
-    margin-top:22px;
+    margin-top:2px;
   }
   .catalog-hub-card{
     position:absolute;
@@ -1900,13 +1875,15 @@
   .product:hover .product-img img{transform:scale(1.04);}
   .product-badges{
     position:absolute;
-    top:5px;
-    left:5px;
+    top:8px;
+    left:8px;
     z-index:2;
     display:flex;
     flex-wrap:wrap;
-    gap:2px;
+    align-items:center;
+    gap:4px;
     max-width:70%;
+    min-height:28px;
   }
   .product-badge{
     display:inline-block;
@@ -1914,15 +1891,18 @@
     border-radius:0;
     background:transparent;
     color:#fff;
-    font-size:7px;
+    font-size:12px;
     font-weight:var(--weight-medium);
-    letter-spacing:.08em;
+    letter-spacing:.1em;
     text-transform:uppercase;
-    text-shadow:0 1px 4px rgba(0,0,0,.45);
+    line-height:1;
+    text-shadow:0 1px 8px rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.35);
   }
   .product-badge.is-new{
     background:transparent;
     padding:0;
+    opacity:1;
+    color:#fff;
   }
   .product-badge.is-sale{
     padding:2px 5px;
@@ -1972,8 +1952,8 @@
   }
   .wish{
     position:absolute;
-    top:4px;
-    right:4px;
+    top:8px;
+    right:8px;
     z-index:2;
     width:28px;
     height:28px;
@@ -2580,19 +2560,31 @@
     margin-top:10px;
     padding:12px 0 4px;
     border-top:0.5px solid var(--pdp-line);
+    display:grid;
+    gap:14px;
   }
+  @media (min-width:520px){
+    .pdp-care-panel{
+      grid-template-columns:minmax(120px,160px) minmax(0,1fr);
+      align-items:start;
+      gap:18px;
+    }
+  }
+  .pdp-care-visual{margin:0;}
   .pdp-care-image{
     display:block;
-    width:72px;
+    width:100%;
+    max-width:160px;
     height:auto;
     aspect-ratio:3/4;
     object-fit:cover;
-    margin:0 0 10px;
+    margin:0 0 8px;
     background:var(--pdp-wash, #f5f5f3);
   }
   .pdp-care-label{
-    margin:0 0 6px;
-    font-size:13px;
+    margin:0;
+    font-size:12px;
+    line-height:1.35;
     color:var(--pdp-ink);
     text-transform:lowercase;
   }
@@ -2601,6 +2593,29 @@
     font-size:13px;
     line-height:1.55;
     color:var(--pdp-soft);
+    white-space:pre-line;
+  }
+  .pdp-care-steps{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .pdp-care-step{
+    display:grid;
+    grid-template-columns:28px minmax(0,1fr);
+    gap:10px;
+    align-items:center;
+    font-size:13px;
+    line-height:1.35;
+    color:var(--pdp-soft);
+  }
+  .pdp-care-step-icon{
+    width:28px;
+    height:28px;
+    object-fit:contain;
   }
   .pdp-ship-pay{
     width:100%;
@@ -2644,16 +2659,12 @@
     flex-shrink:0;
     overflow:visible;
   }
-  .pdp-carrier--np{
-    width:34px;
-    height:34px;
-    /* Keep mark clear of any parent clip / subpixel crop */
-    padding:1px;
-    box-sizing:border-box;
-  }
+  .pdp-carrier--np,
   .pdp-carrier--up{
-    width:18px;
-    height:28px;
+    width:32px;
+    height:32px;
+    padding:0;
+    box-sizing:border-box;
   }
   /* Full-bleed like «доповніть ваш лук» / home «Новинки» — edge to page */
   .pdp-store-photos{
@@ -2754,40 +2765,56 @@
     font-size:13px;
   }
   .pdp-sizes--text{
-    gap:6px 12px;
+    display:flex;
+    flex-wrap:nowrap;
+    justify-content:space-between;
     align-items:center;
+    gap:2px;
+    width:100%;
   }
   .pdp-size-wrap{
     position:relative;
     display:inline-flex;
     align-items:center;
+    flex:1 1 0;
+    min-width:0;
+    justify-content:center;
   }
+  /* Short sew CTAs — right-aligned, not full-bleed */
   .pdp-size-sew-cta.is-inline,
   .pdp-palette-sew-cta.is-inline{
-    display:block;
-    position:static;
-    left:auto;
+    display:inline-flex;
+    position:sticky;
+    right:0;
     top:auto;
-    z-index:1;
-    transform:none;
-    width:100%;
-    max-width:100%;
-    margin:10px 0 4px;
-    padding:10px 12px;
+    z-index:2;
+    float:right;
+    clear:both;
+    width:auto;
+    max-width:min(100%, 280px);
+    margin:8px 0 6px auto;
+    padding:7px 11px;
     border:0;
     border-radius:0;
     background:#111;
     color:#fff;
     font:inherit;
-    font-size:12px;
-    line-height:1.3;
+    font-size:11px;
+    line-height:1.25;
     text-align:center;
     text-decoration:underline;
     text-underline-offset:2px;
+    text-transform:lowercase;
     pointer-events:auto;
     cursor:pointer;
     white-space:normal;
     box-sizing:border-box;
+  }
+  .pdp-option--size::after,
+  .pdp-buy-opts::after{
+    content:"";
+    display:table;
+    clear:both;
   }
   .pdp-size--text.is-pinned{
     text-decoration:underline;
@@ -2795,22 +2822,24 @@
   }
   .pdp-size--text,
   .pdp-sizes--text .pdp-size{
+    flex:1 1 0;
     min-width:0;
     height:auto;
-    padding:4px 2px;
+    padding:6px 1px;
     border:0;
     border-radius:0;
     background:transparent;
-    font-size:14px;
+    font-size:clamp(15px, 4.1vw, 21px);
     font-weight:var(--weight-regular);
-    letter-spacing:.02em;
+    letter-spacing:.01em;
     text-transform:lowercase;
+    text-align:center;
     color:var(--pdp-ink);
   }
   .pdp-size--text.is-plus,
   .pdp-sizes--text .pdp-size.is-plus{
     text-transform:uppercase;
-    letter-spacing:.08em;
+    letter-spacing:.06em;
     font-weight:var(--weight-semi);
   }
   .pdp-size--text.is-stocked,
@@ -3029,10 +3058,32 @@
     border-radius:0;
     text-decoration:none;
     letter-spacing:0;
-    text-transform:none;
+    text-transform:lowercase;
     font-size:15px;
     font-weight:500;
     box-sizing:border-box;
+  }
+  .pdp-actions--immersive .pdp-chat-link,
+  .pdp-actions--immersive .pdp-discuss{
+    width:100%;
+  }
+  .pdp-actions--immersive .pdp-discuss{
+    margin-top:4px;
+  }
+  .pdp-actions--immersive .pdp-chat-link{
+    display:inline;
+    width:auto;
+    min-height:0;
+    padding:0;
+    border:0;
+    background:transparent;
+    color:#8a8a8a;
+    font-size:12px;
+    font-weight:400;
+    text-transform:lowercase;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    justify-content:flex-start;
   }
   .pdp-actions--immersive .pdp-wishlist-link{
     border:1px solid #111;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AdminSectionNav from "@/components/admin/AdminSectionNav";
@@ -253,11 +253,83 @@ export default function ProductForm({ productId }: Props) {
   const [careCatalog, setCareCatalog] = useState<CareInstruction[]>(
     DEFAULT_CARE_INSTRUCTIONS
   );
+  /** When true — do not overwrite description from a same-name catalog match. */
+  const descManualRef = useRef(false);
+  const [descAutofillHint, setDescAutofillHint] = useState<string | null>(null);
 
   const set = useCallback(
     <K extends keyof FormState>(key: K, value: FormState[K]) =>
       setForm((prev) => ({ ...prev, [key]: value })),
     []
+  );
+
+  const normalizeProductName = useCallback((name: string) => {
+    return name
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+  }, []);
+
+  const findSameNameProduct = useCallback(
+    (nameUk: string): Product | null => {
+      const needle = normalizeProductName(nameUk);
+      if (!needle) return null;
+      const matches = catalog.filter((p) => {
+        if (productId && p.id === productId) return false;
+        const n = normalizeProductName(p.name || "");
+        return n === needle;
+      });
+      if (!matches.length) return null;
+      // Prefer one that already has a description
+      const withDesc = matches.find(
+        (p) =>
+          (p.description || p.longDescription || "").trim() ||
+          (p.descriptionEn || p.longDescriptionEn || "").trim()
+      );
+      return withDesc || matches[0];
+    },
+    [catalog, normalizeProductName, productId]
+  );
+
+  const applyDescriptionFromNameMatch = useCallback(
+    (nameUk: string, force = false) => {
+      if (descManualRef.current && !force) return;
+      const match = findSameNameProduct(nameUk);
+      if (!match) {
+        setDescAutofillHint(null);
+        return;
+      }
+      const uk = (match.description || match.longDescription || "").trim();
+      const en = (
+        match.descriptionEn ||
+        match.longDescriptionEn ||
+        ""
+      ).trim();
+      if (!uk && !en) {
+        setDescAutofillHint(null);
+        return;
+      }
+      setForm((prev) => {
+        if (descManualRef.current && !force) return prev;
+        const nextUk = uk || prev.descriptionUk;
+        const nextEn = en || prev.descriptionEn;
+        if (
+          nextUk === prev.descriptionUk &&
+          nextEn === prev.descriptionEn
+        ) {
+          return prev;
+        }
+        return {
+          ...prev,
+          descriptionUk: nextUk,
+          descriptionEn: nextEn,
+        };
+      });
+      setDescAutofillHint(
+        `Опис підтягнуто з товару «${match.name}» — можна змінити або залишити.`
+      );
+    },
+    [findSameNameProduct]
   );
 
   const reloadCatalog = useCallback(async () => {
@@ -947,7 +1019,12 @@ export default function ProductForm({ productId }: Props) {
             <Input
               id="nameUk"
               value={form.nameUk}
-              onChange={(e) => set("nameUk", e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                set("nameUk", value);
+                // Autofill description from an earlier product with the same name
+                applyDescriptionFromNameMatch(value);
+              }}
               placeholder="Сукня з сітки"
             />
             <p className="mt-1.5 text-xs text-gray-400">
@@ -1350,13 +1427,22 @@ export default function ProductForm({ productId }: Props) {
       </ComponentCard>
 
       <ComponentCard title="Опис" sectionId="section-description">
+        {descAutofillHint ? (
+          <p className="mb-2 text-[12px] text-emerald-700 dark:text-emerald-400">
+            {descAutofillHint}
+          </p>
+        ) : null}
         <div>
           <Label>Українською</Label>
           <TextArea
             rows={5}
             value={form.descriptionUk}
-            onChange={(v) => set("descriptionUk", v)}
-            placeholder="Опис товару"
+            onChange={(v) => {
+              descManualRef.current = true;
+              setDescAutofillHint(null);
+              set("descriptionUk", v);
+            }}
+            placeholder="Опис товару — або підтягнеться з товару з такою ж назвою"
           />
         </div>
         <details className="admin-details">
@@ -1382,7 +1468,11 @@ export default function ProductForm({ productId }: Props) {
             <TextArea
               rows={5}
               value={form.descriptionEn}
-              onChange={(v) => set("descriptionEn", v)}
+              onChange={(v) => {
+                descManualRef.current = true;
+                setDescAutofillHint(null);
+                set("descriptionEn", v);
+              }}
               placeholder="Product description"
             />
           </div>

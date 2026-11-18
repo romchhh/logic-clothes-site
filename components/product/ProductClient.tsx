@@ -13,6 +13,7 @@ import { useWishlist } from "@/lib/WishlistProvider";
 import {
   careBody,
   careLabel,
+  careStepText,
   type CareInstruction,
 } from "@/lib/careInstructions";
 import { useI18n } from "@/lib/i18n/I18nProvider";
@@ -283,14 +284,34 @@ export default function ProductClient({
               </button>
               {careOpen ? (
                 <div className="pdp-care-panel">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={care.image}
-                    alt=""
-                    className="pdp-care-image"
-                  />
-                  <p className="pdp-care-label">{careLabel(care, lang)}</p>
-                  <p className="pdp-care-body">{careBody(care, lang)}</p>
+                  <div className="pdp-care-visual">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={care.image}
+                      alt=""
+                      className="pdp-care-image"
+                    />
+                    <p className="pdp-care-label">{careLabel(care, lang)}</p>
+                  </div>
+                  {care.steps?.length ? (
+                    <ul className="pdp-care-steps">
+                      {care.steps.map((step, i) => (
+                        <li key={`${step.icon}-${i}`} className="pdp-care-step">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={step.icon}
+                            alt=""
+                            className="pdp-care-step-icon"
+                            width={28}
+                            height={28}
+                          />
+                          <span>{careStepText(step, lang)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="pdp-care-body">{careBody(care, lang)}</p>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -603,14 +624,15 @@ export default function ProductClient({
             >
               {t.product.orderMyColorSize}
             </button>
+          </div>
 
-            <ProductDiscussOrder
-              lang={lang}
-              productId={product.id}
-              productName={displayName}
-              shadeLabel={product.color || ""}
-              label={t.product.customOrderCta}
-            />
+          <ProductDiscussOrder
+            lang={lang}
+            productId={product.id}
+            productName={displayName}
+            shadeLabel={product.color || ""}
+            label={t.product.customOrderCta}
+          />
 
             <div className="pdp-ship-pay">
               <button
@@ -639,10 +661,10 @@ export default function ProductClient({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         className="pdp-carrier pdp-carrier--up"
-                        src="/assets/icons/ukrposhta.svg"
+                        src="/assets/icons/logo_pin_ukrpost_2026.png"
                         alt="Укрпошта"
-                        width={20}
-                        height={28}
+                        width={32}
+                        height={32}
                       />
                     </span>
                   </div>
@@ -660,10 +682,10 @@ export default function ProductClient({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         className="pdp-carrier pdp-carrier--up"
-                        src="/assets/icons/ukrposhta.svg"
+                        src="/assets/icons/logo_pin_ukrpost_2026.png"
                         alt="Укрпошта"
-                        width={20}
-                        height={28}
+                        width={32}
+                        height={32}
                       />
                     </span>
                   </div>
@@ -690,7 +712,6 @@ export default function ProductClient({
                 </div>
               ) : null}
             </div>
-          </div>
 
           {builderOpen ? (
             <ProductCustomBuilder
