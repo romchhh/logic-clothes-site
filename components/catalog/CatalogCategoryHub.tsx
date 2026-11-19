@@ -53,6 +53,38 @@ const COLLAGE_SLOTS_MORE: CollageSlot[] = [
   { l: 51, t: 70, w: 42.2, h: 28, focus: "center 18%", z: 1 },
 ];
 
+function HubCard({
+  cat,
+  lang,
+  variant,
+}: {
+  cat: Category;
+  lang: Locale;
+  variant: "hero" | "natural" | "fit";
+}) {
+  return (
+    <Link
+      href={categoryHref(lang, cat.id)}
+      className={`catalog-hub-card catalog-hub-card--${variant}${cat.id === "all" ? " catalog-hub-card--all" : ""}`}
+    >
+      {variant === "natural" ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={cat.image || "/assets/hero.png"} alt={cat.label[lang]} />
+      ) : (
+        <Image
+          src={cat.image || "/assets/hero.png"}
+          alt={cat.label[lang]}
+          fill
+          sizes={variant === "hero" ? "(min-width: 900px) 60vw, 58vw" : "50vw"}
+          quality={85}
+          style={{ objectFit: "cover", objectPosition: "center 22%" }}
+        />
+      )}
+      <span className="catalog-hub-label">{cat.label[lang]}</span>
+    </Link>
+  );
+}
+
 function chunkCollage(
   list: Category[],
   heroSlots: CollageSlot[]
@@ -214,21 +246,48 @@ export default function CatalogCategoryHub({
 
       <div className="catalog-hub">
           {groups.map(({ group, slots }, gi) => {
+            if (gi === 0) {
+              const [hero, under, ...rest] = group;
+              return (
+                <div key="lead" className="catalog-hub-lead-wrap">
+                  <div className="catalog-hub-lead">
+                    <div className="catalog-hub-lead-side">
+                      <nav
+                        className="catalog-hub-nav catalog-hub-nav--stack"
+                        aria-label={t.catalog.category}
+                      >
+                        {navMarkup}
+                      </nav>
+                      {under ? (
+                        <HubCard cat={under} lang={lang} variant="natural" />
+                      ) : null}
+                    </div>
+                    {hero ? (
+                      <HubCard cat={hero} lang={lang} variant="hero" />
+                    ) : null}
+                  </div>
+                  {rest.length ? (
+                    <div className="catalog-hub-rest">
+                      {rest.map((cat) => (
+                        <HubCard
+                          key={cat.id}
+                          cat={cat}
+                          lang={lang}
+                          variant="fit"
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            }
             return (
               <div
                 key={gi}
-                className={`catalog-hub-canvas${gi === 0 ? " catalog-hub-canvas--hero" : ""}`}
+                className="catalog-hub-canvas"
                 style={{ aspectRatio: `100 / ${COLLAGE_FRAME}` }}
                 aria-label={t.catalog.title}
               >
-                {gi === 0 ? (
-                  <nav
-                    className="catalog-hub-nav catalog-hub-nav--overlay"
-                    aria-label={t.catalog.category}
-                  >
-                    {navMarkup}
-                  </nav>
-                ) : null}
                 {group.map((cat, i) => {
                   const slot = slots[i] ?? slots[slots.length - 1];
                   return (
