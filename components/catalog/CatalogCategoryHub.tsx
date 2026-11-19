@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import SidebarFilter from "@/components/layout/SidebarFilter";
 import type { Category } from "@/lib/categories";
 import { saveCatalogState } from "@/lib/catalogState";
@@ -33,25 +33,24 @@ type CollageSlot = {
 const COLLAGE_FRAME = 189;
 
 /**
- * Five cards, traced from the reference:
- * tall photo on the right, shorter one under the category list,
- * an inset wide strip, then two bottom photos that stop before the right edge.
+ * Hero stays on the right so the category list has a clear left column.
+ * The card that used to sit under the list is a tall frame in the lower block.
  */
 const COLLAGE_SLOTS: CollageSlot[] = [
-  { l: 43.5, t: 0, w: 55, h: 54, focus: "center 18%", z: 1 },
-  { l: 6.8, t: 21.3, w: 35.2, h: 35, focus: "center 30%", z: 2 },
-  { l: 14.9, t: 55.1, w: 79.2, h: 19.6, focus: "center 42%", z: 1 },
-  { l: 6.8, t: 75.1, w: 34.8, h: 24.7, focus: "center 28%", z: 1 },
-  { l: 42.9, t: 75.1, w: 42.9, h: 24.7, focus: "center 16%", z: 1 },
+  { l: 43.5, t: 0, w: 55, h: 40, focus: "center 18%", z: 1 },
+  { l: 6.8, t: 58, w: 42, h: 41.5, focus: "center 30%", z: 1 },
+  { l: 6.8, t: 41.6, w: 86.4, h: 15, focus: "center 42%", z: 1 },
+  { l: 50.6, t: 58, w: 42.6, h: 20, focus: "center 26%", z: 1 },
+  { l: 50.6, t: 79.5, w: 42.6, h: 20, focus: "center 16%", z: 1 },
 ];
 
-/** Later categories keep the same staggered frame, not an even grid. */
+/** Later screens: no list, so cards can use the full frame. */
 const COLLAGE_SLOTS_MORE: CollageSlot[] = [
-  { l: 43.5, t: 0, w: 55, h: 52, focus: "center 20%", z: 1 },
-  { l: 6.8, t: 18, w: 35.2, h: 36, focus: "center 32%", z: 2 },
-  { l: 14.9, t: 53, w: 79.2, h: 18, focus: "center 40%", z: 1 },
-  { l: 6.8, t: 73, w: 34.8, h: 26, focus: "center 26%", z: 1 },
-  { l: 42.9, t: 73, w: 42.9, h: 26, focus: "center 18%", z: 1 },
+  { l: 6.8, t: 2, w: 42, h: 46, focus: "center 22%", z: 1 },
+  { l: 51, t: 2, w: 42.2, h: 46, focus: "center 20%", z: 1 },
+  { l: 6.8, t: 50, w: 86.4, h: 18, focus: "center 40%", z: 1 },
+  { l: 6.8, t: 70, w: 42, h: 28, focus: "center 26%", z: 1 },
+  { l: 51, t: 70, w: 42.2, h: 28, focus: "center 18%", z: 1 },
 ];
 
 function chunkCollage(
@@ -91,8 +90,6 @@ export default function CatalogCategoryHub({
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const heroCanvasRef = useRef<HTMLDivElement>(null);
-  const navRef = useRef<HTMLElement>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<number | null>(0);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -179,22 +176,6 @@ export default function CatalogCategoryHub({
     router.push(`/${lang}/catalog?category=all`);
   }
 
-  useLayoutEffect(() => {
-    const canvas = heroCanvasRef.current;
-    const nav = navRef.current;
-    if (!canvas || !nav) return;
-    const place = () => {
-      const gap = 16;
-      const top = nav.offsetTop + nav.offsetHeight + gap;
-      canvas.style.setProperty("--tuck-top", `${top}px`);
-    };
-    place();
-    const observer = new ResizeObserver(place);
-    observer.observe(nav);
-    observer.observe(canvas);
-    return () => observer.disconnect();
-  }, [items, lang]);
-
   if (!items.length) return null;
 
   const groups = chunkCollage(items, COLLAGE_SLOTS);
@@ -236,14 +217,12 @@ export default function CatalogCategoryHub({
             return (
               <div
                 key={gi}
-                ref={gi === 0 ? heroCanvasRef : undefined}
                 className={`catalog-hub-canvas${gi === 0 ? " catalog-hub-canvas--hero" : ""}`}
                 style={{ aspectRatio: `100 / ${COLLAGE_FRAME}` }}
                 aria-label={t.catalog.title}
               >
                 {gi === 0 ? (
                   <nav
-                    ref={navRef}
                     className="catalog-hub-nav catalog-hub-nav--overlay"
                     aria-label={t.catalog.category}
                   >
@@ -256,7 +235,7 @@ export default function CatalogCategoryHub({
                     <Link
                       key={cat.id}
                       href={categoryHref(lang, cat.id)}
-                      className={`catalog-hub-card${cat.id === "all" ? " catalog-hub-card--all" : ""}${gi === 0 && i === 1 ? " catalog-hub-card--tuck" : ""}`}
+                      className={`catalog-hub-card${cat.id === "all" ? " catalog-hub-card--all" : ""}`}
                       style={{
                         left: `${slot.l}%`,
                         top: `${slot.t}%`,
