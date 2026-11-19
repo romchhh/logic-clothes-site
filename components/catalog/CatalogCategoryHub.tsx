@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import SidebarFilter from "@/components/layout/SidebarFilter";
 import type { Category } from "@/lib/categories";
 import { saveCatalogState } from "@/lib/catalogState";
@@ -91,6 +91,8 @@ export default function CatalogCategoryHub({
 }) {
   const { t } = useI18n();
   const router = useRouter();
+  const heroCanvasRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<number | null>(0);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -177,6 +179,22 @@ export default function CatalogCategoryHub({
     router.push(`/${lang}/catalog?category=all`);
   }
 
+  useLayoutEffect(() => {
+    const canvas = heroCanvasRef.current;
+    const nav = navRef.current;
+    if (!canvas || !nav) return;
+    const place = () => {
+      const gap = 16;
+      const top = nav.offsetTop + nav.offsetHeight + gap;
+      canvas.style.setProperty("--tuck-top", `${top}px`);
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(nav);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [items, lang]);
+
   if (!items.length) return null;
 
   const groups = chunkCollage(items, COLLAGE_SLOTS);
@@ -218,12 +236,14 @@ export default function CatalogCategoryHub({
             return (
               <div
                 key={gi}
+                ref={gi === 0 ? heroCanvasRef : undefined}
                 className={`catalog-hub-canvas${gi === 0 ? " catalog-hub-canvas--hero" : ""}`}
                 style={{ aspectRatio: `100 / ${COLLAGE_FRAME}` }}
                 aria-label={t.catalog.title}
               >
                 {gi === 0 ? (
                   <nav
+                    ref={navRef}
                     className="catalog-hub-nav catalog-hub-nav--overlay"
                     aria-label={t.catalog.category}
                   >

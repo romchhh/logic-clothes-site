@@ -1352,6 +1352,8 @@
     text-transform:lowercase;
     border-bottom:0;
     line-height:1.25;
+    max-width:100%;
+    overflow-wrap:anywhere;
   }
   .catalog-hub-nav-link:hover{
     border-bottom-color:rgba(17,17,17,.35);
@@ -1368,8 +1370,11 @@
     top:1.2%;
     z-index:4;
     width:34%;
-    max-width:none;
+    max-width:35.2%;
+    padding-bottom:4px;
+    box-sizing:border-box;
     pointer-events:none;
+    background:var(--white);
   }
   .catalog-hub-nav--overlay .catalog-hub-nav-link,
   .catalog-hub-nav--overlay .catalog-hub-nav-ellipsis{
@@ -1384,12 +1389,10 @@
       font-size:15px;
     }
   }
-  /* Desktop canvas is much taller, so the left photo would sit far below the list. */
-  @media (min-width:1024px){
-    .catalog-hub-card--tuck{
-      top:12.25rem !important;
-      height:calc(56.2% - 12.25rem) !important;
-    }
+  /* Left photo starts under the category list, on both widths. */
+  .catalog-hub-card--tuck{
+    top:var(--tuck-top, 21.3%) !important;
+    height:calc(56.2% - var(--tuck-top, 21.3%)) !important;
   }
   .catalog-hub-canvas + .catalog-hub-canvas{
     margin-top:2px;
