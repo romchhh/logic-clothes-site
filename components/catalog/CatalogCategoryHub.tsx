@@ -57,15 +57,17 @@ function HubCard({
   cat,
   lang,
   variant,
+  className = "",
 }: {
   cat: Category;
   lang: Locale;
   variant: "hero" | "natural" | "fit";
+  className?: string;
 }) {
   return (
     <Link
       href={categoryHref(lang, cat.id)}
-      className={`catalog-hub-card catalog-hub-card--${variant}${cat.id === "all" ? " catalog-hub-card--all" : ""}`}
+      className={`catalog-hub-card catalog-hub-card--${variant}${className ? ` ${className}` : ""}${cat.id === "all" ? " catalog-hub-card--all" : ""}`}
     >
       {variant === "natural" ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -247,27 +249,31 @@ export default function CatalogCategoryHub({
       <div className="catalog-hub">
           {groups.map(({ group, slots }, gi) => {
             if (gi === 0) {
-              const [hero, under, ...rest] = group;
+              const [hero, under, beside, ...rest] = group;
               return (
                 <div key="lead" className="catalog-hub-lead-wrap">
-                  <div className="catalog-hub-lead">
-                    <div className="catalog-hub-lead-side">
-                      <nav
-                        className="catalog-hub-nav catalog-hub-nav--stack"
-                        aria-label={t.catalog.category}
-                      >
-                        {navMarkup}
-                      </nav>
-                      {under ? (
-                        <HubCard cat={under} lang={lang} variant="natural" />
-                      ) : null}
-                    </div>
-                    {hero ? (
-                      <HubCard cat={hero} lang={lang} variant="hero" />
-                    ) : null}
-                  </div>
-                  {rest.length ? (
+                  <nav
+                    className="catalog-hub-nav catalog-hub-nav--stack"
+                    aria-label={t.catalog.category}
+                  >
+                    {navMarkup}
+                  </nav>
+                  {hero ? (
+                    <HubCard cat={hero} lang={lang} variant="hero" />
+                  ) : null}
+                  {under ? (
+                    <HubCard cat={under} lang={lang} variant="natural" />
+                  ) : null}
+                  {beside || rest.length ? (
                     <div className="catalog-hub-rest">
+                      {beside ? (
+                        <HubCard
+                          cat={beside}
+                          lang={lang}
+                          variant="fit"
+                          className="catalog-hub-card--beside"
+                        />
+                      ) : null}
                       {rest.map((cat) => (
                         <HubCard
                           key={cat.id}
