@@ -38,10 +38,14 @@ type CategoryRow = {
 function mapCategory(row: CategoryRow): Category {
   const count =
     row.product_count == null ? undefined : Number(row.product_count);
+  const labelUk =
+    row.id === "new" ? "найновіше" : row.label_uk;
+  const labelEn =
+    row.id === "new" ? "newest" : row.label_en;
   return {
     id: row.id,
     image: row.image || "",
-    label: { uk: row.label_uk, en: row.label_en },
+    label: { uk: labelUk, en: labelEn },
     cta: { uk: row.cta_uk, en: row.cta_en },
     kind: row.kind,
     sortOrder: row.sort_order,

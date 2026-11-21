@@ -60,7 +60,6 @@ import {
   type GarmentMeasureKey,
 } from "@/lib/garmentMeasures";
 import {
-  categorySupportsSeasonFilter,
   normalizeProductSeason,
 } from "@/lib/productSeason";
 import type { Product, ProductMedia } from "@/lib/types";
@@ -149,7 +148,7 @@ const EMPTY: FormState = {
   madeToOrder: false,
   season: null,
   isDraft: true,
-  isNew: false,
+  isNew: true,
   isPopular: false,
   isSale: false,
   media: [],
@@ -774,9 +773,7 @@ export default function ProductForm({ productId }: Props) {
       })(),
       inStock: form.inStock,
       madeToOrder: form.madeToOrder,
-      season: categorySupportsSeasonFilter(form.category)
-        ? form.season
-        : null,
+      season: form.season,
       isVisible: !asDraft,
       isNew: form.isNew,
       isPopular: form.isPopular,
@@ -1145,9 +1142,6 @@ export default function ProductForm({ productId }: Props) {
                   setForm((prev) => ({
                     ...prev,
                     category: v,
-                    season: categorySupportsSeasonFilter(v)
-                      ? prev.season
-                      : null,
                   }));
                 }}
               />
@@ -1204,7 +1198,7 @@ export default function ProductForm({ productId }: Props) {
             </div>
             <div className="admin-toggle-row">
               <ToggleSwitch
-                label="New"
+                label="Найновіше"
                 enabled={form.isNew}
                 setEnabled={(v) => set("isNew", v)}
               />
@@ -1219,30 +1213,28 @@ export default function ProductForm({ productId }: Props) {
                 setEnabled={(v) => set("isPopular", v)}
               />
             </div>
-            {categorySupportsSeasonFilter(form.category) ? (
-              <div className="admin-toggle-row">
-                <ToggleSwitch
-                  label="Літо"
-                  enabled={form.season === "summer"}
-                  setEnabled={(v) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      season: v ? "summer" : null,
-                    }))
-                  }
-                />
-                <ToggleSwitch
-                  label="Зима"
-                  enabled={form.season === "winter"}
-                  setEnabled={(v) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      season: v ? "winter" : null,
-                    }))
-                  }
-                />
-              </div>
-            ) : null}
+            <div className="admin-toggle-row">
+              <ToggleSwitch
+                label="Літо"
+                enabled={form.season === "summer"}
+                setEnabled={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    season: v ? "summer" : null,
+                  }))
+                }
+              />
+              <ToggleSwitch
+                label="Зима"
+                enabled={form.season === "winter"}
+                setEnabled={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    season: v ? "winter" : null,
+                  }))
+                }
+              />
+            </div>
           </div>
         </div>
       </ComponentCard>

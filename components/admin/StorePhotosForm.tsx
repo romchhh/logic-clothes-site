@@ -11,6 +11,11 @@ export default function StorePhotosForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const photosRef = useRef<StorePhoto[]>([]);
+
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
 
   const load = async () => {
     setLoading(true);
@@ -35,6 +40,41 @@ export default function StorePhotosForm() {
     void load();
   }, []);
 
+  const persist = async (next: StorePhoto[], okMessage: string) => {
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/store-photos", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photos: next }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(body?.error || `HTTP ${res.status}`);
+      }
+      const json = (await res.json()) as { photos?: StorePhoto[] };
+      const saved = Array.isArray(json.photos) ? json.photos : next;
+      setPhotos(saved);
+      setMessage(okMessage);
+      return saved;
+    } catch (e) {
+      console.error(e);
+      setError(
+        e instanceof Error && e.message
+          ? `Не вдалося зберегти: ${e.message}`
+          : "Не вдалося зберегти"
+      );
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const uploadImages = async (files: FileList | File[]) => {
     const list = Array.from(files);
     if (!list.length) return;
@@ -50,23 +90,38 @@ export default function StorePhotosForm() {
         credentials: "include",
         body: fd,
       });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = (await res.json()) as { urls?: string[] };
+      const data = (await res.json().catch(() => ({}))) as {
+        urls?: string[];
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(
+          data.message || data.error || `Помилка завантаження (${res.status})`
+        );
+      }
       const urls = (data.urls || []).filter(Boolean);
-      if (!urls.length) throw new Error("No urls");
-      setPhotos((prev) => [
-        ...prev,
+      if (!urls.length) throw new Error("Сервер не повернув файли");
+      const next = [
+        ...photosRef.current,
         ...urls.map((src) => ({
           src,
-          altUk: "Магазин Logic Clothes у Києві",
-          altEn: "Logic Clothes store in Kyiv",
+          altUk: "",
+          altEn: "",
         })),
-      ]);
-      setMessage(
-        "Фото додано — натисніть «Зберегти», щоб опублікувати на сайті"
+      ];
+      setPhotos(next);
+      await persist(
+        next,
+        "Фото додано й збережено. Допишіть підписи UA/EN нижче й натисніть «Зберегти», якщо змінюєте текст."
       );
-    } catch {
-      setError("Не вдалося завантажити зображення");
+    } catch (e) {
+      console.error(e);
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Не вдалося завантажити зображення"
+      );
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -79,8 +134,10 @@ export default function StorePhotosForm() {
     );
   };
 
-  const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  const removePhoto = async (index: number) => {
+    const next = photosRef.current.filter((_, i) => i !== index);
+    setPhotos(next);
+    await persist(next, "Фото видалено");
   };
 
   const movePhoto = (index: number, dir: -1 | 1) => {
@@ -95,25 +152,7 @@ export default function StorePhotosForm() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    setMessage(null);
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/store-photos", {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photos }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as { photos?: StorePhoto[] };
-      setPhotos(Array.isArray(json.photos) ? json.photos : photos);
-      setMessage("Збережено");
-    } catch {
-      setError("Не вдалося зберегти");
-    } finally {
-      setSaving(false);
-    }
+    await persist(photosRef.current, "Збережено. Зміни з’являться на сайті.");
   };
 
   if (loading) {
@@ -122,22 +161,22 @@ export default function StorePhotosForm() {
 
   return (
     <form onSubmit={save} className="space-y-6">
-      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-[#141414]">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-medium text-gray-900">
-              Фото «наш магазин у Києві»
+            <h2 className="text-base font-medium text-gray-900 dark:text-white">
+              Фото й підписи «наш магазин у Києві»
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Показуються під галереєю на сторінці товару. Якщо фото кілька —
-              скрол як у «Новинки».
+              Блок під галереєю на сторінці товару. Додайте фото — воно
+              зберігається одразу. Підписи UA/EN видно на сайті під фото.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
               multiple
               className="hidden"
               onChange={(e) => {
@@ -147,7 +186,7 @@ export default function StorePhotosForm() {
             <button
               type="button"
               className="admin-btn-secondary"
-              disabled={uploading}
+              disabled={uploading || saving}
               onClick={() => fileRef.current?.click()}
             >
               {uploading ? "Завантаження…" : "Додати фото"}
@@ -155,9 +194,9 @@ export default function StorePhotosForm() {
             <button
               type="submit"
               className="admin-btn-primary"
-              disabled={saving}
+              disabled={saving || uploading}
             >
-              {saving ? "Збереження…" : "Зберегти"}
+              {saving ? "Збереження…" : "Зберегти підписи"}
             </button>
           </div>
         </div>
@@ -175,15 +214,15 @@ export default function StorePhotosForm() {
 
         {!photos.length ? (
           <p className="text-sm text-gray-500">
-            Поки немає фото. Додайте хоча б одне — або збережіть порожній список,
-            щоб приховати блок на сайті.
+            Поки немає фото. Натисніть «Додати фото» (JPEG/PNG/WebP). Порожній
+            список після збереження ховає блок на сайті.
           </p>
         ) : (
           <ul className="space-y-4">
             {photos.map((photo, index) => (
               <li
                 key={`${photo.src}-${index}`}
-                className="grid gap-4 border border-gray-100 bg-gray-50 p-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]"
+                className="grid gap-4 border border-gray-100 bg-gray-50 p-3 sm:grid-cols-[140px_minmax(0,1fr)_auto] dark:border-white/[0.06] dark:bg-white/[0.03]"
               >
                 <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -195,23 +234,27 @@ export default function StorePhotosForm() {
                 </div>
                 <div className="space-y-3">
                   <label className="block text-xs text-gray-500">
-                    Підпис UA
-                    <input
-                      className="mt-1 w-full border border-gray-200 bg-white px-3 py-2 text-sm"
+                    Текст під фото (UA)
+                    <textarea
+                      className="mt-1 w-full border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-[#0f0f0f]"
+                      rows={2}
                       value={photo.altUk}
                       onChange={(e) =>
                         updatePhoto(index, { altUk: e.target.value })
                       }
+                      placeholder="Наприклад: Concept store, Софіївська 5"
                     />
                   </label>
                   <label className="block text-xs text-gray-500">
-                    Підпис EN
-                    <input
-                      className="mt-1 w-full border border-gray-200 bg-white px-3 py-2 text-sm"
+                    Текст під фото (EN)
+                    <textarea
+                      className="mt-1 w-full border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-[#0f0f0f]"
+                      rows={2}
                       value={photo.altEn}
                       onChange={(e) =>
                         updatePhoto(index, { altEn: e.target.value })
                       }
+                      placeholder="Caption in English"
                     />
                   </label>
                   <p className="truncate text-[11px] text-gray-400">
@@ -238,7 +281,8 @@ export default function StorePhotosForm() {
                   <button
                     type="button"
                     className="admin-btn-secondary text-red-700"
-                    onClick={() => removePhoto(index)}
+                    disabled={saving}
+                    onClick={() => void removePhoto(index)}
                   >
                     Видалити
                   </button>

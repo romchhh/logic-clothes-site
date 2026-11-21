@@ -3,7 +3,7 @@
 import { useCallback, useId, useMemo, useState } from "react";
 import {
   SITE_INSTAGRAM_HANDLE,
-  SITE_PHONE,
+  SITE_VIBER_PHONE,
 } from "@/lib/siteContact";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
@@ -12,7 +12,7 @@ type Channel = "instagram" | "viber";
 
 /** Digits only (no +). Prefill text via clipboard — URL text param breaks many Viber clients. */
 function viberChatUrl(): string {
-  const digits = SITE_PHONE.replace(/\D/g, "");
+  const digits = SITE_VIBER_PHONE.replace(/\D/g, "");
   return `viber://chat?number=${digits}`;
 }
 

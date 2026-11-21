@@ -76,13 +76,6 @@ export default function ProductCard({
         </div>
         <div className="product-info">
           <div className="product-info-text">
-            {product.inStock === false ? (
-              <p className="product-avail">
-                {product.madeToOrder
-                  ? t.product.sewIn14Days
-                  : t.product.outOfStock}
-              </p>
-            ) : null}
             <div className="product-name">{title}</div>
           </div>
           <div className="product-price">

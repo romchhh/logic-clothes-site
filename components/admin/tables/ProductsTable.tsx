@@ -18,6 +18,7 @@ const BULK_LINKS = [
   { href: "/admin/products/crops", label: "Кадр фото" },
   { href: "/admin/products/prices", label: "Усі ціни" },
   { href: "/admin/products/stock", label: "Наявність" },
+  { href: "/admin/products/season", label: "Сезонність" },
 ] as const;
 
 const PER_PAGE = 20;

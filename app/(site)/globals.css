@@ -2700,26 +2700,9 @@
     margin-top:10px;
     padding:12px 0 4px;
     border-top:0.5px solid var(--pdp-line);
-    display:grid;
-    gap:14px;
-  }
-  @media (min-width:520px){
-    .pdp-care-panel{
-      grid-template-columns:minmax(120px,160px) minmax(0,1fr);
-      align-items:start;
-      gap:18px;
-    }
-  }
-  .pdp-care-visual{margin:0;}
-  .pdp-care-image{
-    display:block;
-    width:100%;
-    max-width:160px;
-    height:auto;
-    aspect-ratio:3/4;
-    object-fit:cover;
-    margin:0 0 8px;
-    background:var(--pdp-wash, #f5f5f3);
+    display:flex;
+    flex-direction:column;
+    gap:12px;
   }
   .pdp-care-label{
     margin:0;
@@ -2858,9 +2841,24 @@
     margin:0;
     width:100%;
     min-width:0;
+    display:flex;
+    flex-direction:column;
+    background:#ebebeb;
+  }
+  .pdp-store-photo-media{
+    position:relative;
+    width:100%;
     aspect-ratio:4 / 3;
     overflow:hidden;
     background:#ebebeb;
+  }
+  .pdp-store-photo-caption{
+    margin:0;
+    padding:8px 10px 10px;
+    font-size:12px;
+    line-height:1.35;
+    color:var(--pdp-soft, #555);
+    background:var(--white, #fff);
   }
   .pdp-size-chart--inline{
     margin-top:10px;
@@ -2910,33 +2908,43 @@
   }
   .pdp-sizes--text{
     display:flex;
-    flex-wrap:nowrap;
-    justify-content:space-between;
+    flex-wrap:wrap;
+    justify-content:flex-start;
     align-items:center;
-    gap:2px;
+    gap:6px 14px;
     width:100%;
   }
   .pdp-size-wrap{
     position:relative;
     display:inline-flex;
     align-items:center;
-    flex:1 1 0;
-    min-width:0;
+    flex:0 0 auto;
+    min-width:max-content;
     justify-content:center;
   }
-  /* Short sew CTAs — right-aligned, not full-bleed */
+  .pdp-size-actions{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px 16px;
+    margin:8px 0 4px;
+    width:100%;
+  }
+  .pdp-size-actions-chart{
+    flex:0 1 auto;
+    margin:0;
+  }
+  /* Short sew CTAs — sit beside size chart without overlapping */
   .pdp-size-sew-cta.is-inline,
   .pdp-palette-sew-cta.is-inline{
     display:inline-flex;
-    position:sticky;
-    right:0;
-    top:auto;
-    z-index:2;
-    float:right;
-    clear:both;
+    position:static;
+    float:none;
+    flex:0 1 auto;
     width:auto;
     max-width:min(100%, 280px);
-    margin:8px 0 6px auto;
+    margin:0 0 0 auto;
     padding:7px 11px;
     border:0;
     border-radius:0;
@@ -2954,11 +2962,8 @@
     white-space:normal;
     box-sizing:border-box;
   }
-  .pdp-option--size::after,
-  .pdp-buy-opts::after{
-    content:"";
-    display:table;
-    clear:both;
+  .pdp-palette-sew-cta.is-inline{
+    margin:8px 0 6px auto;
   }
   .pdp-size--text.is-pinned{
     text-decoration:underline;
@@ -2966,19 +2971,20 @@
   }
   .pdp-size--text,
   .pdp-sizes--text .pdp-size{
-    flex:1 1 0;
-    min-width:0;
+    flex:0 0 auto;
+    min-width:max-content;
     height:auto;
-    padding:6px 1px;
+    padding:6px 2px;
     border:0;
     border-radius:0;
     background:transparent;
-    font-size:clamp(15px, 4.1vw, 21px);
+    font-size:clamp(15px, 3.6vw, 20px);
     font-weight:var(--weight-regular);
     letter-spacing:.01em;
     text-transform:lowercase;
     text-align:center;
     color:var(--pdp-ink);
+    white-space:nowrap;
   }
   .pdp-size--text.is-plus,
   .pdp-sizes--text .pdp-size.is-plus{

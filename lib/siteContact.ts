@@ -1,6 +1,10 @@
 export const SITE_NAME = "Logic Clothes";
 export const SITE_PHONE = "+380669708735";
 export const SITE_PHONE_DISPLAY = "+38 066 970 87 35";
+/** Viber менеджера (Роман). */
+export const SITE_VIBER_PHONE = "+380966440419";
+export const SITE_VIBER_PHONE_DISPLAY = "+380 (96) 644 04 19";
+export const SITE_VIBER_NAME = "Роман";
 export const SITE_EMAIL = "logicclothes.ua@gmail.com";
 export const SITE_INSTAGRAM_HANDLE = "_logic_clothes";
 export const SITE_INSTAGRAM = "https://www.instagram.com/_logic_clothes/";

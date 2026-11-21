@@ -333,13 +333,19 @@ export default function CategoriesTable() {
     }
   };
 
-  const move = async (id: string, dir: -1 | 1) => {
-    const ids = categories.map((c) => c.id);
-    const idx = ids.indexOf(id);
+  const move = async (id: string, dir: -1 | 1, groupIds: string[]) => {
+    const idx = groupIds.indexOf(id);
     const swap = idx + dir;
-    if (idx < 0 || swap < 0 || swap >= ids.length) return;
-    const next = [...ids];
-    [next[idx], next[swap]] = [next[swap], next[idx]];
+    if (idx < 0 || swap < 0 || swap >= groupIds.length) return;
+    const reorderedGroup = [...groupIds];
+    [reorderedGroup[idx], reorderedGroup[swap]] = [
+      reorderedGroup[swap],
+      reorderedGroup[idx],
+    ];
+    let gi = 0;
+    const next = categories.map((c) =>
+      groupIds.includes(c.id) ? reorderedGroup[gi++] : c.id
+    );
     setCategories((prev) => {
       const map = Object.fromEntries(prev.map((c) => [c.id, c]));
       return next.map((cid, i) => ({ ...map[cid], sortOrder: i }));
@@ -383,19 +389,24 @@ export default function CategoriesTable() {
           <div>
             <h2 className="admin-panel-title">Колекції на вітрині</h2>
             <p className="admin-panel-desc">
-              Системні підбірки (Бестселери, Новинки). Можна змінити назву й
-              фото, але не видалити.
+              Системні підбірки (Бестселери, найновіше). Можна змінити назву й
+              фото, але не видалити. Порядок змінюється лише всередині секції.
             </p>
           </div>
         </div>
         <CategoryRows
           items={collections}
-          allIds={categories.map((c) => c.id)}
           loading={loading}
           onEdit={openEdit}
           onToggle={toggleVisible}
           onDelete={remove}
-          onMove={move}
+          onMove={(id, dir) =>
+            void move(
+              id,
+              dir,
+              collections.map((c) => c.id)
+            )
+          }
         />
       </section>
 
@@ -405,18 +416,24 @@ export default function CategoriesTable() {
             <h2 className="admin-panel-title">Категорії товарів</h2>
             <p className="admin-panel-desc">
               Призначаються товарам у формі редагування. Порядок впливає на
-              фільтри та карусель на головній.
+              фільтри та карусель на головній. Стрілки рухають лише в межах цієї
+              секції — рядки не зникають у колекції.
             </p>
           </div>
         </div>
         <CategoryRows
           items={productCats}
-          allIds={categories.map((c) => c.id)}
           loading={loading}
           onEdit={openEdit}
           onToggle={toggleVisible}
           onDelete={remove}
-          onMove={move}
+          onMove={(id, dir) =>
+            void move(
+              id,
+              dir,
+              productCats.map((c) => c.id)
+            )
+          }
         />
       </section>
 
@@ -622,7 +639,6 @@ function Field({
 
 function CategoryRows({
   items,
-  allIds,
   loading,
   onEdit,
   onToggle,
@@ -630,7 +646,6 @@ function CategoryRows({
   onMove,
 }: {
   items: Category[];
-  allIds: string[];
   loading: boolean;
   onEdit: (c: Category) => void;
   onToggle: (c: Category) => void;
@@ -656,8 +671,7 @@ function CategoryRows({
     <>
       {/* Mobile cards */}
       <div className="divide-y divide-gray-100 dark:divide-white/[0.06] md:hidden">
-        {items.map((c) => {
-          const idx = allIds.indexOf(c.id);
+        {items.map((c, idx) => {
           return (
             <div key={c.id} className="flex gap-2.5 px-3 py-3">
               <div className="flex shrink-0 flex-col items-center gap-0.5 pt-1">
@@ -673,7 +687,7 @@ function CategoryRows({
                 <button
                   type="button"
                   className="admin-btn-icon !h-9 !w-9 text-xs"
-                  disabled={idx < 0 || idx >= allIds.length - 1}
+                  disabled={idx >= items.length - 1}
                   onClick={() => onMove(c.id, 1)}
                   aria-label="Нижче"
                 >
@@ -739,22 +753,21 @@ function CategoryRows({
         })}
       </div>
 
-      {/* Desktop table */}
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[640px] text-left">
+      {/* Desktop table — keep names visible, no aggressive min-width scroll trap */}
+      <div className="hidden md:block">
+        <table className="w-full table-fixed text-left">
           <thead>
             <tr className="border-b border-gray-100 dark:border-white/[0.06]">
               <th className="admin-th w-10" />
-              <th className="admin-th">Категорія</th>
-              <th className="admin-th">Тип</th>
-              <th className="admin-th">Товарів</th>
-              <th className="admin-th">Статус</th>
-              <th className="admin-th text-right">Дії</th>
+              <th className="admin-th w-[42%]">Категорія</th>
+              <th className="admin-th w-[12%]">Тип</th>
+              <th className="admin-th w-[12%]">Товарів</th>
+              <th className="admin-th w-[12%]">Статус</th>
+              <th className="admin-th w-[16%] text-right">Дії</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-white/[0.06]">
-            {items.map((c) => {
-              const idx = allIds.indexOf(c.id);
+            {items.map((c, idx) => {
               return (
                 <tr
                   key={c.id}
@@ -774,7 +787,7 @@ function CategoryRows({
                       <button
                         type="button"
                         className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 dark:hover:bg-white/10"
-                        disabled={idx < 0 || idx >= allIds.length - 1}
+                        disabled={idx >= items.length - 1}
                         onClick={() => onMove(c.id, 1)}
                         aria-label="Нижче"
                       >
@@ -783,22 +796,22 @@ function CategoryRows({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
                       {c.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={c.image}
                           alt=""
-                          className="h-12 w-9 rounded-md border border-gray-200 object-cover dark:border-gray-700"
+                          className="h-12 w-9 shrink-0 rounded-md border border-gray-200 object-cover dark:border-gray-700"
                         />
                       ) : (
-                        <div className="h-12 w-9 rounded-md bg-gray-100 dark:bg-gray-800" />
+                        <div className="h-12 w-9 shrink-0 rounded-md bg-gray-100 dark:bg-gray-800" />
                       )}
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium text-gray-900 dark:text-white">
                           {c.label.uk}
                         </div>
-                        <div className="text-xs text-gray-400">
+                        <div className="truncate text-xs text-gray-400">
                           {c.label.en} · <code>{c.id}</code>
                         </div>
                       </div>

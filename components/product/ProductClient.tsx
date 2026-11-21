@@ -284,15 +284,7 @@ export default function ProductClient({
               </button>
               {careOpen ? (
                 <div className="pdp-care-panel">
-                  <div className="pdp-care-visual">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={care.image}
-                      alt=""
-                      className="pdp-care-image"
-                    />
-                    <p className="pdp-care-label">{careLabel(care, lang)}</p>
-                  </div>
+                  <p className="pdp-care-label">{careLabel(care, lang)}</p>
                   {care.steps?.length ? (
                     <ul className="pdp-care-steps">
                       {care.steps.map((step, i) => (
@@ -387,25 +379,27 @@ export default function ProductClient({
                 );
               })}
             </div>
-            {pinnedSewSize ? (
+            <div className="pdp-size-actions">
               <button
                 type="button"
-                className="pdp-size-sew-cta is-inline"
-                onClick={openBuilder}
+                className="pdp-disclosure pdp-size-actions-chart"
+                aria-expanded={sizeChartOpen}
+                onClick={() => setSizeChartOpen((v) => !v)}
               >
-                {t.product.sewMySize}
+                {sizeChartOpen
+                  ? t.product.closeSizeChart
+                  : t.product.openSizeChart}
               </button>
-            ) : null}
-            <button
-              type="button"
-              className="pdp-disclosure"
-              aria-expanded={sizeChartOpen}
-              onClick={() => setSizeChartOpen((v) => !v)}
-            >
-              {sizeChartOpen
-                ? t.product.closeSizeChart
-                : t.product.openSizeChart}
-            </button>
+              {pinnedSewSize ? (
+                <button
+                  type="button"
+                  className="pdp-size-sew-cta is-inline"
+                  onClick={openBuilder}
+                >
+                  {t.product.sewMySize}
+                </button>
+              ) : null}
+            </div>
             {sizeChartOpen ? (
               <div
                 className="pdp-size-chart pdp-size-chart--inline"
@@ -761,24 +755,33 @@ export default function ProductClient({
             </h2>
           </div>
           <div className="pdp-store-photos-track">
-            {storePhotos.map((photo, i) => (
-              <figure
-                key={`${photo.src}-${i}`}
-                className="pdp-store-photo"
-              >
-                <Image
-                  src={photo.src}
-                  alt={
-                    lang === "en"
-                      ? photo.altEn || photo.altUk
-                      : photo.altUk || photo.altEn
-                  }
-                  fill
-                  sizes="(max-width: 899px) 50vw, 25vw"
-                  style={{ objectFit: "cover" }}
-                />
-              </figure>
-            ))}
+            {storePhotos.map((photo, i) => {
+              const caption =
+                lang === "en"
+                  ? photo.altEn || photo.altUk
+                  : photo.altUk || photo.altEn;
+              return (
+                <figure
+                  key={`${photo.src}-${i}`}
+                  className="pdp-store-photo"
+                >
+                  <div className="pdp-store-photo-media">
+                    <Image
+                      src={photo.src}
+                      alt={caption || t.product.storePhotosTitle}
+                      fill
+                      sizes="(max-width: 899px) 50vw, 25vw"
+                      style={{ objectFit: "cover" }}
+                    />
+                  </div>
+                  {caption ? (
+                    <figcaption className="pdp-store-photo-caption">
+                      {caption}
+                    </figcaption>
+                  ) : null}
+                </figure>
+              );
+            })}
           </div>
         </section>
       ) : null}

@@ -53,6 +53,17 @@ export default function ContentEditor() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const page = new URLSearchParams(window.location.search).get("page");
+    if (
+      page &&
+      CONTENT_PAGE_DEFS.some((d) => d.slug === page)
+    ) {
+      setSlug(page as ContentPageSlug);
+    }
+  }, []);
+
   const def = useMemo(
     () => CONTENT_PAGE_DEFS.find((d) => d.slug === slug)!,
     [slug]
@@ -181,6 +192,11 @@ export default function ContentEditor() {
                 onClick={() => {
                   setSlug(d.slug);
                   setMessage(null);
+                  if (typeof window !== "undefined") {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("page", d.slug);
+                    window.history.replaceState({}, "", url.toString());
+                  }
                 }}
                 className={`rounded-lg px-3 py-2 text-[13px] font-medium transition ${
                   active

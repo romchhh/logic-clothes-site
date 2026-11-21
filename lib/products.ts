@@ -7,6 +7,8 @@ import { getProductsEpoch } from "@/lib/productCache";
 import {
   productInNewSection,
   productOnSale,
+  productsForNewestSection,
+  sortByNewestFirst,
 } from "@/lib/productCatalogSections";
 import type { Product, ProductColorVariant } from "@/lib/types";
 
@@ -147,7 +149,7 @@ export async function getHomeProductRails(limit = 14): Promise<{
     (await getProducts()).filter(isCatalogProduct)
   );
   const popular = products.filter((p) => p.isPopular).slice(0, limit);
-  const newcomers = products.filter((p) => p.isNew).slice(0, limit);
+  const newcomers = productsForNewestSection(products, { limit });
   const sale = products
     .filter(
       (p) =>
@@ -158,7 +160,7 @@ export async function getHomeProductRails(limit = 14): Promise<{
 
   return {
     popular: popular.length ? popular : products.slice(0, limit),
-    newcomers: newcomers.length ? newcomers : products.slice(0, Math.min(limit, 8)),
+    newcomers,
     sale,
   };
 }
@@ -184,12 +186,16 @@ export async function getRelatedProducts(
       .slice(0, limit);
     if (look.length) return { products: look, kind: "look" };
   }
-  const newcomers = products
-    .filter((p) => p.id !== id && productInNewSection(p))
-    .slice(0, limit);
+  const newcomers = productsForNewestSection(
+    products.filter((p) => p.id !== id),
+    { limit }
+  );
   if (newcomers.length) return { products: newcomers, kind: "newcomers" };
   return {
-    products: products.filter((p) => p.id !== id).slice(0, limit),
+    products: sortByNewestFirst(products.filter((p) => p.id !== id)).slice(
+      0,
+      limit
+    ),
     kind: "newcomers",
   };
 }
@@ -204,7 +210,7 @@ export async function getProductsByCategory(
 ): Promise<Product[]> {
   const products = (await getProducts()).filter(isCatalogProduct);
   if (!category || category === "all") return products;
-  if (category === "new") return products.filter(productInNewSection);
+  if (category === "new") return productsForNewestSection(products);
   if (category === "sale") return products.filter(productOnSale);
   return products.filter((p) => p.category === category);
 }
