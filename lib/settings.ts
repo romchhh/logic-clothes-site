@@ -26,6 +26,10 @@ function emptySettings(): SettingsMap {
     hero_title_en: "",
     hero_subtitle_uk: "",
     hero_subtitle_en: "",
+    footer_slogan_uk: "",
+    footer_slogan_en: "",
+    footer_slogan_accent_uk: "",
+    footer_slogan_accent_en: "",
   };
 }
 
@@ -118,6 +122,10 @@ export async function getSettingsForAdmin(): Promise<{
     hero_title_en: "",
     hero_subtitle_uk: "",
     hero_subtitle_en: "",
+    footer_slogan_uk: "",
+    footer_slogan_en: "",
+    footer_slogan_accent_uk: "",
+    footer_slogan_accent_en: "",
   };
 
   for (const key of SETTING_KEYS) {

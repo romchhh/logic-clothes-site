@@ -37,6 +37,8 @@ export type Messages = {
     filter: string;
     filters: string;
     empty: string;
+    emptyLead: string;
+    emptyContact: string;
     category: string;
     sortNewest: string;
     sortAsc: string;
@@ -338,7 +340,10 @@ const uk: Messages = {
     sort: "Сортувати",
     filter: "Фільтр",
     filters: "Фільтри",
-    empty: "Товарів не знайдено",
+    empty: "Товарів за цими фільтрами не знайдено",
+    emptyLead:
+      "Напишіть нам — підкажемо наявність або пошиємо під ваші побажання.",
+    emptyContact: "звʼязатися з нами",
     category: "Категорія",
     sortNewest: "За пріоритетом",
     sortAsc: "Ціна: від низької",
@@ -421,9 +426,9 @@ const uk: Messages = {
     sizeTooltipMadeToOrder: "Зшиємо за 14 днів",
     customOrderTitle: "Конструктор власного замовлення",
     customOrderLead:
-      "Оберіть загальну гаму. Можливі відтінки відправимо вам на вибір та затвердження.",
+      "Оберіть палітру, потім конкретний колір у ній. За потреби уточнимо відтінок у листуванні.",
     customOrderCta: "обговорити замовлення з живою людиною",
-    customOrderSelected: "Обрані палітри",
+    customOrderSelected: "Обрані кольори",
     discussChoose: "Куди надіслати повідомлення?",
     discussInstagram: "Instagram Direct",
     discussMessenger: "Месенджер (Viber · Роман)",
@@ -657,7 +662,10 @@ const en: Messages = {
     sort: "Sort",
     filter: "Filter",
     filters: "Filters",
-    empty: "No products found",
+    empty: "No products match these filters",
+    emptyLead:
+      "Write to us — we’ll help you find something or sew a custom piece.",
+    emptyContact: "contact us",
     category: "Category",
     sortNewest: "By priority",
     sortAsc: "Price: low to high",
@@ -740,9 +748,9 @@ const en: Messages = {
     sizeTooltipMadeToOrder: "Made to order in 14 days",
     customOrderTitle: "Build your custom order",
     customOrderLead:
-      "Choose a colour family. We’ll send possible shades for you to pick and approve.",
+      "Pick a palette, then a specific colour in it. We’ll refine the shade with you if needed.",
     customOrderCta: "discuss your order with a real person",
-    customOrderSelected: "Selected palettes",
+    customOrderSelected: "Selected colours",
     discussChoose: "Where should we receive your message?",
     discussInstagram: "Instagram Direct",
     discussMessenger: "Viber · Roman",

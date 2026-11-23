@@ -75,6 +75,10 @@ export default function ProductClient({
   const [builderOpen, setBuilderOpen] = useState(false);
   const care = careInstruction;
   const [pinnedSewSize, setPinnedSewSize] = useState<string | null>(null);
+  const [paletteShadeLabel, setPaletteShadeLabel] = useState(
+    product.color || ""
+  );
+  const [pinnedShadeId, setPinnedShadeId] = useState<string | null>(null);
   const [lengthHint, setLengthHint] = useState(false);
   const [materialHint, setMaterialHint] = useState(false);
   const sizeBlockRef = useRef<HTMLDivElement>(null);
@@ -579,6 +583,8 @@ export default function ProductClient({
               product={product}
               lang={lang}
               onRequestSew={openBuilder}
+              onShadeLabelChange={setPaletteShadeLabel}
+              onPinnedShadeChange={setPinnedShadeId}
             />
           </div>
 
@@ -624,7 +630,7 @@ export default function ProductClient({
             lang={lang}
             productId={product.id}
             productName={displayName}
-            shadeLabel={product.color || ""}
+            shadeLabel={paletteShadeLabel || product.color || ""}
             label={t.product.customOrderCta}
           />
 
@@ -709,10 +715,12 @@ export default function ProductClient({
 
           {builderOpen ? (
             <ProductCustomBuilder
+              key={pinnedShadeId || product.id}
               product={product}
               lang={lang}
               sizes={displaySizes}
               onAdd={addCustom}
+              preferredShadeId={pinnedShadeId}
             />
           ) : null}
         </div>

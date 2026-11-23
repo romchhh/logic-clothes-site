@@ -23,18 +23,23 @@ function instagramDirectUrl(): string {
 
 export default function ProductDiscussOrder({
   lang,
-  productId,
-  productName,
-  shadeLabel,
+  productId = "",
+  productName = "",
+  shadeLabel = "",
   label,
   intent = "order",
+  defaultMessage,
+  className = "",
 }: {
   lang: Locale;
-  productId: string;
-  productName: string;
-  shadeLabel: string;
+  productId?: string;
+  productName?: string;
+  shadeLabel?: string;
   label?: string;
-  intent?: "order" | "color" | "size";
+  intent?: "order" | "color" | "size" | "catalog";
+  /** Full draft shown in the textarea (overrides product-based template). */
+  defaultMessage?: string;
+  className?: string;
 }) {
   const { t } = useI18n();
   const panelId = useId();
@@ -44,6 +49,24 @@ export default function ProductDiscussOrder({
   const [notice, setNotice] = useState<string | null>(null);
 
   const defaultBody = useMemo(() => {
+    if (defaultMessage?.trim()) return defaultMessage.trim();
+
+    if (intent === "catalog") {
+      return lang === "uk"
+        ? [
+            "Вітаю! Шукала моделі в каталозі за фільтрами, але нічого не знайшла.",
+            "Потрібна допомога з підбором або індивідуальним пошиттям.",
+            "",
+            "Мій запит:",
+          ].join("\n")
+        : [
+            "Hi! I searched the catalog with filters and found nothing.",
+            "I need help choosing a piece or a custom order.",
+            "",
+            "My request:",
+          ].join("\n");
+    }
+
     const ask =
       intent === "color"
         ? lang === "uk"
@@ -60,20 +83,35 @@ export default function ProductDiscussOrder({
       lang === "uk"
         ? [
             ask,
-            productName ? `Модель: ${productName} (${productId})` : `Модель: ${productId}`,
+            productName
+              ? `Модель: ${productName}${productId ? ` (${productId})` : ""}`
+              : productId
+                ? `Модель: ${productId}`
+                : "",
             shadeLabel ? `Колір: ${shadeLabel}` : "",
             "",
             "Мій запит:",
           ]
         : [
             ask,
-            productName ? `Item: ${productName} (${productId})` : `Item: ${productId}`,
+            productName
+              ? `Item: ${productName}${productId ? ` (${productId})` : ""}`
+              : productId
+                ? `Item: ${productId}`
+                : "",
             shadeLabel ? `Colour: ${shadeLabel}` : "",
             "",
             "My request:",
           ];
     return lines.filter(Boolean).join("\n");
-  }, [intent, lang, productId, productName, shadeLabel]);
+  }, [
+    defaultMessage,
+    intent,
+    lang,
+    productId,
+    productName,
+    shadeLabel,
+  ]);
 
   const draft = message.trim() ? message : defaultBody;
 
@@ -107,7 +145,7 @@ export default function ProductDiscussOrder({
   }, [channel, draft, lang, t.product.discussCopied, t.product.discussCopyManual]);
 
   return (
-    <div className="pdp-discuss">
+    <div className={`pdp-discuss${className ? ` ${className}` : ""}`}>
       <button
         type="button"
         className="pdp-chat-link"

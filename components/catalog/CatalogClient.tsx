@@ -11,10 +11,16 @@ import {
   useState,
 } from "react";
 import ProductCard from "@/components/catalog/ProductCard";
+import ProductDiscussOrder from "@/components/product/ProductDiscussOrder";
 import SidebarFilter, {
   type SortOrder,
 } from "@/components/layout/SidebarFilter";
 import type { Category, CategoryId } from "@/lib/categories";
+import {
+  catalogCategoryDisplayLabel,
+  catalogNavEntries,
+  orderCatalogCategories,
+} from "@/lib/catalogCategoryOrder";
 import {
   clearCatalogState,
   loadCatalogState,
@@ -92,8 +98,19 @@ export default function CatalogClient({
     lastProductId: persistRef.current.lastProductId,
   };
 
-  const activeLabel =
-    categories.find((c) => c.id === category)?.label[lang] || t.catalog.title;
+  const orderedCategories = useMemo(
+    () => orderCatalogCategories(categories, lang),
+    [categories, lang]
+  );
+  const categoryMenuEntries = useMemo(
+    () => catalogNavEntries(categories, lang),
+    [categories, lang]
+  );
+
+  const activeCat = orderedCategories.find((c) => c.id === category);
+  const activeLabel = activeCat
+    ? catalogCategoryDisplayLabel(activeCat, lang)
+    : t.catalog.title;
 
   useEffect(() => {
     if (!showSeasonFilter && season !== "all") setSeason("all");
@@ -460,22 +477,36 @@ export default function CatalogClient({
           </button>
           {categoryMenuOpen ? (
             <div className="cat-title-menu" role="listbox">
-              {categories.map((cat) => {
+              {categoryMenuEntries.map((entry) => {
+                if (entry.type === "spacer") {
+                  return (
+                    <span
+                      key={`menu-spacer-${entry.key}`}
+                      className="cat-title-menu-spacer"
+                      aria-hidden="true"
+                    />
+                  );
+                }
+                const cat = entry.category;
                 const href =
                   cat.id === "all"
                     ? `/${lang}/catalog`
                     : `/${lang}/catalog?category=${encodeURIComponent(cat.id)}`;
-                const label = cat.label[lang] || cat.label.uk;
                 return (
                   <Link
                     key={cat.id}
                     href={href}
                     role="option"
                     aria-selected={category === cat.id}
-                    className={category === cat.id ? "is-active" : undefined}
+                    className={[
+                      category === cat.id ? "is-active" : "",
+                      cat.id === "sale" ? "is-sale" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || undefined}
                     onClick={() => setCategoryMenuOpen(false)}
                   >
-                    {label}
+                    {catalogCategoryDisplayLabel(cat, lang)}
                   </Link>
                 );
               })}
@@ -547,7 +578,16 @@ export default function CatalogClient({
       </div>
 
       {sortedProducts.length === 0 ? (
-        <p className="cat-empty">{t.catalog.empty}</p>
+        <div className="cat-empty">
+          <p className="cat-empty-title">{t.catalog.empty}</p>
+          <p className="cat-empty-lead">{t.catalog.emptyLead}</p>
+          <ProductDiscussOrder
+            lang={lang}
+            intent="catalog"
+            label={t.catalog.emptyContact}
+            className="cat-empty-discuss"
+          />
+        </div>
       ) : (
         <>
           <div

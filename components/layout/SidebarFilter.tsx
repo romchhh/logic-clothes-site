@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import PriceRangeFilter from "@/components/catalog/PriceRangeFilter";
 import type { Category, CategoryId } from "@/lib/categories";
+import {
+  catalogCategoryDisplayLabel,
+  catalogNavEntries,
+} from "@/lib/catalogCategoryOrder";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import {
@@ -64,6 +69,10 @@ export default function SidebarFilter({
 }: SidebarFilterProps) {
   const { t } = useI18n();
   const showSeason = categorySupportsSeasonFilter(category, categories);
+  const categoryEntries = useMemo(
+    () => catalogNavEntries(categories, lang),
+    [categories, lang]
+  );
 
   function toggleAccordion(index: number) {
     setOpenAccordion(openAccordion === index ? null : index);
@@ -139,20 +148,32 @@ export default function SidebarFilter({
             </button>
             {openAccordion === 0 && (
               <div className="filter-acc-body">
-                {categories.map((cat) => (
-                  <Link
-                    key={cat.id}
-                    href={
-                      cat.id === "all"
-                        ? `/${lang}/catalog?category=all`
-                        : `/${lang}/catalog?category=${cat.id}`
-                    }
-                    className={`filter-option${category === cat.id ? " is-active" : ""}`}
-                    onClick={onClose}
-                  >
-                    {cat.label[lang]}
-                  </Link>
-                ))}
+                {categoryEntries.map((entry) =>
+                  entry.type === "spacer" ? (
+                    <span
+                      key={`filter-spacer-${entry.key}`}
+                      className="filter-option-spacer"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Link
+                      key={entry.category.id}
+                      href={
+                        entry.category.id === "all"
+                          ? `/${lang}/catalog?category=all`
+                          : `/${lang}/catalog?category=${entry.category.id}`
+                      }
+                      className={`filter-option${
+                        category === entry.category.id ? " is-active" : ""
+                      }${
+                        entry.category.id === "sale" ? " filter-option--sale" : ""
+                      }`}
+                      onClick={onClose}
+                    >
+                      {catalogCategoryDisplayLabel(entry.category, lang)}
+                    </Link>
+                  )
+                )}
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import ProductDiscussOrder from "@/components/product/ProductDiscussOrder";
 import {
+  getPaletteColor,
   getPaletteGroups,
   groupForPaletteId,
   resolvePaletteId,
@@ -31,24 +32,28 @@ export default function ProductCustomBuilder({
   lang,
   sizes,
   onAdd,
+  preferredShadeId = null,
 }: {
   product: Product;
   lang: Locale;
   sizes: string[];
   onAdd: (size: string, note: string) => void;
+  preferredShadeId?: string | null;
 }) {
   const { t } = useI18n();
   const groups = getPaletteGroups();
-  const defaultGroupId =
-    groupForPaletteId(
-      resolvePaletteId({
-        color: product.color,
-        colorHex: product.colorHex,
-      })
-    )?.id ?? null;
+  const productShadeId =
+    resolvePaletteId({
+      color: product.color,
+      colorHex: product.colorHex,
+    }) ?? null;
+  const defaultShadeId = preferredShadeId || productShadeId;
+  const defaultGroupId = groupForPaletteId(defaultShadeId)?.id ?? null;
+
   const [size, setSize] = useState<string | null>(null);
-  const [paletteIds, setPaletteIds] = useState<string[]>(
-    defaultGroupId ? [defaultGroupId] : []
+  const [openGroupId, setOpenGroupId] = useState<string | null>(defaultGroupId);
+  const [shadeIds, setShadeIds] = useState<string[]>(
+    defaultShadeId ? [defaultShadeId] : []
   );
   const [customMeasures, setCustomMeasures] = useState(false);
   const [height, setHeight] = useState("");
@@ -56,18 +61,20 @@ export default function ProductCustomBuilder({
   const [waist, setWaist] = useState("");
   const [hips, setHips] = useState("");
 
-  const paletteLabels = useMemo(
+  const openGroup = groups.find((g) => g.id === openGroupId) ?? null;
+
+  const shadeLabels = useMemo(
     () =>
-      paletteIds
-        .map((id) => groups.find((g) => g.id === id))
+      shadeIds
+        .map((id) => getPaletteColor(id))
         .filter(Boolean)
-        .map((g) => (lang === "en" ? g!.labelEn : g!.label)),
-    [paletteIds, groups, lang]
+        .map((c) => (lang === "en" ? c!.labelEn : c!.label)),
+    [shadeIds, lang]
   );
 
   const note = [
-    paletteLabels.length
-      ? `${lang === "uk" ? "палітри" : "palettes"}: ${paletteLabels.join(", ")}`
+    shadeLabels.length
+      ? `${lang === "uk" ? "кольори" : "colours"}: ${shadeLabels.join(", ")}`
       : "",
     height && `${lang === "uk" ? "зріст" : "height"} ${height}`,
     bust && `${lang === "uk" ? "груди" : "bust"} ${bust}`,
@@ -77,8 +84,8 @@ export default function ProductCustomBuilder({
     .filter(Boolean)
     .join(", ");
 
-  function togglePalette(id: string) {
-    setPaletteIds((prev) =>
+  function toggleShade(id: string) {
+    setShadeIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   }
@@ -89,22 +96,23 @@ export default function ProductCustomBuilder({
       <p className="pdp-builder-lead">{t.product.customOrderLead}</p>
 
       <p className="pdp-builder-label">
-        {lang === "uk" ? "бажані палітри" : "desired palettes"}
+        {lang === "uk" ? "бажані кольори" : "desired colours"}
       </p>
       <div className="pdp-palette-row pdp-palette-row--cards pdp-builder-palettes">
         {groups.map((group) => {
-          const on = paletteIds.includes(group.id);
           const label = lang === "en" ? group.labelEn : group.label;
+          const isOpen = openGroupId === group.id;
+          const hasPick = group.shades.some((s) => shadeIds.includes(s.id));
           return (
             <button
               key={group.id}
               type="button"
               className={`pdp-palette-item pdp-palette-item--card${
-                on ? " is-on is-current" : ""
-              }`}
-              aria-pressed={on}
+                isOpen || hasPick ? " is-on" : ""
+              }${hasPick ? " is-current" : ""}${isOpen ? " is-open" : ""}`}
+              aria-pressed={isOpen}
               title={label}
-              onClick={() => togglePalette(group.id)}
+              onClick={() => setOpenGroupId(group.id)}
             >
               <span className="pdp-palette-card-grid" aria-hidden>
                 {group.shades.slice(0, 9).map((shade) => (
@@ -120,9 +128,44 @@ export default function ProductCustomBuilder({
           );
         })}
       </div>
-      {paletteLabels.length ? (
+
+      {openGroup ? (
+        <div
+          className="pdp-palette-shades"
+          role="group"
+          aria-label={
+            lang === "en"
+              ? `Shades — ${openGroup.labelEn}`
+              : `Відтінки — ${openGroup.label}`
+          }
+        >
+          {openGroup.shades.map((shade) => {
+            const label = lang === "en" ? shade.labelEn : shade.label;
+            const on = shadeIds.includes(shade.id);
+            return (
+              <button
+                key={shade.id}
+                type="button"
+                className={`pdp-palette-shade${on ? " is-current is-pinned" : ""}`}
+                title={label}
+                aria-pressed={on}
+                onClick={() => toggleShade(shade.id)}
+              >
+                <span
+                  className="pdp-palette-shade-swatch"
+                  style={dabStyle(shade.hex, shade.id)}
+                  aria-hidden
+                />
+                <span className="pdp-palette-shade-name">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {shadeLabels.length ? (
         <p className="pdp-builder-note">
-          {t.product.customOrderSelected}: {paletteLabels.join(" · ")}
+          {t.product.customOrderSelected}: {shadeLabels.join(" · ")}
         </p>
       ) : null}
 
@@ -225,7 +268,7 @@ export default function ProductCustomBuilder({
         lang={lang}
         productId={product.id}
         productName={product.name}
-        shadeLabel={[paletteLabels.join(" · ") || product.color, size, note]
+        shadeLabel={[shadeLabels.join(" · ") || product.color, size, note]
           .filter(Boolean)
           .join(" · ")}
         label={t.product.customOrderCta}

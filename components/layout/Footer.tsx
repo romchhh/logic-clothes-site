@@ -11,8 +11,18 @@ import {
 } from "@/lib/siteContact";
 import LangSwitcher from "@/components/layout/LangSwitcher";
 
-export default function Footer({ lang }: { lang: Locale }) {
+export default function Footer({
+  lang,
+  slogan,
+  sloganAccent,
+}: {
+  lang: Locale;
+  slogan?: string;
+  sloganAccent?: string;
+}) {
   const { t } = useI18n();
+  const sloganText = slogan?.trim() || t.footer.slogan;
+  const accentText = sloganAccent?.trim() || t.footer.sloganAccent;
 
   const navLinks = [
     { href: `/${lang}/about`, label: t.footer.about },
@@ -39,8 +49,8 @@ export default function Footer({ lang }: { lang: Locale }) {
 
       <div className="site-foot-inner">
         <p className="site-foot-slogan">
-          {t.footer.slogan}{" "}
-          <strong>{t.footer.sloganAccent}</strong>
+          {sloganText}{" "}
+          <strong>{accentText}</strong>
         </p>
 
         <nav className="site-foot-nav" aria-label="Footer">

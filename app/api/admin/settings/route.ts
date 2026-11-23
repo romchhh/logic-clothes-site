@@ -7,7 +7,8 @@ import {
   type SettingKey,
   upsertSettings,
 } from "@/lib/settings";
-import { HERO_SETTING_KEYS } from "@/lib/settingsTypes";
+import { FOOTER_SETTING_KEYS, HERO_SETTING_KEYS } from "@/lib/settingsTypes";
+import { bustFooterSloganCache } from "@/lib/footerSlogan";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,8 @@ export async function PUT(request: NextRequest) {
     await upsertSettings(patch);
     const touchedHero = HERO_SETTING_KEYS.some((k) => k in patch);
     if (touchedHero) bustHeroCache();
+    const touchedFooter = FOOTER_SETTING_KEYS.some((k) => k in patch);
+    if (touchedFooter) bustFooterSloganCache();
     const data = await getSettingsForAdmin();
     return NextResponse.json(data);
   } catch (error) {

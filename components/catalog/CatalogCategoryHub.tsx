@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import SidebarFilter from "@/components/layout/SidebarFilter";
 import type { Category } from "@/lib/categories";
+import {
+  catalogCategoryDisplayLabel,
+  catalogNavEntries,
+  orderCatalogCategories,
+} from "@/lib/catalogCategoryOrder";
 import { saveCatalogState } from "@/lib/catalogState";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import type { Locale } from "@/lib/i18n/config";
@@ -71,18 +76,23 @@ function HubCard({
     >
       {variant === "natural" ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={cat.image || "/assets/hero.png"} alt={cat.label[lang]} />
+        <img
+          src={cat.image || "/assets/hero.png"}
+          alt={catalogCategoryDisplayLabel(cat, lang)}
+        />
       ) : (
         <Image
           src={cat.image || "/assets/hero.png"}
-          alt={cat.label[lang]}
+          alt={catalogCategoryDisplayLabel(cat, lang)}
           fill
           sizes={variant === "hero" ? "(min-width: 900px) 60vw, 58vw" : "50vw"}
           quality={85}
           style={{ objectFit: "cover", objectPosition: "center 22%" }}
         />
       )}
-      <span className="catalog-hub-label">{cat.label[lang]}</span>
+      <span className="catalog-hub-label">
+        {catalogCategoryDisplayLabel(cat, lang)}
+      </span>
     </Link>
   );
 }
@@ -134,50 +144,21 @@ export default function CatalogCategoryHub({
 
   useScrollLock(isFilterOpen);
 
-  const items = useMemo(() => {
-    const apparel = categories.filter(
-      (c) => c.kind === "category" && c.isVisible && c.id !== "all"
-    );
-    const base =
-      apparel.length >= 2
-        ? apparel
-        : categories.filter((c) => c.isVisible && c.id !== "all");
+  const items = useMemo(
+    () => orderCatalogCategories(categories, lang),
+    [categories, lang]
+  );
 
-    const collections = categories.filter(
-      (c) =>
-        c.isVisible &&
-        c.id !== "all" &&
-        (c.id === "new" || c.id === "sale" || c.kind === "collection")
-    );
+  const navEntries = useMemo(
+    () => catalogNavEntries(categories, lang),
+    [categories, lang]
+  );
 
-    const merged = [...base];
-    for (const c of collections) {
-      if (!merged.some((x) => x.id === c.id)) merged.push(c);
-    }
-
-    const allFromDb = categories.find((c) => c.id === "all");
-    const allCard: Category = allFromDb ?? {
-      id: "all",
-      image: "/assets/products/meshdress-2_255_1.jpg",
-      label: { uk: "дивитись все", en: "view all" },
-      cta: { uk: t.home.seeAll, en: t.home.seeAll },
-      kind: "collection",
-      sortOrder: 999,
-      isVisible: true,
-      isSystem: true,
-    };
-
-    return [
-      ...merged,
-      {
-        ...allCard,
-        label: {
-          uk: "дивитись все",
-          en: allFromDb?.label.en || "view all",
-        },
-      },
-    ];
-  }, [categories, t.home.seeAll]);
+  /** Collage photos: skip «дивитись усе» so apparel leads the frame. */
+  const collageItems = useMemo(
+    () => items.filter((c) => c.id !== "all"),
+    [items]
+  );
 
   const activeFilters =
     selectedSizes.length +
@@ -212,19 +193,29 @@ export default function CatalogCategoryHub({
 
   if (!items.length) return null;
 
-  const groups = chunkCollage(items, COLLAGE_SLOTS);
+  const groups = chunkCollage(collageItems, COLLAGE_SLOTS);
 
   const navMarkup = (
     <>
-      {items.map((cat) => (
-        <Link
-          key={`nav-${cat.id}`}
-          href={categoryHref(lang, cat.id)}
-          className="catalog-hub-nav-link"
-        >
-          {cat.label[lang]}
-        </Link>
-      ))}
+      {navEntries.map((entry) =>
+        entry.type === "spacer" ? (
+          <span
+            key={`nav-spacer-${entry.key}`}
+            className="catalog-hub-nav-spacer"
+            aria-hidden="true"
+          />
+        ) : (
+          <Link
+            key={`nav-${entry.category.id}`}
+            href={categoryHref(lang, entry.category.id)}
+            className={`catalog-hub-nav-link${
+              entry.category.id === "sale" ? " catalog-hub-nav-link--sale" : ""
+            }`}
+          >
+            {catalogCategoryDisplayLabel(entry.category, lang)}
+          </Link>
+        )
+      )}
     </>
   );
 
@@ -311,7 +302,7 @@ export default function CatalogCategoryHub({
                     >
                       <Image
                         src={cat.image || "/assets/hero.png"}
-                        alt={cat.label[lang]}
+                        alt={catalogCategoryDisplayLabel(cat, lang)}
                         fill
                         sizes="100vw"
                         quality={85}
@@ -320,7 +311,9 @@ export default function CatalogCategoryHub({
                           objectPosition: slot.focus,
                         }}
                       />
-                      <span className="catalog-hub-label">{cat.label[lang]}</span>
+                      <span className="catalog-hub-label">
+                        {catalogCategoryDisplayLabel(cat, lang)}
+                      </span>
                     </Link>
                   );
                 })}
@@ -354,7 +347,7 @@ export default function CatalogCategoryHub({
         colors={colors}
         priceHint={priceHint}
         category="all"
-        categories={categories}
+        categories={items}
         lang={lang}
         onReset={resetFilters}
         resultCount={productCount}

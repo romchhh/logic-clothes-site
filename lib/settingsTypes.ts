@@ -11,6 +11,10 @@ export const SETTING_KEYS = [
   "hero_title_en",
   "hero_subtitle_uk",
   "hero_subtitle_en",
+  "footer_slogan_uk",
+  "footer_slogan_en",
+  "footer_slogan_accent_uk",
+  "footer_slogan_accent_en",
 ] as const;
 
 /** Keys edited on the Hero admin screen. */
@@ -23,6 +27,14 @@ export const HERO_SETTING_KEYS = [
   "hero_title_en",
   "hero_subtitle_uk",
   "hero_subtitle_en",
+] as const;
+
+/** Keys edited for the site footer slogan. */
+export const FOOTER_SETTING_KEYS = [
+  "footer_slogan_uk",
+  "footer_slogan_en",
+  "footer_slogan_accent_uk",
+  "footer_slogan_accent_en",
 ] as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[number];

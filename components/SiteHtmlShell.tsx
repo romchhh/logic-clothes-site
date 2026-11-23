@@ -6,6 +6,10 @@ import SidebarSearch from "@/components/layout/SidebarSearch";
 import JsonLd from "@/components/shared/JsonLd";
 import RegisterSW from "@/components/shared/RegisterSW";
 import { siteFont } from "@/lib/fonts/manrope";
+import {
+  footerSloganText,
+  getFooterSlogan,
+} from "@/lib/footerSlogan";
 import { AppProvider } from "@/lib/GeneralProvider";
 import { BasketProvider } from "@/lib/BasketProvider";
 import { WishlistProvider } from "@/lib/WishlistProvider";
@@ -18,7 +22,7 @@ import {
   generateWebsiteStructuredData,
 } from "@/lib/seo";
 
-export default function SiteHtmlShell({
+export default async function SiteHtmlShell({
   lang,
   children,
 }: {
@@ -26,6 +30,8 @@ export default function SiteHtmlShell({
   children: React.ReactNode;
 }) {
   const baseUrl = getSiteUrl();
+  const footerContent = await getFooterSlogan();
+  const { slogan, accent } = footerSloganText(footerContent, lang);
 
   return (
     <html lang={HTML_LANG[lang]} className={siteFont.variable}>
@@ -84,7 +90,11 @@ export default function SiteHtmlShell({
                 <SidebarBasket />
                 <SidebarSearch lang={lang} />
                 <main>{children}</main>
-                <Footer lang={lang} />
+                <Footer
+                  lang={lang}
+                  slogan={slogan}
+                  sloganAccent={accent}
+                />
               </WishlistProvider>
             </BasketProvider>
           </AppProvider>
