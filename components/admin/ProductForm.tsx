@@ -113,7 +113,7 @@ const PRODUCT_FORM_SECTIONS = [
   { id: "section-price", label: "Ціна" },
   { id: "section-category", label: "Каталог" },
   { id: "section-color", label: "Колір" },
-  { id: "section-sizes", label: "Розміри" },
+  { id: "section-sizes", label: "Розмірний ряд" },
   { id: "section-material", label: "Тканина" },
   { id: "section-description", label: "Опис" },
   { id: "section-media", label: "Фото" },
@@ -200,6 +200,7 @@ type ProductFormDraft = {
   lookProductIds: string[];
 };
 
+/** Load from product / draft — fill missing names from palette. */
 function normalizePaletteSelection(
   raw?: Partial<PaletteSelection> | null
 ): PaletteSelection {
@@ -212,6 +213,19 @@ function normalizePaletteSelection(
     }
   }
   return { ids, primaryId, labels };
+}
+
+function prunePaletteSelection(next: PaletteSelection): PaletteSelection {
+  const labels = { ...next.labels };
+  for (const key of Object.keys(labels)) {
+    if (!next.ids.includes(key)) delete labels[key];
+  }
+  for (const id of next.ids) {
+    if (!(id in labels)) {
+      labels[id] = getPaletteColor(id)?.label ?? id;
+    }
+  }
+  return { ...next, labels };
 }
 
 export default function ProductForm({ productId }: Props) {
@@ -1295,17 +1309,70 @@ export default function ProductForm({ productId }: Props) {
       <ComponentCard title="Колір" sectionId="section-color">
         <ColorPalettePicker
           selection={paletteSelection}
-          onChange={(next) => setPaletteSelection(normalizePaletteSelection(next))}
+          onChange={(next) => setPaletteSelection(prunePaletteSelection(next))}
         />
       </ComponentCard>
 
-      <ComponentCard title="Розміри" sectionId="section-sizes">
-        <div className="space-y-3">
-          <p className="text-[12px] leading-snug text-gray-500 dark:text-gray-400">
-            Розміри для клієнта на картці товару та у фільтрах. Це не розмір
-            моделі на фото — його вносите в блоці «Модель і заміри».
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
+      <ComponentCard
+        title="Розмірний ряд"
+        sectionId="section-sizes"
+        desc="Один список для картки та фільтрів. Параметри моделі на фото — у «Модель і заміри»."
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-[#B7E1DF]/50 bg-[#B7E1DF]/8 px-3 py-3 dark:border-[#B7E1DF]/20 dark:bg-[#B7E1DF]/5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                На картці товару
+                {form.sizeOptions.length > 0
+                  ? ` · ${form.sizeOptions.length}`
+                  : ""}
+              </p>
+              {form.sizeOptions.length > 0 ? (
+                <button
+                  type="button"
+                  className="admin-btn-ghost !h-7 !px-2 !text-[11px]"
+                  onClick={() => set("sizeOptions", [])}
+                >
+                  Очистити все
+                </button>
+              ) : null}
+            </div>
+            {form.sizeOptions.length === 0 ? (
+              <p className="mt-2 text-[13px] leading-snug text-gray-600 dark:text-gray-400">
+                Поки порожньо. Оберіть кнопки нижче або введіть свій розмір —
+                усі з’являться тільки тут, без другого списку.
+              </p>
+            ) : (
+              <ul
+                className="mt-2 flex flex-wrap gap-1.5 sm:gap-2"
+                aria-label="Обрані розміри для сайту"
+              >
+                {form.sizeOptions.map((value) => (
+                  <li key={value}>
+                    <button
+                      type="button"
+                      onClick={() => toggleOption("sizeOptions", value)}
+                      className="admin-chip admin-chip-active inline-flex items-center gap-1 !pr-2"
+                      title="Прибрати з картки"
+                    >
+                      <span>{value}</span>
+                      <span aria-hidden className="text-[11px] opacity-60">
+                        ×
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+              Додати зі стандартного списку
+            </p>
+            <p className="text-[12px] leading-snug text-gray-500 dark:text-gray-400">
+              Клік додає або прибирає розмір у блоці «На картці товару» вище.
+            </p>
             <button
               type="button"
               className="admin-btn-secondary !h-8 !text-xs"
@@ -1316,54 +1383,35 @@ export default function ProductForm({ productId }: Props) {
                 }))
               }
             >
-              Усі розміри
+              Обрати всі стандартні
             </button>
-            <button
-              type="button"
-              className="admin-btn-ghost !h-8 !text-xs"
-              onClick={() => set("sizeOptions", [])}
-            >
-              Очистити
-            </button>
-            <p className="text-[12px] text-gray-500 dark:text-gray-400">
-              ONESIZE · XS-S · S-M · M-L · L-XL · A · B · C · D
-            </p>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              {ADMIN_SIZE_PRESETS.map((value) => {
+                const onCard = form.sizeOptions.includes(value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => toggleOption("sizeOptions", value)}
+                    className={`admin-chip ${onCard ? "opacity-45" : ""}`}
+                    aria-pressed={onCard}
+                    title={
+                      onCard
+                        ? "Вже на картці — клік, щоб прибрати"
+                        : "Додати на картку"
+                    }
+                  >
+                    {value}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            {ADMIN_SIZE_PRESETS.map((value) => {
-              const active = form.sizeOptions.includes(value);
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => toggleOption("sizeOptions", value)}
-                  className={`admin-chip ${active ? "admin-chip-active" : ""}`}
-                >
-                  {value}
-                </button>
-              );
-            })}
-            {form.sizeOptions
-              .filter(
-                (s) =>
-                  !(ADMIN_SIZE_PRESETS as readonly string[]).includes(s)
-              )
-              .map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => toggleOption("sizeOptions", value)}
-                  className="admin-chip admin-chip-active"
-                  title="Свій розмір — клік, щоб прибрати"
-                >
-                  {value}
-                </button>
-              ))}
-          </div>
+
           <AdminChipField
             hideRail
-            label="Додати свій розмір"
-            hint="Латиницею як на сайті. Підказки з’являться під час введення; можна вставити список через кому."
+            label="Свій розмір (не зі списку)"
+            hint="Після «Додати» значення з’явиться лише у блоці «На картці товару»."
             placeholderChip="напр. XL-XXL"
             bulkPlaceholder="ONESIZE, XS-S, S-M"
             suggestions={[]}

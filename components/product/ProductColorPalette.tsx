@@ -94,18 +94,14 @@ export default function ProductColorPalette({
   const currentGroupId =
     groupForPaletteId(currentPaletteId)?.id ?? null;
 
-  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
-  const [pinnedShadeId, setPinnedShadeId] = useState<string | null>(null);
+  const [highlightGroupId, setHighlightGroupId] = useState<string | null>(
+    currentGroupId
+  );
 
   useEffect(() => {
-    setOpenGroupId(null);
-    setPinnedShadeId(null);
+    setHighlightGroupId(currentGroupId);
     onPinnedShadeChange?.(null);
   }, [product.id, currentGroupId, onPinnedShadeChange]);
-
-  useEffect(() => {
-    onPinnedShadeChange?.(pinnedShadeId);
-  }, [pinnedShadeId, onPinnedShadeChange]);
 
   const family = useMemo(() => {
     const byId = new Map<string, ProductColorVariant>();
@@ -132,7 +128,6 @@ export default function ProductColorPalette({
     return [...byId.values()];
   }, [product, currentPaletteId]);
 
-  /** shadeId → stocked product variant in this family */
   const variantByShade = useMemo(() => {
     const map = new Map<string, VariantChoice>();
     for (const m of family) {
@@ -160,7 +155,6 @@ export default function ProductColorPalette({
     return map;
   }, [family, lang, product.id]);
 
-  /** Which groups have at least one stocked SKU */
   const stockedGroupIds = useMemo(() => {
     const ids = new Set<string>();
     for (const [shadeId] of variantByShade) {
@@ -170,43 +164,51 @@ export default function ProductColorPalette({
     return ids;
   }, [variantByShade]);
 
-  const openGroup = openGroupId
-    ? groups.find((g) => g.id === openGroupId) ?? null
-    : null;
+  const currentGroup =
+    currentGroupId != null
+      ? groups.find((g) => g.id === currentGroupId) ?? null
+      : null;
 
-  const activeShadeId = pinnedShadeId || currentPaletteId;
-  const activeShade = activeShadeId ? getPaletteColor(activeShadeId) : null;
-  const activeGroup =
-    (activeShadeId && groupForPaletteId(activeShadeId)) ||
-    (currentGroupId ? groups.find((g) => g.id === currentGroupId) ?? null : null);
-
-  const groupLabel = activeGroup
+  const groupLabel = currentGroup
     ? lang === "en"
-      ? activeGroup.labelEn
-      : activeGroup.label
+      ? currentGroup.labelEn
+      : currentGroup.label
     : "";
-  const shadeLabel = activeShade
+
+  const storefrontName = (product.color || "").trim();
+  const paletteShade = currentPaletteId
+    ? getPaletteColor(currentPaletteId)
+    : null;
+  const fallbackShadeLabel = paletteShade
     ? lang === "en"
-      ? activeShade.labelEn
-      : activeShade.label
-    : (product.color || "").trim();
+      ? paletteShade.labelEn
+      : paletteShade.label
+    : "";
+  const displayName = storefrontName || fallbackShadeLabel;
+  const displayHex =
+    product.colorHex?.trim() ||
+    paletteShade?.hex ||
+    "#ccc";
+  const displayShadeId = currentPaletteId || "custom";
+
+  const siblingLinks = useMemo(() => {
+    const out: VariantChoice[] = [];
+    for (const v of variantByShade.values()) {
+      if (v.isCurrent || !v.linkable || v.id === product.id) continue;
+      out.push(v);
+    }
+    return out;
+  }, [variantByShade, product.id]);
 
   useEffect(() => {
     if (!onShadeLabelChange) return;
-    const next =
-      groupLabel && shadeLabel
-        ? `${groupLabel} · ${shadeLabel}`
-        : shadeLabel || groupLabel;
-    onShadeLabelChange(next);
-  }, [groupLabel, shadeLabel, onShadeLabelChange]);
+    onShadeLabelChange(displayName || groupLabel);
+  }, [displayName, groupLabel, onShadeLabelChange]);
 
   return (
     <div className="pdp-palette-block">
-      {groupLabel || shadeLabel ? (
-        <p className="pdp-color-caption">
-          {groupLabel}
-          {shadeLabel && groupLabel ? ` · ${shadeLabel}` : shadeLabel}
-        </p>
+      {groupLabel ? (
+        <p className="pdp-color-caption">{groupLabel}</p>
       ) : null}
 
       <div
@@ -216,10 +218,9 @@ export default function ProductColorPalette({
       >
         {groups.map((group) => {
           const label = lang === "en" ? group.labelEn : group.label;
-          const isOpen = openGroup?.id === group.id;
+          const isHighlighted = highlightGroupId === group.id;
           const isCurrentGroup = currentGroupId === group.id;
           const hasStock = stockedGroupIds.has(group.id);
-          const face = <PaletteFace group={group} />;
 
           return (
             <button
@@ -229,101 +230,64 @@ export default function ProductColorPalette({
                 "pdp-palette-item pdp-palette-item--card",
                 hasStock || isCurrentGroup ? "is-on" : "is-off",
                 isCurrentGroup ? "is-current" : "",
-                isOpen ? "is-open" : "",
+                isHighlighted ? "is-open" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
               title={label}
               aria-label={label}
-              aria-pressed={isOpen}
-              onClick={() => {
-                setOpenGroupId(group.id);
-                if (!isCurrentGroup) {
-                  // Clear shade pin when switching groups until user picks
-                  setPinnedShadeId(null);
-                }
-              }}
+              aria-pressed={isHighlighted}
+              onClick={() =>
+                setHighlightGroupId((prev) =>
+                  prev === group.id ? null : group.id
+                )
+              }
             >
-              {face}
+              <PaletteFace group={group} />
               <span className="pdp-palette-name">{label}</span>
             </button>
           );
         })}
       </div>
 
-      {openGroup ? (
+      {displayName ? (
+        <div className="pdp-palette-single">
+          <span
+            className="pdp-palette-shade is-current pdp-palette-single-chip"
+            aria-current="true"
+          >
+            <span
+              className="pdp-palette-shade-swatch"
+              style={dabStyle(displayHex, displayShadeId)}
+              aria-hidden
+            />
+            <span className="pdp-palette-shade-name">{displayName}</span>
+          </span>
+        </div>
+      ) : null}
+
+      {siblingLinks.length > 0 ? (
         <div
-          className="pdp-palette-shades"
-          role="listbox"
-          aria-label={
-            lang === "en"
-              ? `Shades — ${openGroup.labelEn}`
-              : `Відтінки — ${openGroup.label}`
-          }
+          className="pdp-palette-siblings"
+          role="list"
+          aria-label={lang === "uk" ? "Інші кольори моделі" : "Other colourways"}
         >
-          {openGroup.shades.map((shade) => {
-            const variant = variantByShade.get(shade.id);
-            const label = lang === "en" ? shade.labelEn : shade.label;
-            const isCurrent = variant?.isCurrent || shade.id === currentPaletteId;
-            const isPinned = pinnedShadeId === shade.id;
-            const swatch = (
+          {siblingLinks.map((v) => (
+            <Link
+              key={v.id}
+              href={`/${lang}/product/${encodeURIComponent(v.id)}`}
+              className="pdp-palette-shade"
+              title={v.label}
+              prefetch
+            >
               <span
                 className="pdp-palette-shade-swatch"
-                style={dabStyle(shade.hex, shade.id)}
+                style={dabStyle(v.hex, v.paletteId)}
                 aria-hidden
               />
-            );
-
-            if (isCurrent) {
-              return (
-                <span
-                  key={shade.id}
-                  className="pdp-palette-shade is-current"
-                  title={label}
-                  aria-current="true"
-                >
-                  {swatch}
-                  <span className="pdp-palette-shade-name">{label}</span>
-                </span>
-              );
-            }
-
-            if (variant?.linkable && variant.id !== product.id) {
-              return (
-                <Link
-                  key={shade.id}
-                  href={`/${lang}/product/${encodeURIComponent(variant.id)}`}
-                  className="pdp-palette-shade"
-                  title={label}
-                  aria-label={label}
-                  prefetch
-                >
-                  {swatch}
-                  <span className="pdp-palette-shade-name">{label}</span>
-                </Link>
-              );
-            }
-
-            return (
-              <button
-                key={shade.id}
-                type="button"
-                className={`pdp-palette-shade is-custom${
-                  isPinned ? " is-pinned" : ""
-                }`}
-                title={label}
-                aria-pressed={isPinned}
-                onClick={() =>
-                  setPinnedShadeId((prev) =>
-                    prev === shade.id ? null : shade.id
-                  )
-                }
-              >
-                {swatch}
-                <span className="pdp-palette-shade-name">{label}</span>
-              </button>
-            );
-          })}
+              <span className="pdp-palette-shade-name">{v.label}</span>
+            </Link>
+          ))}
         </div>
       ) : null}
 

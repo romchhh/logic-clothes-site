@@ -2666,6 +2666,23 @@
     outline:1.5px solid rgba(17,17,17,.45);
     outline-offset:2px;
   }
+  .pdp-palette-single{
+    display:flex;
+    justify-content:flex-start;
+    width:100%;
+    margin:10px 0 4px;
+  }
+  .pdp-palette-single-chip{
+    flex:0 1 auto;
+    max-width:100%;
+  }
+  .pdp-palette-siblings{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 10px;
+    width:100%;
+    margin:6px 0 2px;
+  }
   .pdp-palette-shades{
     display:flex;
     flex-wrap:wrap;

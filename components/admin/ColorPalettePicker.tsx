@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Label from "@/components/admin/form/Label";
 import GroupedPaletteBoard from "@/components/palette/GroupedPaletteBoard";
 import {
   COLOR_PALETTE,
@@ -26,19 +27,20 @@ function defaultLabel(id: string): string {
   return getPaletteColor(id)?.label ?? id;
 }
 
-function withLabels(
+/** Keep user text while typing — defaults only for newly added ids. */
+function pruneSelection(
   ids: string[],
   primaryId: string | null,
   labels: Record<string, string>
 ): PaletteSelection {
   const nextLabels = { ...labels };
-  for (const id of ids) {
-    if (!nextLabels[id]?.trim()) {
-      nextLabels[id] = defaultLabel(id);
-    }
-  }
   for (const key of Object.keys(nextLabels)) {
     if (!ids.includes(key)) delete nextLabels[key];
+  }
+  for (const id of ids) {
+    if (!(id in nextLabels)) {
+      nextLabels[id] = defaultLabel(id);
+    }
   }
   return { ids, primaryId, labels: nextLabels };
 }
@@ -47,7 +49,7 @@ export default function ColorPalettePicker({ selection, onChange }: Props) {
   const { ids, primaryId, labels } = selection;
 
   function emit(next: PaletteSelection) {
-    onChange(withLabels(next.ids, next.primaryId, next.labels));
+    onChange(pruneSelection(next.ids, next.primaryId, next.labels));
   }
 
   function togglePick(c: PaletteColor) {
@@ -75,10 +77,21 @@ export default function ColorPalettePicker({ selection, onChange }: Props) {
 
   function setLabel(id: string, value: string) {
     if (!ids.includes(id)) return;
-    emit({
+    onChange({
       ids,
       primaryId,
       labels: { ...labels, [id]: value },
+    });
+  }
+
+  function finishLabel(id: string) {
+    if (!ids.includes(id)) return;
+    const trimmed = labels[id]?.trim() ?? "";
+    if (trimmed) return;
+    onChange({
+      ids,
+      primaryId,
+      labels: { ...labels, [id]: defaultLabel(id) },
     });
   }
 
@@ -103,11 +116,12 @@ export default function ColorPalettePicker({ selection, onChange }: Props) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[12px] leading-snug text-gray-500 sm:text-[13px] dark:text-gray-400">
-          Натисніть відтінок на палітрі. У списку нижче для{" "}
+          На сторінці товару —{" "}
           <strong className="font-semibold text-gray-700 dark:text-gray-200">
-            кожного
+            один квадратик і одна назва
           </strong>{" "}
-          кольору можна задати свою назву на сайті.
+          (блок нижче). Інші відтінки знизу лише для фільтрів — другої
+          такої ж назви там немає.
         </p>
         <button
           type="button"
@@ -126,17 +140,48 @@ export default function ColorPalettePicker({ selection, onChange }: Props) {
         onPick={togglePick}
       />
 
+      {primaryId && getPaletteColor(primaryId) ? (
+        <div className="rounded-xl border border-[#B7E1DF]/70 bg-[#B7E1DF]/10 px-3 py-3 dark:border-[#B7E1DF]/25 dark:bg-[#B7E1DF]/5">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+            На сторінці товару (один квадратик)
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            <span
+              className="h-14 w-14 shrink-0 border border-black/10 shadow-sm"
+              style={{ backgroundColor: getPaletteColor(primaryId)!.hex }}
+              aria-hidden
+            />
+            <div className="min-w-0 flex-1">
+              <Label htmlFor="palette-label-primary">Ваша назва кольору</Label>
+              <input
+                id="palette-label-primary"
+                type="text"
+                className="admin-input mt-1 !h-10 w-full text-[14px]"
+                value={labels[primaryId] ?? ""}
+                onChange={(e) => setLabel(primaryId, e.target.value)}
+                onBlur={() => finishLabel(primaryId)}
+                placeholder={defaultLabel(primaryId)}
+                autoComplete="off"
+                spellCheck
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {ids.length > 0 ? (
         <div className="space-y-2">
           <p className="text-[12px] font-semibold uppercase tracking-wide text-gray-400">
-            Назви на сайті ({ids.length})
+            Усі обрані відтінки ({ids.length})
           </p>
           <ul className="space-y-2" aria-label="Кольори та назви">
-            {ids.map((id) => {
+            {ids
+              .filter((id) => id !== primaryId)
+              .map((id) => {
               const c = getPaletteColor(id);
               if (!c) return null;
-              const isPrimary = primaryId === id;
-              const value = labels[id] ?? defaultLabel(id);
+              const isPrimary = false;
+              const value = labels[id] ?? "";
               return (
                 <li
                   key={id}
@@ -166,8 +211,10 @@ export default function ColorPalettePicker({ selection, onChange }: Props) {
                           className="admin-input !h-9 w-full !py-1.5 text-[13px]"
                           value={value}
                           onChange={(e) => setLabel(id, e.target.value)}
+                          onBlur={() => finishLabel(id)}
                           placeholder={c.label}
                           autoCapitalize="sentences"
+                          autoComplete="off"
                         />
                       </div>
                     </div>
