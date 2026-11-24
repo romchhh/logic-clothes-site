@@ -587,6 +587,7 @@ export default function CatalogClient({
             lang={lang}
             intent="catalog"
             label={t.catalog.emptyContact}
+            exposeChannels
             className="cat-empty-discuss"
           />
         </div>

@@ -1790,6 +1790,27 @@
     margin-right:auto;
     text-align:left;
   }
+  .cat-empty-discuss .pdp-discuss-quick{
+    margin-top:12px;
+    width:100%;
+    text-align:center;
+  }
+  .cat-empty-discuss .pdp-discuss-lead{
+    text-align:center;
+  }
+  .cat-empty-discuss .pdp-discuss-channels{
+    justify-content:center;
+    max-width:420px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  a.pdp-discuss-channel{
+    text-decoration:none;
+  }
+  a.pdp-discuss-channel:hover{
+    border-color:var(--pdp-ink);
+    background:var(--accent-soft);
+  }
   .cat-more-sentinel{
     width:100%;
     height:1px;

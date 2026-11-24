@@ -277,6 +277,39 @@ export function getPaletteColor(id: string): PaletteColor | undefined {
 }
 
 /** Admin / API: palette slots stored on one SKU (primary + extra swatches). */
+/** Custom storefront labels per palette id (admin). */
+export function productPaletteLabels(product: {
+  color?: string;
+  colorHex?: string;
+  swatches?: Array<{ label: string; hex?: string }>;
+}): Record<string, string> {
+  const labels: Record<string, string> = {};
+  const primaryId =
+    resolvePaletteId({
+      color: product.color,
+      colorHex: product.colorHex,
+    }) ?? null;
+
+  if (primaryId) {
+    const preset = getPaletteColor(primaryId)?.label ?? "";
+    const fromProduct = (product.color || "").trim();
+    labels[primaryId] = fromProduct || preset;
+  }
+
+  for (const sw of product.swatches || []) {
+    const id = resolvePaletteId({
+      color: sw.label,
+      colorHex: sw.hex,
+      hex: sw.hex,
+    });
+    if (!id) continue;
+    const fromSwatch = (sw.label || "").trim();
+    const preset = getPaletteColor(id)?.label ?? "";
+    labels[id] = fromSwatch || preset;
+  }
+  return labels;
+}
+
 export function productPaletteSelection(product: {
   color?: string;
   colorHex?: string;
@@ -310,13 +343,15 @@ export function productPaletteSelection(product: {
 
 export function swatchesFromPaletteIds(
   ids: string[],
-  img: string
+  img: string,
+  customLabels?: Record<string, string>
 ): Array<{ img: string; label: string; hex: string }> {
   const out: Array<{ img: string; label: string; hex: string }> = [];
   for (const id of ids) {
     const c = getPaletteColor(id);
     if (!c) continue;
-    out.push({ img, label: c.label, hex: c.hex });
+    const custom = customLabels?.[id]?.trim();
+    out.push({ img, label: custom || c.label, hex: c.hex });
   }
   return out;
 }

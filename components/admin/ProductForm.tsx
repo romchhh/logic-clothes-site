@@ -10,6 +10,7 @@ import ColorPalettePicker, {
 } from "@/components/admin/ColorPalettePicker";
 import {
   getPaletteColor,
+  productPaletteLabels,
   productPaletteSelection,
   swatchesFromPaletteIds,
 } from "@/lib/colorPalette";
@@ -88,8 +89,6 @@ type FormState = {
   photoSize: string;
   modelParams: string;
   garmentMeasures: Record<GarmentMeasureKey, string>;
-  /** Storefront color caption — may differ from palette shade name. */
-  colorLabel: string;
   careId: CareId | null;
   sizeOptions: string[];
   lengthOptions: string[];
@@ -142,7 +141,6 @@ const EMPTY: FormState = {
   photoSize: "",
   modelParams: "",
   garmentMeasures: emptyGarmentMeasures(),
-  colorLabel: "",
   careId: null,
   sizeOptions: [],
   lengthOptions: [],
@@ -202,6 +200,20 @@ type ProductFormDraft = {
   lookProductIds: string[];
 };
 
+function normalizePaletteSelection(
+  raw?: Partial<PaletteSelection> | null
+): PaletteSelection {
+  const ids = raw?.ids ?? [];
+  const primaryId = raw?.primaryId ?? ids[0] ?? null;
+  const labels = { ...(raw?.labels ?? {}) };
+  for (const id of ids) {
+    if (!labels[id]?.trim()) {
+      labels[id] = getPaletteColor(id)?.label ?? id;
+    }
+  }
+  return { ids, primaryId, labels };
+}
+
 export default function ProductForm({ productId }: Props) {
   const router = useRouter();
   const isEdit = Boolean(productId);
@@ -252,6 +264,7 @@ export default function ProductForm({ productId }: Props) {
   const [paletteSelection, setPaletteSelection] = useState<PaletteSelection>({
     ids: [],
     primaryId: null,
+    labels: {},
   });
   const [lookProductIds, setLookProductIds] = useState<string[]>([]);
   const [eurManual, setEurManual] = useState(false);
@@ -489,7 +502,6 @@ export default function ProductForm({ productId }: Props) {
           photoSize: p.photoSize ?? "",
           modelParams: p.modelParams ?? "",
           garmentMeasures: garmentMeasuresToAdminForm(p.garmentMeasures),
-          colorLabel: (p.color ?? "").trim(),
           careId: p.careId ?? null,
           sizeOptions: Array.isArray(p.sizeOptions)
             ? p.sizeOptions.map(normalizeBrandSize)
@@ -514,7 +526,13 @@ export default function ProductForm({ productId }: Props) {
           media,
         });
         setEurManual(p.priceEur != null);
-        setPaletteSelection(productPaletteSelection(p));
+        const palette = productPaletteSelection(p);
+        setPaletteSelection(
+          normalizePaletteSelection({
+            ...palette,
+            labels: productPaletteLabels(p),
+          })
+        );
         setLookProductIds(
           Array.isArray(p.lookProductIds) ? p.lookProductIds : []
         );
@@ -522,7 +540,16 @@ export default function ProductForm({ productId }: Props) {
         const draft = readAdminFormDraft<ProductFormDraft>(draftKey);
         if (draft?.form) {
           setForm(draft.form);
-          if (draft.paletteSelection) setPaletteSelection(draft.paletteSelection);
+          if (draft.paletteSelection) {
+            const merged = normalizePaletteSelection(draft.paletteSelection);
+            const legacyColor = (
+              draft.form as { colorLabel?: string }
+            ).colorLabel?.trim();
+            if (legacyColor && merged.primaryId) {
+              merged.labels[merged.primaryId] = legacyColor;
+            }
+            setPaletteSelection(merged);
+          }
           if (Array.isArray(draft.colorVariantIds)) {
             setColorVariantIds(draft.colorVariantIds);
           }
@@ -552,7 +579,14 @@ export default function ProductForm({ productId }: Props) {
     const draft = readAdminFormDraft<ProductFormDraft>(draftKey);
     if (draft?.form) {
       setForm(draft.form);
-      if (draft.paletteSelection) setPaletteSelection(draft.paletteSelection);
+      if (draft.paletteSelection) {
+        const merged = normalizePaletteSelection(draft.paletteSelection);
+        const legacyColor = (draft.form as { colorLabel?: string }).colorLabel?.trim();
+        if (legacyColor && merged.primaryId) {
+          merged.labels[merged.primaryId] = legacyColor;
+        }
+        setPaletteSelection(merged);
+      }
       if (Array.isArray(draft.colorVariantIds)) {
         setColorVariantIds(draft.colorVariantIds);
       }
@@ -747,8 +781,13 @@ export default function ProductForm({ productId }: Props) {
           ? compareAt
           : null,
       category: form.category,
-      color:
-        form.colorLabel.trim() || primaryColor?.label || "",
+      color: (() => {
+        const pid = paletteSelection.primaryId;
+        if (!pid) return primaryColor?.label ?? "";
+        return (
+          paletteSelection.labels[pid]?.trim() || primaryColor?.label || ""
+        );
+      })(),
       colorHex: primaryColor?.hex ?? "",
       fabricName: form.fabricName.trim(),
       material: form.material.trim(),
@@ -787,7 +826,11 @@ export default function ProductForm({ productId }: Props) {
       media: form.media,
       colorVariantIds,
       lookProductIds,
-      swatches: swatchesFromPaletteIds(paletteSelection.ids, images[0] || ""),
+      swatches: swatchesFromPaletteIds(
+        paletteSelection.ids,
+        images[0] || "",
+        paletteSelection.labels
+      ),
     };
 
     setSaving(true);
@@ -942,7 +985,11 @@ export default function ProductForm({ productId }: Props) {
               setDraftRestored(false);
               if (!isEdit) {
                 setForm(EMPTY);
-                setPaletteSelection({ ids: [], primaryId: null });
+                setPaletteSelection({
+                  ids: [],
+                  primaryId: null,
+                  labels: {},
+                });
                 setColorVariantIds([]);
                 setLookProductIds([]);
               } else {
@@ -1248,21 +1295,8 @@ export default function ProductForm({ productId }: Props) {
       <ComponentCard title="Колір" sectionId="section-color">
         <ColorPalettePicker
           selection={paletteSelection}
-          onChange={setPaletteSelection}
+          onChange={(next) => setPaletteSelection(normalizePaletteSelection(next))}
         />
-        <div className="mt-4 max-w-md">
-          <Label htmlFor="colorLabel">Назва кольору на сайті</Label>
-          <Input
-            id="colorLabel"
-            value={form.colorLabel}
-            onChange={(e) => set("colorLabel", e.target.value)}
-            placeholder="напр. темний лляний, бірюзово-сірий"
-          />
-          <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
-            Можна переписати назву після вибору кружечка — один відтінок у
-            палітрі часто охоплює кілька тонів.
-          </p>
-        </div>
       </ComponentCard>
 
       <ComponentCard title="Розміри" sectionId="section-sizes">
