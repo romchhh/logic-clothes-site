@@ -491,7 +491,60 @@
   @apply w-full sm:min-w-[14rem] sm:flex-1 sm:max-w-sm;
 }
 .admin-list-toolbar-category {
-  @apply w-full sm:w-52;
+  @apply w-full sm:min-w-[14rem] sm:max-w-[20rem];
+}
+/* Bulk category editor + list: long UA labels must not clip in <select> */
+.admin-category-select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: clip;
+}
+@media (min-width: 640px) {
+  .admin-category-select {
+    min-width: 17.5rem;
+    max-width: 22rem;
+  }
+}
+.admin-bulk-category-row {
+  display: grid;
+  gap: 12px;
+  padding: 12px 16px;
+}
+@media (min-width: 640px) {
+  .admin-bulk-category-row {
+    grid-template-columns: minmax(0, 1fr) minmax(17.5rem, 22rem);
+    align-items: center;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+.admin-bulk-category-row.is-dirty {
+  @apply bg-amber-50/40 dark:bg-amber-950/10;
+}
+.admin-bulk-category-product {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+.admin-bulk-category-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .admin-bulk-category-field {
+    width: auto;
+  }
+}
+.admin-product-list-category {
+  display: inline-block;
+  max-width: 100%;
+  line-height: 1.35;
+  word-break: break-word;
 }
 .admin-sort-row {
   @apply flex flex-wrap items-center gap-3;

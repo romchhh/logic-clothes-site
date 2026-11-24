@@ -19,7 +19,7 @@ export default function SidebarMenu({ lang }: { lang: Locale }) {
     { href: `/${lang}/catalog`, label: t.nav.catalog },
     { href: `/${lang}/about`, label: t.nav.whoWeAre },
     {
-      href: `/${lang}/about#custom-order`,
+      href: `/${lang}/custom-order`,
       label: t.nav.custom14,
     },
     {

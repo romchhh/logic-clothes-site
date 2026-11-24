@@ -17,6 +17,7 @@ import {
   CONTENT_PAGE_DEFS,
   type AboutLocaleContent,
   type ContentPageSlug,
+  type CustomOrderLocaleContent,
   type SitePagesStore,
 } from "@/lib/sitePagesTypes";
 
@@ -93,6 +94,9 @@ export default function ContentEditor() {
   }, []);
 
   const about: AboutLocaleContent | null = store ? store.about[lang] : null;
+  const customOrder: CustomOrderLocaleContent | null = store
+    ? store.customOrder?.[lang] ?? null
+    : null;
 
   const legalPage: LegalPage | null =
     store && def.kind === "legal"
@@ -107,6 +111,22 @@ export default function ContentEditor() {
         about: {
           ...prev.about,
           [lang]: { ...prev.about[lang], ...patch },
+        },
+      };
+    });
+    setMessage(null);
+  };
+
+  const patchCustomOrder = (patch: Partial<CustomOrderLocaleContent>) => {
+    setStore((prev) => {
+      if (!prev) return prev;
+      const current = prev.customOrder?.[lang];
+      if (!current) return prev;
+      return {
+        ...prev,
+        customOrder: {
+          ...prev.customOrder,
+          [lang]: { ...current, ...patch },
         },
       };
     });
@@ -209,7 +229,9 @@ export default function ContentEditor() {
             );
           })}
         </div>
-        {def.kind === "about" || def.kind === "legal" ? (
+        {def.kind === "about" ||
+        def.kind === "legal" ||
+        def.kind === "custom" ? (
           <div className="flex items-center gap-2">
             {(["uk", "en"] as Lang[]).map((l) => (
               <button
@@ -234,7 +256,9 @@ export default function ContentEditor() {
 
       {def.kind === "store" ? <StorePhotosForm /> : null}
 
-      {def.kind === "about" || def.kind === "legal" ? (
+      {def.kind === "about" ||
+      def.kind === "legal" ||
+      def.kind === "custom" ? (
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 dark:border-gray-800 dark:bg-[#141414]">
         <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white">
@@ -244,7 +268,11 @@ export default function ContentEditor() {
             </span>
           </h2>
           <p className="text-[12px] text-gray-500">
-            {def.kind === "about" ? "/about" : `/${slug}`}
+            {def.kind === "about"
+              ? "/about"
+              : def.kind === "custom"
+                ? "/custom-order"
+                : `/${slug}`}
           </p>
         </div>
 
@@ -278,6 +306,50 @@ export default function ContentEditor() {
             <ContentGalleryEditor
               images={about.gallery || []}
               onChange={(gallery) => patchAbout({ gallery })}
+            />
+          </div>
+        ) : null}
+
+        {def.kind === "custom" && customOrder ? (
+          <div className="space-y-6">
+            <Field label="Заголовок сторінки">
+              <Input
+                value={customOrder.title}
+                onChange={(e) => patchCustomOrder({ title: e.target.value })}
+              />
+            </Field>
+
+            <Field
+              label="Короткий опис (SEO)"
+              hint="1–2 речення для пошуку та прев’ю посилання."
+            >
+              <Input
+                value={customOrder.lead}
+                onChange={(e) => patchCustomOrder({ lead: e.target.value })}
+              />
+            </Field>
+
+            <ContentImageField
+              label="Головне фото (hero)"
+              hint="Велике фото зверху сторінки кастомізації."
+              value={customOrder.heroImage || ""}
+              onChange={(heroImage) => patchCustomOrder({ heroImage })}
+            />
+
+            <Field
+              label="Текст (Markdown)"
+              hint="Розповідь: як працює колір + розмір за 14 днів. UA і EN окремо."
+            >
+              <MarkdownEditor
+                value={customOrder.bodyMarkdown || ""}
+                onChange={(bodyMarkdown) => patchCustomOrder({ bodyMarkdown })}
+                rows={18}
+              />
+            </Field>
+
+            <ContentGalleryEditor
+              images={customOrder.gallery || []}
+              onChange={(gallery) => patchCustomOrder({ gallery })}
             />
           </div>
         ) : null}
@@ -331,7 +403,9 @@ export default function ContentEditor() {
       </div>
       ) : null}
 
-      {def.kind === "about" || def.kind === "legal" ? (
+      {def.kind === "about" ||
+      def.kind === "legal" ||
+      def.kind === "custom" ? (
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-h-[1.25rem] text-sm">
           {error ? <p className="text-error-500">{error}</p> : null}
@@ -349,7 +423,9 @@ export default function ContentEditor() {
         </button>
       </div>
       ) : null}
-      {def.kind === "about" || def.kind === "legal" ? (
+      {def.kind === "about" ||
+      def.kind === "legal" ||
+      def.kind === "custom" ? (
       <p className="text-[12px] text-gray-500 dark:text-gray-400">
         Зберігаються обидві мови (UK і EN) для всіх сторінок одразу. Фото й
         Markdown можна міняти самостійно без розробника.

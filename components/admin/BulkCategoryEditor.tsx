@@ -205,7 +205,7 @@ export default function BulkCategoryEditor() {
         <select
           value={filterCat}
           onChange={(e) => setFilterCat(e.target.value)}
-          className="admin-input sm:w-56"
+          className="admin-input admin-category-select admin-list-toolbar-category"
         >
           <option value="">Усі категорії</option>
           <option value="__none__">Без категорії</option>
@@ -256,11 +256,11 @@ export default function BulkCategoryEditor() {
             return (
               <div
                 key={p.id}
-                className={`flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-5 ${
-                  dirty ? "bg-amber-50/40 dark:bg-amber-950/10" : ""
+                className={`admin-bulk-category-row${
+                  dirty ? " is-dirty" : ""
                 }`}
               >
-                <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="admin-bulk-category-product">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={getProductImageSrc(p.images)}
@@ -278,13 +278,17 @@ export default function BulkCategoryEditor() {
                   </div>
                 </div>
 
-                <label className="flex flex-col gap-1 sm:w-64 sm:shrink-0">
+                <label className="admin-bulk-category-field">
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                     Категорія
                   </span>
                   <select
-                    className="admin-input !h-9"
+                    className="admin-input admin-category-select !h-9"
                     value={r.category}
+                    title={
+                      productCategories.find((c) => c.id === r.category)
+                        ?.label.uk ?? "— без категорії —"
+                    }
                     onChange={(e) => setRow(p.id, e.target.value)}
                   >
                     <option value="">— без категорії —</option>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   SITE_INSTAGRAM_HANDLE,
   SITE_VIBER_PHONE,
@@ -113,7 +113,43 @@ export default function ProductDiscussOrder({
     shadeLabel,
   ]);
 
-  const draft = message.trim() ? message : defaultBody;
+  const prefixLenRef = useRef(0);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    prefixLenRef.current = defaultBody.length;
+  }, [defaultBody]);
+
+  const ensurePrefix = useCallback(
+    (next: string) => {
+      if (next.startsWith(defaultBody)) return next;
+      const tail = next.slice(prefixLenRef.current);
+      return defaultBody + tail;
+    },
+    [defaultBody]
+  );
+
+  const draft = ensurePrefix(message).trim() ? ensurePrefix(message) : defaultBody;
+
+  const focusAfterPrefix = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const pos = defaultBody.length;
+    requestAnimationFrame(() => {
+      el.setSelectionRange(pos, pos);
+      el.focus();
+    });
+  }, [defaultBody]);
+
+  useEffect(() => {
+    if (!channel) return;
+    setMessage((prev) => {
+      const trimmed = prev.trim();
+      if (!trimmed || trimmed === defaultBody) return defaultBody;
+      return ensurePrefix(prev);
+    });
+    focusAfterPrefix();
+  }, [channel, defaultBody, ensurePrefix, focusAfterPrefix]);
 
   const send = useCallback(async () => {
     setNotice(null);
@@ -205,12 +241,13 @@ export default function ProductDiscussOrder({
                 {t.product.discussMessageLabel}
               </label>
               <textarea
+                ref={textareaRef}
                 id={`${panelId}-msg`}
                 className="pdp-discuss-textarea"
                 rows={5}
-                placeholder={defaultBody}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                value={ensurePrefix(message)}
+                onChange={(e) => setMessage(ensurePrefix(e.target.value))}
+                onFocus={focusAfterPrefix}
               />
               {notice ? (
                 <p className="pdp-discuss-notice" role="status">

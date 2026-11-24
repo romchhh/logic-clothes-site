@@ -1,5 +1,6 @@
 import type { AboutContent } from "@/lib/content/about";
 import { aboutContent as defaultAbout } from "@/lib/content/about";
+import { defaultCustomOrder } from "@/lib/content/customOrderDefaults";
 import type { LegalPage } from "@/lib/content/legal";
 import { legalPages as defaultLegal } from "@/lib/content/legal";
 import {
@@ -12,12 +13,14 @@ import { revalidatePath } from "next/cache";
 import type {
   AboutLocaleContent,
   ContentGalleryImage,
+  CustomOrderLocaleContent,
   SitePagesStore,
 } from "@/lib/sitePagesTypes";
 
 export type {
   AboutLocaleContent,
   ContentPageSlug,
+  CustomOrderLocaleContent,
   SitePagesStore,
 } from "@/lib/sitePagesTypes";
 export { CONTENT_PAGE_DEFS } from "@/lib/sitePagesTypes";
@@ -26,23 +29,11 @@ export const SITE_PAGES_SETTING_KEY = "site_pages_json";
 
 const DEFAULT_ABOUT_HERO = "/assets/footer-bg.png";
 
-function withAboutExtras(
-  base: AboutContent,
-  lang: Locale
-): AboutLocaleContent {
-  const customTitle =
-    lang === "uk"
-      ? "Ваш колір + ваш розмір за 14 днів"
-      : "Your colour + your size in 14 days";
-  const customBody =
-    lang === "uk"
-      ? "Будь-який відтінок з нашої палітри — стандартна сітка або по ваших мірках. На сторінці товару оберіть колір і натисніть «Обговорити замовлення з живою людиною» — менеджер відповість у Instagram або Viber."
-      : "Any shade from our palette — standard sizes or made to measure. On the product page pick a colour and tap «Discuss your order with a real person» — our manager will reply on Instagram or Viber.";
-
+function withAboutExtras(base: AboutContent): AboutLocaleContent {
   const draft: AboutLocaleContent = {
     ...base,
-    customTitle,
-    customBody,
+    customTitle: "",
+    customBody: "",
     heroImage: DEFAULT_ABOUT_HERO,
     bodyMarkdown: "",
     gallery: [],
@@ -67,8 +58,12 @@ export function defaultSitePages(): SitePagesStore {
 
   return {
     about: {
-      uk: withAboutExtras(defaultAbout.uk, "uk"),
-      en: withAboutExtras(defaultAbout.en, "en"),
+      uk: withAboutExtras(defaultAbout.uk),
+      en: withAboutExtras(defaultAbout.en),
+    },
+    customOrder: {
+      uk: defaultCustomOrder("uk"),
+      en: defaultCustomOrder("en"),
     },
     legal: {
       uk: legalUk,
@@ -137,6 +132,24 @@ function parseAboutLocale(
   return merged;
 }
 
+function parseCustomOrderLocale(
+  raw: unknown,
+  fallback: CustomOrderLocaleContent
+): CustomOrderLocaleContent {
+  if (!isObj(raw)) return fallback;
+  const body = String(raw.bodyMarkdown ?? "").trim()
+    ? String(raw.bodyMarkdown)
+    : fallback.bodyMarkdown;
+  return {
+    title: String(raw.title ?? fallback.title),
+    lead: String(raw.lead ?? fallback.lead),
+    heroImage:
+      cleanUrl(raw.heroImage) || fallback.heroImage || DEFAULT_ABOUT_HERO,
+    bodyMarkdown: body,
+    gallery: parseGallery(raw.gallery ?? fallback.gallery),
+  };
+}
+
 function parseLegalPage(raw: unknown, fallback: LegalPage): LegalPage {
   if (!isObj(raw)) return fallback;
   const sectionsRaw = Array.isArray(raw.sections) ? raw.sections : null;
@@ -198,10 +211,16 @@ function mergeStore(raw: unknown): SitePagesStore {
     });
   };
 
+  const customRaw = isObj(raw.customOrder) ? raw.customOrder : {};
+
   return {
     about: {
       uk: parseAboutLocale(aboutRaw.uk, defaults.about.uk),
       en: parseAboutLocale(aboutRaw.en, defaults.about.en),
+    },
+    customOrder: {
+      uk: parseCustomOrderLocale(customRaw.uk, defaults.customOrder.uk),
+      en: parseCustomOrderLocale(customRaw.en, defaults.customOrder.en),
     },
     legal: {
       uk: mergeLegal(legalUkDefaults, legalUkRaw),
@@ -241,6 +260,8 @@ export async function saveSitePagesStore(
     revalidatePath("/en");
     revalidatePath("/uk/about");
     revalidatePath("/en/about");
+    revalidatePath("/uk/custom-order");
+    revalidatePath("/en/custom-order");
     revalidatePath("/uk/shipping-payment");
     revalidatePath("/en/shipping-payment");
     revalidatePath("/uk/contacts");
@@ -256,6 +277,13 @@ export async function saveSitePagesStore(
 export async function getAboutPage(lang: Locale): Promise<AboutLocaleContent> {
   const store = await getSitePagesStore();
   return store.about[lang] || store.about.uk;
+}
+
+export async function getCustomOrderPage(
+  lang: Locale
+): Promise<CustomOrderLocaleContent> {
+  const store = await getSitePagesStore();
+  return store.customOrder[lang] || store.customOrder.uk;
 }
 
 export async function getLegalPageContent(

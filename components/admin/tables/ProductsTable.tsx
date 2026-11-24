@@ -471,7 +471,7 @@ export default function ProductsTable() {
               setCategoryId(e.target.value);
               setPage(1);
             }}
-            className="admin-input admin-list-toolbar-category"
+            className="admin-input admin-category-select admin-list-toolbar-category"
             aria-label="Категорія"
           >
             <option value="">Усі категорії</option>
@@ -672,7 +672,7 @@ export default function ProductsTable() {
                         </div>
                       </Link>
                       <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-[12px] text-gray-500 dark:text-gray-400">
-                        <span className="max-w-full truncate">
+                        <span className="admin-product-list-category">
                           {categoryLabel(p.category)}
                         </span>
                         <label

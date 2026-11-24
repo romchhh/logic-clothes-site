@@ -581,6 +581,8 @@ export default function CatalogClient({
         <div className="cat-empty">
           <p className="cat-empty-title">{t.catalog.empty}</p>
           <p className="cat-empty-lead">{t.catalog.emptyLead}</p>
+          <p className="cat-empty-bullets">{t.catalog.emptyBullets}</p>
+          <p className="cat-empty-prompt">{t.catalog.emptyPrompt}</p>
           <ProductDiscussOrder
             lang={lang}
             intent="catalog"

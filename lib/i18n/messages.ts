@@ -38,6 +38,8 @@ export type Messages = {
     filters: string;
     empty: string;
     emptyLead: string;
+    emptyBullets: string;
+    emptyPrompt: string;
     emptyContact: string;
     category: string;
     sortNewest: string;
@@ -340,9 +342,10 @@ const uk: Messages = {
     sort: "Сортувати",
     filter: "Фільтр",
     filters: "Фільтри",
-    empty: "Товарів за цими фільтрами не знайдено",
-    emptyLead:
-      "Напишіть нам — підкажемо наявність або пошиємо під ваші побажання.",
+    empty: "не знайшлось?",
+    emptyLead: "то зшиємо!",
+    emptyBullets: "ваш колір. ваш розмір. ваш принт.ваша довжина",
+    emptyPrompt: "розкажіть нам про ваші забаганки",
     emptyContact: "звʼязатися з нами",
     category: "Категорія",
     sortNewest: "За пріоритетом",
@@ -431,7 +434,7 @@ const uk: Messages = {
     customOrderSelected: "Обрані кольори",
     discussChoose: "Куди надіслати повідомлення?",
     discussInstagram: "Instagram Direct",
-    discussMessenger: "Месенджер (Viber · Роман)",
+    discussMessenger: "Месенджер (Viber)",
     discussMessageLabel: "Ваш текст",
     discussSend: "Надіслати",
     discussCopied:
@@ -662,9 +665,10 @@ const en: Messages = {
     sort: "Sort",
     filter: "Filter",
     filters: "Filters",
-    empty: "No products match these filters",
-    emptyLead:
-      "Write to us — we’ll help you find something or sew a custom piece.",
+    empty: "nothing found?",
+    emptyLead: "we’ll sew it!",
+    emptyBullets: "your colour. your size. your print. your length",
+    emptyPrompt: "tell us what you’re looking for",
     emptyContact: "contact us",
     category: "Category",
     sortNewest: "By priority",
@@ -753,7 +757,7 @@ const en: Messages = {
     customOrderSelected: "Selected colours",
     discussChoose: "Where should we receive your message?",
     discussInstagram: "Instagram Direct",
-    discussMessenger: "Viber · Roman",
+    discussMessenger: "Viber",
     discussMessageLabel: "Your message",
     discussSend: "Send",
     discussCopied:

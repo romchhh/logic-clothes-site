@@ -21,6 +21,8 @@ type Props = {
   /** Extra typeahead while typing in the custom field (e.g. brand sizes). */
   typeahead?: (query: string) => string[];
   normalizeValue?: (raw: string) => string;
+  /** When true, only custom input / bulk — no chip rail (avoid duplicate lists). */
+  hideRail?: boolean;
 };
 
 export default function AdminChipField({
@@ -38,6 +40,7 @@ export default function AdminChipField({
   chipMode = "toggle",
   typeahead,
   normalizeValue,
+  hideRail = false,
 }: Props) {
   const [custom, setCustom] = useState("");
   const [bulk, setBulk] = useState("");
@@ -92,38 +95,40 @@ export default function AdminChipField({
           </p>
         ) : null}
       </div>
-      <div className="admin-suggest-rail" role="listbox">
-        {pool.map((value) => {
-          const active = singleSelect
-            ? activeValue === value
-            : selected.includes(value);
-          return (
-            <button
-              key={value}
-              type="button"
-              role="option"
-              aria-selected={active}
-              onClick={() => {
-                if (singleSelect && onSingleSelect) {
-                  onSingleSelect(value);
-                  return;
-                }
-                if (chipMode === "add") {
-                  if (!selected.includes(value)) onToggle(value);
-                  return;
-                }
-                onToggle(value);
-              }}
-              className={`admin-chip admin-suggest-chip ${
-                active ? "admin-chip-active" : ""
-              }`}
-              title={value}
-            >
-              {value.length > 36 ? `${value.slice(0, 36)}…` : value}
-            </button>
-          );
-        })}
-      </div>
+      {hideRail ? null : (
+        <div className="admin-suggest-rail" role="listbox">
+          {pool.map((value) => {
+            const active = singleSelect
+              ? activeValue === value
+              : selected.includes(value);
+            return (
+              <button
+                key={value}
+                type="button"
+                role="option"
+                aria-selected={active}
+                onClick={() => {
+                  if (singleSelect && onSingleSelect) {
+                    onSingleSelect(value);
+                    return;
+                  }
+                  if (chipMode === "add") {
+                    if (!selected.includes(value)) onToggle(value);
+                    return;
+                  }
+                  onToggle(value);
+                }}
+                className={`admin-chip admin-suggest-chip ${
+                  active ? "admin-chip-active" : ""
+                }`}
+                title={value}
+              >
+                {value.length > 36 ? `${value.slice(0, 36)}…` : value}
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div className="flex flex-col gap-2 sm:max-w-md sm:flex-row sm:items-center">
         <div className="relative min-w-0 flex-1">
           <input

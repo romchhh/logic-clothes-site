@@ -26,6 +26,58 @@ export const GARMENT_MEASURE_FIELDS = [
 export type GarmentMeasureKey = (typeof GARMENT_MEASURE_FIELDS)[number]["key"];
 export type GarmentMeasures = Partial<Record<GarmentMeasureKey, string>>;
 
+/** Admin enters half-circumference; storefront shows full (×2). */
+export const GARMENT_DOUBLE_KEYS: readonly GarmentMeasureKey[] = [
+  "bust",
+  "waist",
+  "hips",
+];
+
+function parseMeasureNumber(raw: string): number | null {
+  const n = Number(String(raw).trim().replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatMeasureNumber(n: number): string {
+  if (Number.isInteger(n)) return String(n);
+  return String(Math.round(n * 10) / 10);
+}
+
+export function garmentMeasuresToAdminForm(
+  stored: GarmentMeasures | null | undefined
+): Record<GarmentMeasureKey, string> {
+  const base = emptyGarmentMeasures();
+  if (!stored) return base;
+  for (const field of GARMENT_MEASURE_FIELDS) {
+    const v = stored[field.key];
+    if (!v?.trim()) continue;
+    if ((GARMENT_DOUBLE_KEYS as readonly string[]).includes(field.key)) {
+      const n = parseMeasureNumber(v);
+      base[field.key] = n != null ? formatMeasureNumber(n / 2) : v.trim();
+    } else {
+      base[field.key] = v.trim();
+    }
+  }
+  return base;
+}
+
+export function garmentMeasuresFromAdminForm(
+  form: Record<GarmentMeasureKey, string>
+): GarmentMeasures {
+  const out: GarmentMeasures = {};
+  for (const field of GARMENT_MEASURE_FIELDS) {
+    const v = form[field.key]?.trim();
+    if (!v) continue;
+    if ((GARMENT_DOUBLE_KEYS as readonly string[]).includes(field.key)) {
+      const n = parseMeasureNumber(v);
+      out[field.key] = n != null ? formatMeasureNumber(n * 2) : v;
+    } else {
+      out[field.key] = v;
+    }
+  }
+  return out;
+}
+
 export function emptyGarmentMeasures(): Record<GarmentMeasureKey, string> {
   return Object.fromEntries(
     GARMENT_MEASURE_FIELDS.map((f) => [f.key, ""])

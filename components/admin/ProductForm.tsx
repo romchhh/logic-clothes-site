@@ -56,6 +56,9 @@ import {
 } from "@/lib/careInstructions";
 import {
   emptyGarmentMeasures,
+  garmentMeasuresFromAdminForm,
+  garmentMeasuresToAdminForm,
+  GARMENT_DOUBLE_KEYS,
   GARMENT_MEASURE_FIELDS,
   type GarmentMeasureKey,
 } from "@/lib/garmentMeasures";
@@ -64,7 +67,7 @@ import {
 } from "@/lib/productSeason";
 import type { Product, ProductMedia } from "@/lib/types";
 
-const PRESET_LENGTHS = ["Mini", "Midi", "Maxi", "Crop", "Long"];
+const PRESET_LENGTHS = ["Mini", "Middle", "Maxi", "Crop", "Long"];
 
 type Props = { productId?: string };
 
@@ -85,6 +88,8 @@ type FormState = {
   photoSize: string;
   modelParams: string;
   garmentMeasures: Record<GarmentMeasureKey, string>;
+  /** Storefront color caption — may differ from palette shade name. */
+  colorLabel: string;
   careId: CareId | null;
   sizeOptions: string[];
   lengthOptions: string[];
@@ -137,6 +142,7 @@ const EMPTY: FormState = {
   photoSize: "",
   modelParams: "",
   garmentMeasures: emptyGarmentMeasures(),
+  colorLabel: "",
   careId: null,
   sizeOptions: [],
   lengthOptions: [],
@@ -482,10 +488,8 @@ export default function ProductForm({ productId }: Props) {
           insulation: p.insulation ?? "",
           photoSize: p.photoSize ?? "",
           modelParams: p.modelParams ?? "",
-          garmentMeasures: {
-            ...emptyGarmentMeasures(),
-            ...(p.garmentMeasures ?? {}),
-          },
+          garmentMeasures: garmentMeasuresToAdminForm(p.garmentMeasures),
+          colorLabel: (p.color ?? "").trim(),
           careId: p.careId ?? null,
           sizeOptions: Array.isArray(p.sizeOptions)
             ? p.sizeOptions.map(normalizeBrandSize)
@@ -743,7 +747,8 @@ export default function ProductForm({ productId }: Props) {
           ? compareAt
           : null,
       category: form.category,
-      color: primaryColor?.label ?? "",
+      color:
+        form.colorLabel.trim() || primaryColor?.label || "",
       colorHex: primaryColor?.hex ?? "",
       fabricName: form.fabricName.trim(),
       material: form.material.trim(),
@@ -752,7 +757,7 @@ export default function ProductForm({ productId }: Props) {
       insulation: form.insulation.trim() || null,
       photoSize: form.photoSize.trim(),
       modelParams: form.modelParams.trim(),
-      garmentMeasures: form.garmentMeasures,
+      garmentMeasures: garmentMeasuresFromAdminForm(form.garmentMeasures),
       careId: form.careId,
       sizeOptions: form.sizeOptions.map(normalizeBrandSize),
       lengthOptions: form.lengthOptions,
@@ -1245,10 +1250,27 @@ export default function ProductForm({ productId }: Props) {
           selection={paletteSelection}
           onChange={setPaletteSelection}
         />
+        <div className="mt-4 max-w-md">
+          <Label htmlFor="colorLabel">Назва кольору на сайті</Label>
+          <Input
+            id="colorLabel"
+            value={form.colorLabel}
+            onChange={(e) => set("colorLabel", e.target.value)}
+            placeholder="напр. темний лляний, бірюзово-сірий"
+          />
+          <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+            Можна переписати назву після вибору кружечка — один відтінок у
+            палітрі часто охоплює кілька тонів.
+          </p>
+        </div>
       </ComponentCard>
 
       <ComponentCard title="Розміри" sectionId="section-sizes">
         <div className="space-y-3">
+          <p className="text-[12px] leading-snug text-gray-500 dark:text-gray-400">
+            Розміри для клієнта на картці товару та у фільтрах. Це не розмір
+            моделі на фото — його вносите в блоці «Модель і заміри».
+          </p>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -1287,21 +1309,30 @@ export default function ProductForm({ productId }: Props) {
                 </button>
               );
             })}
-          </div>
-          <AdminChipField
-            label="Додаткові / свої розміри"
-            hint="Пишіть латиницею як на сайті: ONESIZE, XS-S, S-M, M-L, L-XL, A–D. Підказки з’являться під час введення."
-            placeholderChip="напр. S-M або XS-S"
-            bulkPlaceholder="ONESIZE, XS-S, S-M, M-L, L-XL"
-            suggestions={[
-              ...ADMIN_SIZE_PRESETS.filter(
-                (s) => !form.sizeOptions.includes(s)
-              ),
-              ...form.sizeOptions.filter(
+            {form.sizeOptions
+              .filter(
                 (s) =>
                   !(ADMIN_SIZE_PRESETS as readonly string[]).includes(s)
-              ),
-            ]}
+              )
+              .map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => toggleOption("sizeOptions", value)}
+                  className="admin-chip admin-chip-active"
+                  title="Свій розмір — клік, щоб прибрати"
+                >
+                  {value}
+                </button>
+              ))}
+          </div>
+          <AdminChipField
+            hideRail
+            label="Додати свій розмір"
+            hint="Латиницею як на сайті. Підказки з’являться під час введення; можна вставити список через кому."
+            placeholderChip="напр. XL-XXL"
+            bulkPlaceholder="ONESIZE, XS-S, S-M"
+            suggestions={[]}
             selected={form.sizeOptions}
             typeahead={suggestBrandSizes}
             normalizeValue={normalizeBrandSize}
@@ -1491,7 +1522,7 @@ export default function ProductForm({ productId }: Props) {
                 onClick={() => toggleOption("lengthOptions", value)}
                 className={`admin-chip ${active ? "admin-chip-active" : ""}`}
               >
-                {value}
+                {value === "Midi" ? "Middle" : value}
               </button>
             );
           })}
@@ -1532,12 +1563,21 @@ export default function ProductForm({ productId }: Props) {
           <summary>Фактичні заміри виробу</summary>
           <div className="mt-3 space-y-3">
             <p className="text-[12px] text-gray-500">
-              Порожні поля на сайті не показуються.
+              Порожні поля на сайті не показуються. Для обʼєму грудей, талії
+              та стегон вводьте половинний замір — на сайті автоматично
+              показується подвоєне значення (60 → 120).
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               {GARMENT_MEASURE_FIELDS.map((field) => (
                 <div key={field.key}>
-                  <Label htmlFor={`gm-${field.key}`}>{field.label}</Label>
+                  <Label htmlFor={`gm-${field.key}`}>
+                    {field.label}
+                    {(GARMENT_DOUBLE_KEYS as readonly string[]).includes(
+                      field.key
+                    )
+                      ? " (÷2 у полі, ×2 на сайті)"
+                      : ""}
+                  </Label>
                   <Input
                     id={`gm-${field.key}`}
                     value={form.garmentMeasures[field.key]}

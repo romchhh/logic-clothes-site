@@ -94,13 +94,11 @@ export default function ProductColorPalette({
   const currentGroupId =
     groupForPaletteId(currentPaletteId)?.id ?? null;
 
-  const [openGroupId, setOpenGroupId] = useState<string | null>(
-    currentGroupId
-  );
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
   const [pinnedShadeId, setPinnedShadeId] = useState<string | null>(null);
 
   useEffect(() => {
-    setOpenGroupId(currentGroupId);
+    setOpenGroupId(null);
     setPinnedShadeId(null);
     onPinnedShadeChange?.(null);
   }, [product.id, currentGroupId, onPinnedShadeChange]);
@@ -201,11 +199,6 @@ export default function ProductColorPalette({
         : shadeLabel || groupLabel;
     onShadeLabelChange(next);
   }, [groupLabel, shadeLabel, onShadeLabelChange]);
-
-  const showSewCta =
-    Boolean(pinnedShadeId) &&
-    pinnedShadeId !== currentPaletteId &&
-    !variantByShade.get(pinnedShadeId!)?.linkable;
 
   return (
     <div className="pdp-palette-block">
@@ -334,11 +327,11 @@ export default function ProductColorPalette({
         </div>
       ) : null}
 
-      {showSewCta ? (
+      {onRequestSew ? (
         <button
           type="button"
           className="pdp-palette-sew-cta is-inline"
-          onClick={() => onRequestSew?.()}
+          onClick={() => onRequestSew()}
         >
           {t.product.sewMyColor}
         </button>

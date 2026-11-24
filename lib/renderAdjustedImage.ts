@@ -8,11 +8,14 @@ import {
   PRODUCT_CARD_EXPORT_W,
 } from "@/lib/productCardImage";
 
-export type CropRect = {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
+/** Editor 3:5 frame snapshot — must match MediaEditModal crop layer transforms. */
+export type FrameBakeLayout = {
+  frameW: number;
+  frameH: number;
+  dispW: number;
+  dispH: number;
+  panX: number;
+  panY: number;
 };
 
 function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
@@ -52,7 +55,6 @@ function applyTonePixels(data: ImageData, adjust: MediaAdjust): void {
     g = gray + (g - gray) * sat;
     b = gray + (b - gray) * sat;
 
-    // Approximate CSS sepia + hue-rotate warmth (milder than old RGB shove).
     if (warm !== 0) {
       if (warm > 0) {
         const s = warm * 0.35;
@@ -62,7 +64,6 @@ function applyTonePixels(data: ImageData, adjust: MediaAdjust): void {
         r = sr;
         g = sg;
         b = sb;
-        // slight yellow shift
         r += warm * 6;
         b -= warm * 8;
       } else {
@@ -79,14 +80,14 @@ function applyTonePixels(data: ImageData, adjust: MediaAdjust): void {
 }
 
 /**
- * Same pixels as the editor frame: crop first, then tone.
- * Uses pixel math so bake matches preview even without canvas.filter support.
+ * Renders the visible 3:5 frame from the admin editor (pan + zoom + horizon).
+ * Matches CSS: translate(pan) then rotate around image center.
  */
 export async function renderAdjustedImageBlob(
   source: CanvasImageSource & { width?: number; height?: number },
   sourceW: number,
   sourceH: number,
-  crop: CropRect,
+  layout: FrameBakeLayout,
   adjust: MediaAdjust = DEFAULT_MEDIA_ADJUST,
   outW = PRODUCT_CARD_EXPORT_W,
   outH = PRODUCT_CARD_EXPORT_H
@@ -97,45 +98,26 @@ export async function renderAdjustedImageBlob(
   const bctx = base.getContext("2d", { alpha: false, willReadFrequently: true });
   if (!bctx) throw new Error("canvas");
 
-  // View window in source pixels — may extend outside the image (letterbox).
-  const viewX = crop.x * sourceW;
-  const viewY = crop.y * sourceH;
-  const viewW = Math.max(1, crop.w * sourceW);
-  const viewH = Math.max(1, crop.h * sourceH);
-  const imgLeft = Math.max(0, viewX);
-  const imgTop = Math.max(0, viewY);
-  const imgRight = Math.min(sourceW, viewX + viewW);
-  const imgBottom = Math.min(sourceH, viewY + viewH);
-  const srcW = Math.max(1, imgRight - imgLeft);
-  const srcH = Math.max(1, imgBottom - imgTop);
-  const dx = ((imgLeft - viewX) / viewW) * outW;
-  const dy = ((imgTop - viewY) / viewH) * outH;
-  const dw = (srcW / viewW) * outW;
-  const dh = (srcH / viewH) * outH;
+  const fx = layout.frameW > 0 ? outW / layout.frameW : 1;
+  const fy = layout.frameH > 0 ? outH / layout.frameH : fx;
+  const dw = layout.dispW * fx;
+  const dh = layout.dispH * fy;
+  const px = layout.panX * fx;
+  const py = layout.panY * fy;
   const rot = adjust.rotate ?? 0;
-  bctx.fillStyle = "#111";
+
+  bctx.fillStyle = "#111111";
   bctx.fillRect(0, 0, outW, outH);
+
+  bctx.save();
+  bctx.translate(px, py);
   if (Math.abs(rot) > 0.05) {
-    bctx.save();
-    bctx.translate(outW / 2, outH / 2);
+    bctx.translate(dw / 2, dh / 2);
     bctx.rotate((rot * Math.PI) / 180);
-    // Slight overscan so rotation does not leave empty corners in frame.
-    const over = 1.12;
-    bctx.drawImage(
-      source,
-      imgLeft,
-      imgTop,
-      srcW,
-      srcH,
-      dx * over - (outW * (over - 1)) / 2,
-      dy * over - (outH * (over - 1)) / 2,
-      dw * over,
-      dh * over
-    );
-    bctx.restore();
-  } else {
-    bctx.drawImage(source, imgLeft, imgTop, srcW, srcH, dx, dy, dw, dh);
+    bctx.translate(-dw / 2, -dh / 2);
   }
+  bctx.drawImage(source, 0, 0, sourceW, sourceH, 0, 0, dw, dh);
+  bctx.restore();
 
   const needsColorTone =
     adjust.brightness !== 0 ||
@@ -145,8 +127,6 @@ export async function renderAdjustedImageBlob(
     adjust.sharpness !== 0;
   if (!needsColorTone) return canvasToJpeg(base);
 
-  // Same CSS filter string as the live editor preview — no extra pixel
-  // sharpness on top (that was making Apply look much stronger).
   const filter = mediaAdjustCssFilter(adjust);
   const supportsCanvasFilter =
     typeof (bctx as CanvasRenderingContext2D).filter === "string";

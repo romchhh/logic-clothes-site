@@ -4,6 +4,11 @@ import type { Locale } from "@/lib/i18n/config";
 
 export const CONTENT_PAGE_DEFS = [
   { slug: "about", label: "Про нас", kind: "about" as const },
+  {
+    slug: "custom-order",
+    label: "Ваш колір + розмір (14 днів)",
+    kind: "custom" as const,
+  },
   { slug: "store-photos", label: "Магазин у Києві", kind: "store" as const },
   { slug: "contacts", label: "Контакти", kind: "legal" as const },
   {
@@ -34,7 +39,9 @@ export type ContentGalleryImage = {
 };
 
 export type AboutLocaleContent = AboutContent & {
+  /** @deprecated Kept for older JSON; customization lives on custom-order page. */
   customTitle: string;
+  /** @deprecated Kept for older JSON; customization lives on custom-order page. */
   customBody: string;
   /** Cover / hero image on /about */
   heroImage: string;
@@ -47,7 +54,17 @@ export type AboutLocaleContent = AboutContent & {
   gallery: ContentGalleryImage[];
 };
 
+/** Standalone page: your colour + size in ~14 days. */
+export type CustomOrderLocaleContent = {
+  title: string;
+  lead: string;
+  heroImage: string;
+  bodyMarkdown: string;
+  gallery: ContentGalleryImage[];
+};
+
 export type SitePagesStore = {
   about: Record<Locale, AboutLocaleContent>;
+  customOrder: Record<Locale, CustomOrderLocaleContent>;
   legal: Record<Locale, LegalPage[]>;
 };

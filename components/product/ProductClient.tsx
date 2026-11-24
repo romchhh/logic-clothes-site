@@ -27,6 +27,7 @@ import {
   MADE_TO_ORDER_SIZE_GRID,
   orderBrandSizes,
 } from "@/lib/productSizes";
+import { formatLengthLabel } from "@/lib/lengthDisplay";
 import { SIZE_CHART_ROWS } from "@/lib/sizeChart";
 import { SITE_MAP_LINK } from "@/lib/siteContact";
 import type { StorePhoto } from "@/lib/storePhotos";
@@ -455,8 +456,10 @@ export default function ProductClient({
                 {(lengthOptions.length === 1 || selectedLength) && (
                   <p className="pdp-option-value">
                     {lengthOptions.length === 1
-                      ? lengthOptions[0]
-                      : selectedLength}
+                      ? formatLengthLabel(lengthOptions[0])
+                      : selectedLength
+                        ? formatLengthLabel(selectedLength)
+                        : ""}
                   </p>
                 )}
               </div>
@@ -479,7 +482,7 @@ export default function ProductClient({
                         setLengthHint(false);
                       }}
                     >
-                      {value}
+                      {formatLengthLabel(value)}
                     </button>
                   ))}
                 </div>

@@ -8,12 +8,6 @@ export function aboutToMarkdown(c: AboutLocaleContent): string {
   const parts: string[] = [];
   if (c.lead?.trim()) parts.push(c.lead.trim());
 
-  if (c.customTitle?.trim() || c.customBody?.trim()) {
-    parts.push("");
-    if (c.customTitle?.trim()) parts.push(`## ${c.customTitle.trim()}`);
-    if (c.customBody?.trim()) parts.push(c.customBody.trim());
-  }
-
   if (c.sectionTitle?.trim() || (c.points?.length ?? 0) > 0) {
     parts.push("");
     if (c.sectionTitle?.trim()) parts.push(`## ${c.sectionTitle.trim()}`);

@@ -15,6 +15,7 @@ import {
   mediaAdjustCssFilter,
 } from "@/lib/mediaAdjust";
 import { renderAdjustedImageBlob } from "@/lib/renderAdjustedImage";
+import { PRODUCT_CARD_ASPECT } from "@/lib/productCardImage";
 
 export type MediaEditSession = {
   replaceUrl: string | null;
@@ -413,28 +414,6 @@ export default function MediaEditModal({
     return () => ro.disconnect();
   }, [session, applyCoverSize]);
 
-  /** View window in normalized source coords (may extend outside 0…1 for letterbox). */
-  const getCropRect = useCallback(() => {
-    if (!session || session.mode !== "image") {
-      return { x: 0, y: 0, w: 1, h: 1 };
-    }
-    const layout = coverLayout(session.naturalW, session.naturalH);
-    if (!layout) return { x: 0, y: 0, w: 1, h: 1 };
-    const { naturalW, naturalH } = session;
-    const { scale, frameW, frameH } = layout;
-    const { x: panX, y: panY } = panRef.current;
-    const srcX = -panX / scale;
-    const srcY = -panY / scale;
-    const srcW = frameW / scale;
-    const srcH = frameH / scale;
-    return {
-      x: srcX / naturalW,
-      y: srcY / naturalH,
-      w: Math.max(0.01, srcW / naturalW),
-      h: Math.max(0.01, srcH / naturalH),
-    };
-  }, [coverLayout, session]);
-
   const onPointerDown = (e: React.PointerEvent) => {
     if (!session || tab !== "crop") return;
     if (session.mode !== "image" && session.mode !== "video") return;
@@ -708,14 +687,59 @@ export default function MediaEditModal({
       if (!cropReadyRef.current) {
         centerPan(session.naturalW, session.naturalH);
       }
-      const crop = getCropRect();
+      const bitmap = await createImageBitmap(session.file);
+      const nw = bitmap.width;
+      const nh = bitmap.height;
+      const previewLayout = coverLayout(nw, nh);
+      if (!previewLayout) {
+        bitmap.close();
+        setSaveError("Рамка прев’ю не готова — зачекайте секунду");
+        return;
+      }
+      /** Export always uses catalog 3:5 frame — tone tab can be taller in UI. */
+      const frameW = previewLayout.frameW;
+      const frameH = frameW / PRODUCT_CARD_ASPECT;
+      const contain = Math.min(frameW / nw, frameH / nh);
+      const scale = contain * zoomRef.current;
+      const dispW = nw * scale;
+      const dispH = nh * scale;
+      const minX = dispW <= frameW + 0.5 ? (frameW - dispW) / 2 : frameW - dispW;
+      const maxX = dispW <= frameW + 0.5 ? (frameW - dispW) / 2 : 0;
+      const minY = dispH <= frameH + 0.5 ? (frameH - dispH) / 2 : frameH - dispH;
+      const maxY = dispH <= frameH + 0.5 ? (frameH - dispH) / 2 : 0;
+      let panX = panRef.current.x;
+      let panY = panRef.current.y;
+      if (Math.abs(previewLayout.frameH - frameH) > 1) {
+        const yRatio =
+          previewLayout.maxY === previewLayout.minY
+            ? 0.5
+            : (panRef.current.y - previewLayout.minY) /
+              (previewLayout.maxY - previewLayout.minY);
+        panY = minY + yRatio * (maxY - minY);
+        const xRatio =
+          previewLayout.maxX === previewLayout.minX
+            ? 0.5
+            : (panRef.current.x - previewLayout.minX) /
+              (previewLayout.maxX - previewLayout.minX);
+        panX = minX + xRatio * (maxX - minX);
+      }
+      panX = clamp(panX, minX, maxX);
+      panY = clamp(panY, minY, maxY);
       const blob = await renderAdjustedImageBlob(
-        img,
-        img.naturalWidth || session.naturalW,
-        img.naturalHeight || session.naturalH,
-        crop,
+        bitmap,
+        nw,
+        nh,
+        {
+          frameW,
+          frameH,
+          dispW,
+          dispH,
+          panX,
+          panY,
+        },
         adjust
       );
+      bitmap.close();
       const file = new File([blob], "catalog.jpg", { type: "image/jpeg" });
       await onSaveImage(file, session.replaceUrl, adjust);
     } catch (err) {
