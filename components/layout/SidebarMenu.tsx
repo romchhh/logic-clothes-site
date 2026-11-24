@@ -27,7 +27,7 @@ export default function SidebarMenu({ lang }: { lang: Locale }) {
       label: t.nav.shippingWorld,
     },
     { href: `/${lang}/contacts`, label: t.nav.contacts },
-    { href: `/${lang}/contacts`, label: t.nav.storeKyiv },
+    { href: `/${lang}/store`, label: t.nav.storeKyiv },
   ];
 
   return (

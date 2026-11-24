@@ -85,6 +85,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "", changeFrequency: "daily", priority: 1 },
     { path: "catalog", changeFrequency: "daily", priority: 0.9 },
     { path: "about", changeFrequency: "monthly", priority: 0.7 },
+    { path: "store", changeFrequency: "monthly", priority: 0.65 },
     ...legalSlugs.map((slug) => ({
       path: slug,
       changeFrequency: "monthly" as const,

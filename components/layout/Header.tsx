@@ -23,7 +23,7 @@ export default function Header({ lang }: { lang: Locale }) {
     { href: `/${lang}/catalog`, label: t.nav.catalog },
     { href: `/${lang}/catalog?category=new`, label: t.nav.new },
     { href: `/${lang}/about`, label: t.nav.about },
-    { href: `/${lang}/contacts`, label: t.nav.stores },
+    { href: `/${lang}/store`, label: t.nav.stores },
   ];
 
   function openSearch() {

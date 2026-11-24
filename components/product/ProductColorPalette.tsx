@@ -170,15 +170,15 @@ export default function ProductColorPalette({
     return ids;
   }, [variantByShade]);
 
-  const openGroup =
-    groups.find((g) => g.id === openGroupId) ??
-    groups.find((g) => g.id === currentGroupId) ??
-    null;
+  const openGroup = openGroupId
+    ? groups.find((g) => g.id === openGroupId) ?? null
+    : null;
 
   const activeShadeId = pinnedShadeId || currentPaletteId;
   const activeShade = activeShadeId ? getPaletteColor(activeShadeId) : null;
   const activeGroup =
-    (activeShadeId && groupForPaletteId(activeShadeId)) || openGroup;
+    (activeShadeId && groupForPaletteId(activeShadeId)) ||
+    (currentGroupId ? groups.find((g) => g.id === currentGroupId) ?? null : null);
 
   const groupLabel = activeGroup
     ? lang === "en"
@@ -328,13 +328,15 @@ export default function ProductColorPalette({
       ) : null}
 
       {onRequestSew ? (
-        <button
-          type="button"
-          className="pdp-palette-sew-cta is-inline"
-          onClick={() => onRequestSew()}
-        >
-          {t.product.sewMyColor}
-        </button>
+        <div className="pdp-palette-sew-wrap">
+          <button
+            type="button"
+            className="pdp-palette-sew-cta is-inline"
+            onClick={() => onRequestSew()}
+          >
+            {t.product.sewMyColor}
+          </button>
+        </div>
       ) : null}
     </div>
   );

@@ -51,7 +51,7 @@ export default function ProductCustomBuilder({
   const defaultGroupId = groupForPaletteId(defaultShadeId)?.id ?? null;
 
   const [size, setSize] = useState<string | null>(null);
-  const [openGroupId, setOpenGroupId] = useState<string | null>(defaultGroupId);
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
   const [shadeIds, setShadeIds] = useState<string[]>(
     defaultShadeId ? [defaultShadeId] : []
   );

@@ -49,7 +49,12 @@ export function orderCatalogCategories(
   categories: Category[],
   lang: Locale
 ): Category[] {
-  const visible = categories.filter((c) => c.isVisible);
+  const seen = new Set<string>();
+  const visible = categories.filter((c) => {
+    if (!c.isVisible || seen.has(c.id)) return false;
+    seen.add(c.id);
+    return true;
+  });
   const all = ensureAllCategory(visible);
   const saleRaw = visible.find((c) => c.id === "sale");
   const middle = visible
@@ -83,7 +88,13 @@ export function catalogNavEntries(
   if (all) out.push({ type: "category", category: all });
   if (middle.length) {
     out.push({ type: "spacer", key: "after-all" });
+    const seenLabels = new Set<string>();
     for (const category of middle) {
+      const key = catalogCategoryDisplayLabel(category, lang)
+        .trim()
+        .toLowerCase();
+      if (seenLabels.has(key)) continue;
+      seenLabels.add(key);
       out.push({ type: "category", category });
     }
   }

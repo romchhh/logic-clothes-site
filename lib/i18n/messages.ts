@@ -429,7 +429,7 @@ const uk: Messages = {
     sizeTooltipMadeToOrder: "Зшиємо за 14 днів",
     customOrderTitle: "Конструктор власного замовлення",
     customOrderLead:
-      "Оберіть палітру, потім конкретний колір у ній. За потреби уточнимо відтінок у листуванні.",
+      "Оберіть палітру. можливі відтінки ми покажемо і узгодимо з вами в листуванні",
     customOrderCta: "обговорити замовлення з живою людиною",
     customOrderSelected: "Обрані кольори",
     discussChoose: "Куди надіслати повідомлення?",
@@ -752,7 +752,7 @@ const en: Messages = {
     sizeTooltipMadeToOrder: "Made to order in 14 days",
     customOrderTitle: "Build your custom order",
     customOrderLead:
-      "Pick a palette, then a specific colour in it. We’ll refine the shade with you if needed.",
+      "Pick a palette. We’ll show possible shades and agree them with you in chat.",
     customOrderCta: "discuss your order with a real person",
     customOrderSelected: "Selected colours",
     discussChoose: "Where should we receive your message?",

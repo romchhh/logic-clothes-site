@@ -29,7 +29,7 @@ export default function Footer({
     { href: `/${lang}/contacts`, label: t.footer.contactsPage },
     { href: `/${lang}/shipping-payment`, label: t.footer.shipping },
     { href: `/${lang}/returns`, label: t.footer.returns },
-    { href: `/${lang}/contacts`, label: t.nav.stores },
+    { href: `/${lang}/store`, label: t.nav.stores },
   ];
 
   const legalLinks = [

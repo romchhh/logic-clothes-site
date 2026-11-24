@@ -145,21 +145,32 @@ export default function ProductDiscussOrder({
   }, [defaultBody]);
 
   useEffect(() => {
-    if (!channel) return;
+    if (!channel || exposeChannels) return;
     setMessage((prev) => {
       const trimmed = prev.trim();
       if (!trimmed || trimmed === defaultBody) return defaultBody;
       return ensurePrefix(prev);
     });
     focusAfterPrefix();
-  }, [channel, defaultBody, ensurePrefix, focusAfterPrefix]);
+  }, [channel, defaultBody, ensurePrefix, focusAfterPrefix, exposeChannels]);
 
-  const send = useCallback(async () => {
+  useEffect(() => {
+    if (!open || !exposeChannels) return;
+    setMessage((prev) => {
+      const trimmed = prev.trim();
+      if (!trimmed || trimmed === defaultBody) return defaultBody;
+      return ensurePrefix(prev);
+    });
+    focusAfterPrefix();
+  }, [open, exposeChannels, defaultBody, ensurePrefix, focusAfterPrefix]);
+
+  const send = useCallback(async (via?: Channel) => {
     setNotice(null);
+    const ch = via ?? channel;
     const text = draft.trim();
-    if (!text || !channel) return;
+    if (!text || !ch) return;
 
-    if (channel === "viber") {
+    if (ch === "viber") {
       try {
         await navigator.clipboard.writeText(text);
         setNotice(
@@ -183,13 +194,14 @@ export default function ProductDiscussOrder({
     window.open(instagramDirectUrl(), "_blank", "noopener,noreferrer");
   }, [channel, draft, lang, t.product.discussCopied, t.product.discussCopyManual]);
 
-  const copyDefaultForOpen = useCallback(async () => {
+  const copyDraftForChannel = useCallback(async () => {
+    const text = ensurePrefix(message).trim() || defaultBody;
     try {
-      await navigator.clipboard.writeText(defaultBody);
+      await navigator.clipboard.writeText(text);
     } catch {
       /* optional */
     }
-  }, [defaultBody]);
+  }, [defaultBody, ensurePrefix, message]);
 
   const channelLinks = exposeChannels ? (
     <div className="pdp-discuss-quick">
@@ -200,7 +212,7 @@ export default function ProductDiscussOrder({
           className="pdp-discuss-channel pdp-discuss-channel--ig"
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => void copyDefaultForOpen()}
+          onClick={() => void copyDraftForChannel()}
         >
           <svg className="pdp-discuss-channel-icon" viewBox="0 0 24 24" aria-hidden="true">
             <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -212,7 +224,7 @@ export default function ProductDiscussOrder({
         <a
           href={viberChatUrl()}
           className="pdp-discuss-channel pdp-discuss-channel--viber"
-          onClick={() => void copyDefaultForOpen()}
+          onClick={() => void copyDraftForChannel()}
         >
           <svg className="pdp-discuss-channel-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 3.2c-4.6 0-8.3 3.1-8.3 7 0 2.3 1.2 4.4 3.1 5.7l-.7 2.6 2.8-1.5c.9.3 1.9.4 3.1.4 4.6 0 8.3-3.1 8.3-7S16.6 3.2 12 3.2z" />
@@ -236,54 +248,61 @@ export default function ProductDiscussOrder({
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => {
-          setOpen((v) => !v);
           if (open) {
+            setOpen(false);
             setChannel(null);
             setNotice(null);
+            return;
           }
+          setOpen(true);
+          setNotice(null);
+          setMessage(defaultBody);
+          setChannel(exposeChannels ? "instagram" : null);
         }}
       >
         {label || t.product.customOrderCta}
       </button>
 
-      {channelLinks}
-
       {open ? (
         <div className="pdp-discuss-panel" id={panelId}>
-          <p className="pdp-discuss-lead">{t.product.discussChoose}</p>
-          <div className="pdp-discuss-channels" role="group">
-            <button
-              type="button"
-              className={`pdp-discuss-channel pdp-discuss-channel--ig${channel === "instagram" ? " is-active" : ""}`}
-              aria-pressed={channel === "instagram"}
-              onClick={() => {
-                setChannel("instagram");
-                setNotice(null);
-              }}
-            >
-              <svg className="pdp-discuss-channel-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="3" y="3" width="18" height="18" rx="5" />
-                <circle cx="12" cy="12" r="4" />
-                <circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none" />
-              </svg>
-              <span>{t.product.discussInstagram}</span>
-            </button>
-            <button
-              type="button"
-              className={`pdp-discuss-channel pdp-discuss-channel--viber${channel === "viber" ? " is-active" : ""}`}
-              aria-pressed={channel === "viber"}
-              onClick={() => {
-                setChannel("viber");
-                setNotice(null);
-              }}
-            >
-              <svg className="pdp-discuss-channel-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 3.2c-4.6 0-8.3 3.1-8.3 7 0 2.3 1.2 4.4 3.1 5.7l-.7 2.6 2.8-1.5c.9.3 1.9.4 3.1.4 4.6 0 8.3-3.1 8.3-7S16.6 3.2 12 3.2z" />
-                <path d="M9.2 9.1c.2-.5.4-.5.6-.5h.5c.2 0 .4 0 .5.4l.7 1.7c.1.2 0 .4-.1.5l-.3.3c-.1.1-.2.3-.1.5.3.5.9 1.1 1.5 1.4.2.1.4.1.5-.1l.4-.5c.1-.2.3-.2.5-.1l1.7.7c.3.1.4.3.4.5v.5c0 .2 0 .4-.5.6-.4.2-1 .3-1.6.1-1.5-.4-3.1-1.7-4.1-3.2-.5-.7-.8-1.5-.7-2.2.1-.5.2-.8.2-1z" fill="currentColor" stroke="none" />
-              </svg>
-              <span>{t.product.discussMessenger}</span>
-            </button>
-          </div>
+          {!exposeChannels ? (
+            <>
+              <p className="pdp-discuss-lead">{t.product.discussChoose}</p>
+              <div className="pdp-discuss-channels" role="group">
+                <button
+                  type="button"
+                  className={`pdp-discuss-channel pdp-discuss-channel--ig${channel === "instagram" ? " is-active" : ""}`}
+                  aria-pressed={channel === "instagram"}
+                  onClick={() => {
+                    setChannel("instagram");
+                    setNotice(null);
+                  }}
+                >
+                  <svg className="pdp-discuss-channel-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="5" />
+                    <circle cx="12" cy="12" r="4" />
+                    <circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none" />
+                  </svg>
+                  <span>{t.product.discussInstagram}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`pdp-discuss-channel pdp-discuss-channel--viber${channel === "viber" ? " is-active" : ""}`}
+                  aria-pressed={channel === "viber"}
+                  onClick={() => {
+                    setChannel("viber");
+                    setNotice(null);
+                  }}
+                >
+                  <svg className="pdp-discuss-channel-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3.2c-4.6 0-8.3 3.1-8.3 7 0 2.3 1.2 4.4 3.1 5.7l-.7 2.6 2.8-1.5c.9.3 1.9.4 3.1.4 4.6 0 8.3-3.1 8.3-7S16.6 3.2 12 3.2z" />
+                    <path d="M9.2 9.1c.2-.5.4-.5.6-.5h.5c.2 0 .4 0 .5.4l.7 1.7c.1.2 0 .4-.1.5l-.3.3c-.1.1-.2.3-.1.5.3.5.9 1.1 1.5 1.4.2.1.4.1.5-.1l.4-.5c.1-.2.3-.2.5-.1l1.7.7c.3.1.4.3.4.5v.5c0 .2 0 .4-.5.6-.4.2-1 .3-1.6.1-1.5-.4-3.1-1.7-4.1-3.2-.5-.7-.8-1.5-.7-2.2.1-.5.2-.8.2-1z" fill="currentColor" stroke="none" />
+                  </svg>
+                  <span>{t.product.discussMessenger}</span>
+                </button>
+              </div>
+            </>
+          ) : null}
 
           {channel ? (
             <>
@@ -304,17 +323,27 @@ export default function ProductDiscussOrder({
                   {notice}
                 </p>
               ) : null}
-              <button
-                type="button"
-                className="pdp-discuss-send"
-                onClick={() => void send()}
-              >
-                {t.product.discussSend}
-              </button>
+              {!exposeChannels ? (
+                <button
+                  type="button"
+                  className="pdp-discuss-send"
+                  onClick={() => void send()}
+                >
+                  {t.product.discussSend}
+                </button>
+              ) : (
+                <p className="pdp-discuss-notice pdp-discuss-hint">
+                  {lang === "uk"
+                    ? "Відредагуйте текст і натисніть Instagram або Viber нижче — повідомлення скопіюється автоматично."
+                    : "Edit the text and tap Instagram or Viber below — your message will be copied."}
+                </p>
+              )}
             </>
           ) : null}
         </div>
       ) : null}
+
+      {channelLinks}
     </div>
   );
 }
