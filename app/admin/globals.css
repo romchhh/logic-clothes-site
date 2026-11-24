@@ -1336,15 +1336,27 @@ body:has(.media-editor-root) .admin-sidebar-cta {
   container-type: size;
   container-name: me-frame-slot;
 }
+.media-editor-frame-caption {
+  margin: 0;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.72);
+}
 .media-editor-frame {
   position: relative;
   box-sizing: border-box;
   overflow: hidden;
-  border-radius: 16px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-  /* Fit entirely inside the slot (3:5), never under header/footer */
+  /* Square corners + white mat — same as the product page frame. */
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+  outline: 1px solid rgba(255, 255, 255, 0.28);
+  /* JS locks an integer 3:5; this is the fallback before measure. */
   width: min(100cqw, calc(100cqh * 3 / 5));
-  height: min(100cqh, calc(100cqw * 5 / 3));
+  height: auto;
   max-width: 100%;
   max-height: 100%;
   aspect-ratio: 3 / 5;
@@ -1360,7 +1372,7 @@ body:has(.media-editor-root) .admin-sidebar-cta {
 }
 @media (max-width: 899px) {
   .media-editor-frame {
-    border-radius: 12px;
+    border-radius: 0;
   }
 }
 /* Fallback when container queries unsupported */
@@ -1386,7 +1398,7 @@ body:has(.media-editor-root) .admin-sidebar-cta {
 }
 .media-editor-layout.is-tone .media-editor-frame,
 .media-editor-layout.is-tone .media-editor-frame.is-tone-frame {
-  border-radius: 12px;
+  border-radius: 0;
   margin: 0 auto;
 }
 @media (max-width: 899px) {
@@ -1633,6 +1645,7 @@ body:has(.media-editor-root) .admin-sidebar-cta {
   top: 0;
   width: auto;
   height: auto;
+  transform-origin: 50% 50%;
   will-change: transform;
 }
 .media-editor-crop-layer.is-visible {
@@ -1641,11 +1654,7 @@ body:has(.media-editor-root) .admin-sidebar-cta {
   pointer-events: none;
 }
 .media-editor-frame-guide {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  box-shadow: inset 0 0 0 2px rgba(183, 225, 223, 0.85);
+  display: none;
 }
 .media-editor-preview-actions {
   flex-shrink: 0;

@@ -15,7 +15,7 @@ import {
   mediaAdjustCssFilter,
 } from "@/lib/mediaAdjust";
 import { renderAdjustedImageBlob } from "@/lib/renderAdjustedImage";
-import { PRODUCT_CARD_ASPECT } from "@/lib/productCardImage";
+import { fitProductCardFrame } from "@/lib/productCardImage";
 
 export type MediaEditSession = {
   replaceUrl: string | null;
@@ -99,9 +99,9 @@ const TONE_TOOLS: {
   },
 ];
 
-/** Zoom 1 = contain (full photo visible in 3:5). Zoom in to crop. */
+/** Fallback before the frame is measured. Real minimum is contain ÷ cover. */
 function minZoomFor(): number {
-  return 1;
+  return 0.35;
 }
 
 export default function MediaEditModal({
@@ -130,6 +130,7 @@ export default function MediaEditModal({
   const [posterCleared, setPosterCleared] = useState(false);
   const [posterBusy, setPosterBusy] = useState(false);
 
+  const frameSlotRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const cropImgRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -198,6 +199,26 @@ export default function MediaEditModal({
     pinchRef.current = null;
   }, [session]);
 
+  // Lock the preview box to an integer 3:5 — the same ratio as the product page.
+  useEffect(() => {
+    if (!session) return;
+    const slot = frameSlotRef.current;
+    const frame = frameRef.current;
+    if (!slot || !frame) return;
+    const fit = () => {
+      if (slot.clientWidth < 8 || slot.clientHeight < 8) return;
+      const { w, h } = fitProductCardFrame(slot.clientWidth, slot.clientHeight);
+      if (frame.clientWidth === w && frame.clientHeight === h) return;
+      frame.style.width = `${w}px`;
+      frame.style.height = `${h}px`;
+    };
+    fit();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(fit);
+    ro.observe(slot);
+    return () => ro.disconnect();
+  }, [session, tab]);
+
   useEffect(() => {
     return () => {
       if (posterObjectUrlRef.current) {
@@ -232,6 +253,7 @@ export default function MediaEditModal({
     const el = cropNode();
     if (!el) return;
     const rot = rotateRef.current;
+    el.style.transformOrigin = "50% 50%";
     el.style.transform =
       Math.abs(rot) > 0.05
         ? `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) rotate(${rot}deg)`
@@ -247,9 +269,11 @@ export default function MediaEditModal({
       if (frameW <= 0 || frameH <= 0 || naturalW <= 0 || naturalH <= 0) {
         return null;
       }
-      // Contain at zoom=1 — never crop top/bottom (or sides) by default.
+      // Zoom 1 = cover, same as the product page (object-fit: cover, centered).
+      // Zoom below 1 eases toward contain; empty areas stay white like the card.
       const contain = Math.min(frameW / naturalW, frameH / naturalH);
-      const scale = contain * zoomLevel;
+      const cover = Math.max(frameW / naturalW, frameH / naturalH);
+      const scale = cover * zoomLevel;
       const dispW = naturalW * scale;
       const dispH = naturalH * scale;
       const minX =
@@ -262,14 +286,14 @@ export default function MediaEditModal({
         frameW,
         frameH,
         scale,
-        cover: contain,
+        cover,
         dispW,
         dispH,
         minX,
         maxX,
         minY,
         maxY,
-        minZoom: minZoomFor(),
+        minZoom: cover > 0 ? contain / cover : minZoomFor(),
       };
     },
     []
@@ -680,53 +704,36 @@ export default function MediaEditModal({
         return;
       }
       const img = cropImgRef.current;
-      if (!img) {
+      const frame = frameRef.current;
+      if (!img || !frame) {
         setSaveError("Прев’ю ще не готове — зачекайте секунду");
         return;
       }
+      const nw = img.naturalWidth || session.naturalW;
+      const nh = img.naturalHeight || session.naturalH;
       if (!cropReadyRef.current) {
-        centerPan(session.naturalW, session.naturalH);
+        centerPan(nw, nh);
       }
-      const bitmap = await createImageBitmap(session.file);
-      const nw = bitmap.width;
-      const nh = bitmap.height;
-      const previewLayout = coverLayout(nw, nh);
-      if (!previewLayout) {
-        bitmap.close();
+      const frameW = frame.clientWidth;
+      const frameH = frame.clientHeight;
+      const dispW = parseFloat(img.style.width);
+      const dispH = parseFloat(img.style.height);
+      if (
+        !(
+          frameW > 0 &&
+          frameH > 0 &&
+          dispW > 0 &&
+          dispH > 0 &&
+          nw > 0 &&
+          nh > 0
+        )
+      ) {
         setSaveError("Рамка прев’ю не готова — зачекайте секунду");
         return;
       }
-      /** Export always uses catalog 3:5 frame — tone tab can be taller in UI. */
-      const frameW = previewLayout.frameW;
-      const frameH = frameW / PRODUCT_CARD_ASPECT;
-      const contain = Math.min(frameW / nw, frameH / nh);
-      const scale = contain * zoomRef.current;
-      const dispW = nw * scale;
-      const dispH = nh * scale;
-      const minX = dispW <= frameW + 0.5 ? (frameW - dispW) / 2 : frameW - dispW;
-      const maxX = dispW <= frameW + 0.5 ? (frameW - dispW) / 2 : 0;
-      const minY = dispH <= frameH + 0.5 ? (frameH - dispH) / 2 : frameH - dispH;
-      const maxY = dispH <= frameH + 0.5 ? (frameH - dispH) / 2 : 0;
-      let panX = panRef.current.x;
-      let panY = panRef.current.y;
-      if (Math.abs(previewLayout.frameH - frameH) > 1) {
-        const yRatio =
-          previewLayout.maxY === previewLayout.minY
-            ? 0.5
-            : (panRef.current.y - previewLayout.minY) /
-              (previewLayout.maxY - previewLayout.minY);
-        panY = minY + yRatio * (maxY - minY);
-        const xRatio =
-          previewLayout.maxX === previewLayout.minX
-            ? 0.5
-            : (panRef.current.x - previewLayout.minX) /
-              (previewLayout.maxX - previewLayout.minX);
-        panX = minX + xRatio * (maxX - minX);
-      }
-      panX = clamp(panX, minX, maxX);
-      panY = clamp(panY, minY, maxY);
+      // Same element, same pan, same 3:5 box the user is looking at.
       const blob = await renderAdjustedImageBlob(
-        bitmap,
+        img,
         nw,
         nh,
         {
@@ -734,12 +741,11 @@ export default function MediaEditModal({
           frameH,
           dispW,
           dispH,
-          panX,
-          panY,
+          panX: panRef.current.x,
+          panY: panRef.current.y,
         },
         adjust
       );
-      bitmap.close();
       const file = new File([blob], "catalog.jpg", { type: "image/jpeg" });
       await onSaveImage(file, session.replaceUrl, adjust);
     } catch (err) {
@@ -871,7 +877,10 @@ export default function MediaEditModal({
           }`}
         >
           <div className="media-editor-preview-wrap">
-            <div className="media-editor-frame-slot">
+            <p className="media-editor-frame-caption">
+              Як на сторінці товару · кадр 3:5
+            </p>
+            <div className="media-editor-frame-slot" ref={frameSlotRef}>
             <div
               ref={frameRef}
               className={`media-editor-frame${
@@ -966,22 +975,21 @@ export default function MediaEditModal({
                   style={
                     previewFilter ? { filter: previewFilter } : undefined
                   }
-                  onLoad={() => {
+                  onLoad={(e) => {
+                    const el = e.currentTarget;
+                    const w = el.naturalWidth || session.naturalW;
+                    const h = el.naturalHeight || session.naturalH;
+                    naturalRef.current = { w, h };
                     const saved = session.initialAdjust?.frame;
                     if (saved?.zoom && saved.zoom > 1.001) {
-                      setZoomAround(
-                        saved.zoom,
-                        session.naturalW,
-                        session.naturalH
-                      );
+                      setZoomAround(saved.zoom, w, h);
                     } else {
-                      centerPan(session.naturalW, session.naturalH);
+                      centerPan(w, h);
                     }
                   }}
                 />
               )}
               <div className="media-editor-frame-guide" aria-hidden="true" />
-              <span className="media-editor-frame-ratio">3 : 5</span>
             </div>
             </div>
 
@@ -1279,6 +1287,11 @@ export default function MediaEditModal({
 
               {tab === "crop" && (
                 <div className="media-editor-crop-help">
+                  <p className="media-editor-hint">
+                    100% заповнює кадр так само, як фото на сторінці товару.
+                    Потягніть, щоб зрушити. Менше 100% показує більше знімка —
+                    білі поля зберігаються як на картці.
+                  </p>
                   <div className="media-editor-zoom-side">
                     <label className="media-editor-slider">
                       <div className="media-editor-slider-top">

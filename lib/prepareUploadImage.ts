@@ -22,7 +22,7 @@ function isHeicFile(file: File): boolean {
 
 async function loadImageBitmap(file: File): Promise<ImageBitmap> {
   try {
-    return await createImageBitmap(file);
+    return await createImageBitmap(file, { imageOrientation: "from-image" });
   } catch {
     const url = URL.createObjectURL(file);
     try {
@@ -39,13 +39,16 @@ async function loadImageBitmap(file: File): Promise<ImageBitmap> {
   }
 }
 
-/** Shrink huge phone photos so crop UI + canvas stay responsive. */
+/**
+ * Bake EXIF orientation into pixels and cap the long edge.
+ * Preview `<img>` and the save canvas must see the same upright bitmap —
+ * otherwise phones crop differently from the editor frame.
+ */
 async function downscaleForEditor(file: File): Promise<File> {
   const bmp = await loadImageBitmap(file);
   try {
     const maxEdge = Math.max(bmp.width, bmp.height);
-    if (maxEdge <= MAX_EDITOR_EDGE) return file;
-    const scale = MAX_EDITOR_EDGE / maxEdge;
+    const scale = maxEdge > MAX_EDITOR_EDGE ? MAX_EDITOR_EDGE / maxEdge : 1;
     const w = Math.max(1, Math.round(bmp.width * scale));
     const h = Math.max(1, Math.round(bmp.height * scale));
     const canvas = document.createElement("canvas");

@@ -6,6 +6,7 @@ import {
 import {
   PRODUCT_CARD_EXPORT_H,
   PRODUCT_CARD_EXPORT_W,
+  PRODUCT_CARD_FRAME_BG,
 } from "@/lib/productCardImage";
 
 /** Editor 3:5 frame snapshot — must match MediaEditModal crop layer transforms. */
@@ -106,7 +107,7 @@ export async function renderAdjustedImageBlob(
   const py = layout.panY * fy;
   const rot = adjust.rotate ?? 0;
 
-  bctx.fillStyle = "#111111";
+  bctx.fillStyle = PRODUCT_CARD_FRAME_BG;
   bctx.fillRect(0, 0, outW, outH);
 
   bctx.save();
