@@ -194,7 +194,7 @@ export default function BulkCategoryEditor() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 border-b border-gray-100 px-4 py-3 dark:border-white/[0.05] sm:flex-row sm:items-center sm:px-5">
+      <div className="admin-bulk-category-toolbar flex flex-col gap-2 border-b border-gray-100 px-4 py-3 dark:border-white/[0.05] sm:flex-row sm:items-center sm:px-5">
         <input
           type="search"
           value={search}
@@ -253,6 +253,9 @@ export default function BulkCategoryEditor() {
           filtered.map((p) => {
             const r = rows[p.id] ?? rowFromProduct(p);
             const dirty = initial[p.id] && !rowsEqual(r, initial[p.id]);
+            const selectedCatLabel =
+              productCategories.find((c) => c.id === r.category)?.label.uk ??
+              (r.category ? r.category : "— без категорії —");
             return (
               <div
                 key={p.id}
@@ -283,12 +286,9 @@ export default function BulkCategoryEditor() {
                     Категорія
                   </span>
                   <select
-                    className="admin-input admin-category-select !h-9"
+                    className="admin-input admin-category-select !h-9 !pr-8"
                     value={r.category}
-                    title={
-                      productCategories.find((c) => c.id === r.category)
-                        ?.label.uk ?? "— без категорії —"
-                    }
+                    title={selectedCatLabel}
                     onChange={(e) => setRow(p.id, e.target.value)}
                   >
                     <option value="">— без категорії —</option>
@@ -298,6 +298,9 @@ export default function BulkCategoryEditor() {
                       </option>
                     ))}
                   </select>
+                  <p className="admin-bulk-category-field-caption">
+                    {selectedCatLabel}
+                  </p>
                 </label>
               </div>
             );
