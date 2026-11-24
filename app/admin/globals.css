@@ -554,16 +554,90 @@
     justify-self: end;
   }
 }
-.admin-bulk-category-field-caption {
-  margin: 2px 0 0;
-  font-size: 12px;
-  line-height: 1.35;
-  font-weight: 500;
-  color: #374151;
+/* Mobile: show full category in a tappable shell; native <select> is invisible on top. */
+.admin-category-picker-shell {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+}
+.admin-category-picker-label {
+  display: none;
+  margin: 0;
   word-break: break-word;
 }
-.dark .admin-bulk-category-field-caption {
-  color: #e5e7eb;
+@media (max-width: 639px) {
+  .admin-bulk-category-row {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .admin-bulk-category-field {
+    width: 100%;
+    min-width: 0;
+  }
+  .admin-category-picker-shell {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.55rem 2.5rem 0.55rem 0.85rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgb(229 231 235 / 0.9);
+    background: #fff;
+  }
+  .dark .admin-category-picker-shell {
+    border-color: rgb(55 65 81);
+    background: rgb(17 24 39);
+  }
+  .admin-category-picker-shell::after {
+    content: "";
+    position: absolute;
+    right: 0.85rem;
+    top: 50%;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-right: 2px solid #9ca3af;
+    border-bottom: 2px solid #9ca3af;
+    transform: translateY(-65%) rotate(45deg);
+    pointer-events: none;
+  }
+  .admin-category-picker-label {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 15px;
+    line-height: 1.35;
+    font-weight: 500;
+    color: #111827;
+  }
+  .dark .admin-category-picker-label {
+    color: #f9fafb;
+  }
+  .admin-category-picker-native {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+    font-size: 16px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .admin-bulk-category-toolbar .admin-category-picker-shell {
+    max-width: none;
+  }
+}
+@media (min-width: 640px) {
+  .admin-category-picker-native {
+    position: static;
+    opacity: 1;
+    height: auto;
+  }
+  .admin-category-picker-shell::after {
+    display: none;
+  }
 }
 .admin-product-list-category {
   display: inline-block;

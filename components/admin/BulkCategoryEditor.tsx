@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ADMIN_LIST_SORT_OPTIONS,
   parseAdminListSort,
@@ -21,6 +21,36 @@ function rowFromProduct(p: Product): RowState {
 
 function rowsEqual(a: RowState, b: RowState): boolean {
   return a.category === b.category;
+}
+
+function CategorySelectShell({
+  value,
+  displayLabel,
+  onChange,
+  className = "",
+  children,
+}: {
+  value: string;
+  displayLabel: string;
+  onChange: (value: string) => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`admin-category-picker-shell ${className}`.trim()}>
+      <p className="admin-category-picker-label" aria-hidden>
+        {displayLabel}
+      </p>
+      <select
+        className="admin-input admin-category-select admin-category-picker-native"
+        value={value}
+        aria-label={displayLabel}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {children}
+      </select>
+    </div>
+  );
 }
 
 export default function BulkCategoryEditor() {
@@ -202,10 +232,18 @@ export default function BulkCategoryEditor() {
           placeholder="Пошук за назвою або ID…"
           className="admin-input max-w-md"
         />
-        <select
+        <CategorySelectShell
+          className="admin-list-toolbar-category w-full"
           value={filterCat}
-          onChange={(e) => setFilterCat(e.target.value)}
-          className="admin-input admin-category-select admin-list-toolbar-category"
+          displayLabel={
+            filterCat === ""
+              ? "Усі категорії"
+              : filterCat === "__none__"
+                ? "Без категорії"
+                : (productCategories.find((c) => c.id === filterCat)?.label.uk ??
+                  filterCat)
+          }
+          onChange={setFilterCat}
         >
           <option value="">Усі категорії</option>
           <option value="__none__">Без категорії</option>
@@ -214,7 +252,7 @@ export default function BulkCategoryEditor() {
               {c.label.uk}
             </option>
           ))}
-        </select>
+        </CategorySelectShell>
         <select
           value={sort}
           onChange={(e) => setSort(parseAdminListSort(e.target.value))}
@@ -281,15 +319,14 @@ export default function BulkCategoryEditor() {
                   </div>
                 </div>
 
-                <label className="admin-bulk-category-field">
+                <div className="admin-bulk-category-field">
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                     Категорія
                   </span>
-                  <select
-                    className="admin-input admin-category-select !h-9 !pr-8"
+                  <CategorySelectShell
                     value={r.category}
-                    title={selectedCatLabel}
-                    onChange={(e) => setRow(p.id, e.target.value)}
+                    displayLabel={selectedCatLabel}
+                    onChange={(v) => setRow(p.id, v)}
                   >
                     <option value="">— без категорії —</option>
                     {productCategories.map((c) => (
@@ -297,11 +334,8 @@ export default function BulkCategoryEditor() {
                         {c.label.uk}
                       </option>
                     ))}
-                  </select>
-                  <p className="admin-bulk-category-field-caption">
-                    {selectedCatLabel}
-                  </p>
-                </label>
+                  </CategorySelectShell>
+                </div>
               </div>
             );
           })
