@@ -8,13 +8,12 @@ import {
   groupForPaletteId,
   resolvePaletteId,
 } from "@/lib/colorPalette";
-import { formatSizeLabel } from "@/lib/productSizes";
+import { SIZE_ROW_BASE, SIZE_ROW_MORE } from "@/lib/productSizes";
+import ProductSizeBoard from "@/components/product/ProductSizeBoard";
 import { formatDualPrice } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import type { Product } from "@/lib/types";
-
-const PLUS_SIZES = new Set(["A", "B", "C", "D"]);
 
 function dabStyle(hex: string, shadeId: string): CSSProperties {
   const isMulti = shadeId === "multi" || hex.toUpperCase() === "#FFFFFF";
@@ -31,12 +30,16 @@ export default function ProductCustomBuilder({
   product,
   lang,
   sizes,
+  inStockSizes = [],
+  initialSize = null,
   onAdd,
   preferredShadeId = null,
 }: {
   product: Product;
   lang: Locale;
   sizes: string[];
+  inStockSizes?: string[];
+  initialSize?: string | null;
   onAdd: (size: string, note: string) => void;
   preferredShadeId?: string | null;
 }) {
@@ -50,7 +53,7 @@ export default function ProductCustomBuilder({
   const defaultShadeId = preferredShadeId || productShadeId;
   const defaultGroupId = groupForPaletteId(defaultShadeId)?.id ?? null;
 
-  const [size, setSize] = useState<string | null>(null);
+  const [size, setSize] = useState<string | null>(initialSize);
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
   const [shadeIds, setShadeIds] = useState<string[]>(
     defaultShadeId ? [defaultShadeId] : []
@@ -183,24 +186,16 @@ export default function ProductCustomBuilder({
         </>
       ) : null}
 
-      <p className="pdp-builder-label">{t.product.size}</p>
-      <div className="pdp-sizes pdp-sizes--text">
-        {sizes.map((sz) => {
-          const plus = PLUS_SIZES.has(sz);
-          return (
-            <button
-              key={sz}
-              type="button"
-              className={`pdp-size pdp-size--text is-stocked${
-                size === sz ? " is-active" : ""
-              }${plus ? " is-plus" : ""}`}
-              onClick={() => setSize(sz)}
-            >
-              {formatSizeLabel(sz)}
-            </button>
-          );
-        })}
-      </div>
+      <ProductSizeBoard
+        inStock={new Set(inStockSizes)}
+        selected={size}
+        extraSizes={sizes.filter(
+          (sz) =>
+            !(SIZE_ROW_BASE as readonly string[]).includes(sz) &&
+            !(SIZE_ROW_MORE as readonly string[]).includes(sz)
+        )}
+        onSelect={(sz) => setSize(sz)}
+      />
 
       <div className="pdp-builder-measures-toggle">
         <button

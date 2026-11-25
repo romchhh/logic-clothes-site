@@ -5,11 +5,22 @@ export const ADMIN_SIZE_PRESETS = [
   "S-M",
   "M-L",
   "L-XL",
+  "ONESIZE+",
   "A",
   "B",
   "C",
   "D",
 ] as const;
+
+/** Product page + constructor: two labeled rows. */
+export const SIZE_ROW_BASE = [
+  "ONESIZE",
+  "XS-S",
+  "S-M",
+  "M-L",
+  "L-XL",
+] as const;
+export const SIZE_ROW_MORE = ["ONESIZE+", "A", "B", "C", "D"] as const;
 
 /** Default «зшиємо за 14 днів» row on PDP — full brand grid. */
 export const MADE_TO_ORDER_SIZE_GRID = [...ADMIN_SIZE_PRESETS] as const;
@@ -53,6 +64,9 @@ export function normalizeBrandSize(raw: string): string {
     ONESIZE: "ONESIZE",
     "ONE-SIZE": "ONESIZE",
     OS: "ONESIZE",
+    "ONESIZE+": "ONESIZE+",
+    "ONESIZEPLUS": "ONESIZE+",
+    "ONE-SIZE+": "ONESIZE+",
     "XS-S": "XS-S",
     XSS: "XS-S",
     "XS/S": "XS-S",

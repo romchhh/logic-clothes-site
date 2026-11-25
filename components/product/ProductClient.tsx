@@ -20,12 +20,14 @@ import { useI18n } from "@/lib/i18n/I18nProvider";
 import { GARMENT_MEASURE_FIELDS, hasGarmentMeasures } from "@/lib/garmentMeasures";
 import type { Locale } from "@/lib/i18n/config";
 import ProductColorPalette from "@/components/product/ProductColorPalette";
+import ProductSizeBoard from "@/components/product/ProductSizeBoard";
 import { normalizeSizeOptions } from "@/lib/catalogProduct";
 import { formatDualPrice } from "@/lib/format";
 import {
-  formatSizeLabel,
   MADE_TO_ORDER_SIZE_GRID,
   orderBrandSizes,
+  SIZE_ROW_BASE,
+  SIZE_ROW_MORE,
 } from "@/lib/productSizes";
 import { formatLengthLabel } from "@/lib/lengthDisplay";
 import { SIZE_CHART_ROWS } from "@/lib/sizeChart";
@@ -36,8 +38,6 @@ import {
   productName,
   type Product,
 } from "@/lib/types";
-
-const PLUS_SIZES = new Set(["A", "B", "C", "D"]);
 
 export default function ProductClient({
   product,
@@ -109,6 +109,8 @@ export default function ProductClient({
     ...MADE_TO_ORDER_SIZE_GRID,
     ...stockSizes,
   ]);
+  const brandSizeSet = new Set<string>([...SIZE_ROW_BASE, ...SIZE_ROW_MORE]);
+  const extraSizes = displaySizes.filter((sz) => !brandSizeSet.has(sz));
   const canAddToCart = Boolean(product.inStock) && inStockSizeSet.size > 0;
   const onSale =
     product.isSale ||
@@ -160,8 +162,14 @@ export default function ProductClient({
     return () => window.clearTimeout(id);
   }, [materialHint]);
 
-  function selectSize(sz: string) {
-    setSelectedSize(sz);
+  function selectSize(sz: string, stocked: boolean) {
+    if (stocked) {
+      setSelectedSize(sz);
+      setPinnedSewSize(null);
+    } else {
+      setSelectedSize(null);
+      setPinnedSewSize(sz);
+    }
     setSizeHint(false);
   }
 
@@ -341,49 +349,12 @@ export default function ProductClient({
             className={`pdp-option pdp-option--size${sizeHint ? " is-hint" : ""}`}
             ref={sizeBlockRef}
           >
-            <p className="pdp-label">{t.product.size}</p>
-            <div
-              className="pdp-sizes pdp-sizes--text"
-              role="listbox"
-              aria-label={t.product.size}
-              aria-invalid={sizeHint}
-            >
-              {displaySizes.map((sz) => {
-                const stocked = inStockSizeSet.has(sz);
-                const plus = PLUS_SIZES.has(sz);
-                if (stocked) {
-                  return (
-                    <button
-                      key={sz}
-                      className={`pdp-size pdp-size--text is-stocked${
-                        selectedSize === sz ? " is-active" : ""
-                      }${plus ? " is-plus" : ""}`}
-                      type="button"
-                      role="option"
-                      aria-selected={selectedSize === sz}
-                      onClick={() => selectSize(sz)}
-                    >
-                      {formatSizeLabel(sz)}
-                    </button>
-                  );
-                }
-                return (
-                  <span key={sz} className="pdp-size-wrap">
-                    <button
-                      className={`pdp-size pdp-size--text is-off${
-                        plus ? " is-plus" : ""
-                      }${pinnedSewSize === sz ? " is-pinned" : ""}`}
-                      type="button"
-                      role="option"
-                      aria-selected={false}
-                      onClick={() => setPinnedSewSize(sz)}
-                    >
-                      {formatSizeLabel(sz)}
-                    </button>
-                  </span>
-                );
-              })}
-            </div>
+            <ProductSizeBoard
+              inStock={inStockSizeSet}
+              selected={selectedSize || pinnedSewSize}
+              extraSizes={extraSizes}
+              onSelect={selectSize}
+            />
             <div className="pdp-size-actions">
               <button
                 type="button"
@@ -395,15 +366,13 @@ export default function ProductClient({
                   ? t.product.closeSizeChart
                   : t.product.openSizeChart}
               </button>
-              {pinnedSewSize ? (
-                <button
-                  type="button"
-                  className="pdp-size-sew-cta is-inline"
-                  onClick={openBuilder}
-                >
-                  {t.product.sewMySize}
-                </button>
-              ) : null}
+              <button
+                type="button"
+                className="pdp-size-sew-cta is-inline"
+                onClick={openBuilder}
+              >
+                {t.product.sewMySize}
+              </button>
             </div>
             {sizeChartOpen ? (
               <div
@@ -722,6 +691,8 @@ export default function ProductClient({
               product={product}
               lang={lang}
               sizes={displaySizes}
+              inStockSizes={[...inStockSizeSet]}
+              initialSize={pinnedSewSize || selectedSize}
               onAdd={addCustom}
               preferredShadeId={pinnedShadeId}
             />

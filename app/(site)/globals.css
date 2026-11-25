@@ -3067,8 +3067,76 @@
     flex-direction:column;
     align-items:flex-end;
     gap:10px;
-    margin:8px 0 4px;
+    margin:14px 0 4px;
     width:100%;
+  }
+  .pdp-size-board{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    width:100%;
+  }
+  .pdp-size-board-label{
+    margin:0 0 8px;
+    font-size:clamp(18px, 4.2vw, 22px);
+    font-weight:700;
+    line-height:1;
+    letter-spacing:-0.03em;
+    text-transform:lowercase;
+    color:#111;
+  }
+  .pdp-size-board-row{
+    display:grid;
+    grid-template-columns:minmax(96px, 1.75fr) repeat(4, minmax(0, 1fr));
+    gap:8px;
+    width:100%;
+  }
+  .pdp-size-tile{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:58px;
+    padding:6px 4px;
+    border:1.5px solid #111;
+    border-radius:0;
+    background:#fff;
+    color:#111;
+    font:inherit;
+    font-size:clamp(12px, 2.7vw, 15px);
+    font-weight:500;
+    line-height:1.1;
+    letter-spacing:0;
+    text-align:center;
+    white-space:nowrap;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .pdp-size-tile.is-letter{
+    font-size:clamp(18px, 4.4vw, 22px);
+    font-weight:600;
+  }
+  .pdp-size-tile.is-wide{
+    font-size:clamp(13px, 3vw, 16px);
+    letter-spacing:0.01em;
+  }
+  .pdp-size-tile.is-off{
+    border-color:#d4d4d4;
+    color:#c8c8c8;
+    background:#fff;
+  }
+  .pdp-size-tile.is-active{
+    border-color:#111;
+    background:#111;
+    color:#fff;
+  }
+  .pdp-size-tile.is-off.is-active{
+    border-color:#111;
+    background:#111;
+    color:#fff;
+  }
+  @media (max-width:420px){
+    .pdp-size-board-row{gap:5px;}
+    .pdp-size-tile{min-height:48px;padding:4px 2px;}
   }
   .pdp-size-actions-chart{
     flex:0 1 auto;
@@ -4207,10 +4275,11 @@
     background:var(--blue-soft);
   }
   .pdp-size:not(.is-active):hover{border-color:var(--pdp-ink);}
-  .pdp-option.is-hint .pdp-sizes{
+  .pdp-option.is-hint .pdp-sizes,
+  .pdp-option.is-hint .pdp-size-board{
     outline:1px solid var(--pdp-ink);
     outline-offset:6px;
-    border-radius:var(--radius-pill);
+    border-radius:0;
   }
   .pdp-inline-hint{
     margin:0;
