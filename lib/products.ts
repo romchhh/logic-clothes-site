@@ -216,6 +216,11 @@ export async function getProductsByCategory(
   const products = (await getProducts()).filter(isCatalogProduct);
   if (!category || category === "all") return products;
 
+  // Fast path — legacy slug on production before admin uses system id `new`.
+  if (category === "new" || category === "new-ideas") {
+    return productsForNewestSection(products);
+  }
+
   const cat = await getCategoryById(category);
 
   if (isNewestCategoryParam(category, cat)) {

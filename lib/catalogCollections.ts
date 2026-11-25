@@ -1,4 +1,5 @@
 import type { Category } from "@/lib/categories";
+import type { Locale } from "@/lib/i18n/config";
 
 const NEWEST_LABEL_UK = /найнові|новинк/i;
 const NEWEST_LABEL_EN = /newest|new\s*in/i;
@@ -35,9 +36,32 @@ export function isNewestCategoryParam(
   categoryId: string,
   cat: Category | null | undefined
 ): boolean {
-  if (categoryId === "new") return true;
+  if (categoryId === "new" || categoryId === "new-ideas") return true;
   if (cat && categoryLooksLikeNewest(cat)) return true;
   return false;
+}
+
+/** Canonical `?category=` for collections (newest → always `new` on live DB). */
+export function catalogCategoryQueryId(cat: Category): string {
+  if (categoryLooksLikeNewest(cat)) return "new";
+  if (categoryLooksLikeSale(cat)) return "sale";
+  return cat.id;
+}
+
+export function catalogCategoryHref(lang: Locale, cat: Category): string {
+  const id = catalogCategoryQueryId(cat);
+  if (id === "all") return `/${lang}/catalog?category=all`;
+  return `/${lang}/catalog?category=${encodeURIComponent(id)}`;
+}
+
+export function shouldRedirectNewestSlug(
+  category: string | null | undefined,
+  cat: Category | null | undefined
+): boolean {
+  const id = (category ?? "").trim();
+  if (!id || id === "new") return false;
+  if (!cat || !categoryLooksLikeNewest(cat)) return false;
+  return id !== "new";
 }
 
 export function isSaleCategoryParam(

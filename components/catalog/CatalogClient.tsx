@@ -16,6 +16,10 @@ import SidebarFilter, {
   type SortOrder,
 } from "@/components/layout/SidebarFilter";
 import type { Category, CategoryId } from "@/lib/categories";
+import {
+  catalogCategoryHref,
+  catalogCategoryQueryId,
+} from "@/lib/catalogCollections";
 import { catalogCategoryById } from "@/lib/catalogResolve";
 import {
   catalogCategoryDisplayLabel,
@@ -491,18 +495,19 @@ export default function CatalogClient({
                   );
                 }
                 const cat = entry.category;
+                const queryId = catalogCategoryQueryId(cat);
                 const href =
                   cat.id === "all"
                     ? `/${lang}/catalog`
-                    : `/${lang}/catalog?category=${encodeURIComponent(cat.id)}`;
+                    : catalogCategoryHref(lang, cat);
                 return (
                   <Link
                     key={cat.id}
                     href={href}
                     role="option"
-                    aria-selected={category === cat.id}
+                    aria-selected={category === queryId}
                     className={[
-                      category === cat.id ? "is-active" : "",
+                      category === queryId ? "is-active" : "",
                       cat.id === "sale" ? "is-sale" : "",
                     ]
                       .filter(Boolean)

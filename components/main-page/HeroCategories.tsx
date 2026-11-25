@@ -4,13 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Category } from "@/lib/categories";
+import { catalogCategoryHref } from "@/lib/catalogCollections";
 import type { Locale } from "@/lib/i18n/config";
 import { getMessages } from "@/lib/i18n/messages";
-
-function categoryHref(lang: Locale, id: string) {
-  if (id === "all") return `/${lang}/catalog?category=all`;
-  return `/${lang}/catalog?category=${id}`;
-}
 
 export default function HeroCategories({
   lang,
@@ -158,7 +154,7 @@ export default function HeroCategories({
           return (
             <Link
               key={`${cat.id}-${i}`}
-              href={categoryHref(lang, cat.id)}
+              href={catalogCategoryHref(lang, cat)}
               className={[
                 "hero-cat-card",
                 isCenter ? "is-center" : "",

@@ -5,17 +5,20 @@ import {
 } from "@/lib/catalogCollections";
 import type { Locale } from "@/lib/i18n/config";
 
-/** URL params that work even when the row is missing from `categories`. */
-const VIRTUAL_COLLECTIONS = new Set<CategoryId>(["new", "sale", "new-ideas"]);
-
 export function resolveCatalogCategory(
   category: string | null | undefined,
   categories: Category[]
 ): CategoryId {
   const id = (category ?? "").trim();
   if (!id || id === "all") return "all";
-  if (VIRTUAL_COLLECTIONS.has(id)) return id;
-  return categories.some((c) => c.id === id) ? id : "all";
+  if (id === "new" || id === "new-ideas") return "new";
+  if (id === "sale") return "sale";
+
+  const cat = categories.find((c) => c.id === id);
+  if (!cat) return "all";
+  if (categoryLooksLikeNewest(cat)) return "new";
+  if (categoryLooksLikeSale(cat)) return "sale";
+  return id;
 }
 
 const FALLBACK_NEW: Category = {

@@ -8,6 +8,10 @@ import {
   catalogCategoryDisplayLabel,
   catalogNavEntries,
 } from "@/lib/catalogCategoryOrder";
+import {
+  catalogCategoryHref,
+  catalogCategoryQueryId,
+} from "@/lib/catalogCollections";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 import {
@@ -158,13 +162,11 @@ export default function SidebarFilter({
                   ) : (
                     <Link
                       key={entry.category.id}
-                      href={
-                        entry.category.id === "all"
-                          ? `/${lang}/catalog?category=all`
-                          : `/${lang}/catalog?category=${entry.category.id}`
-                      }
+                      href={catalogCategoryHref(lang, entry.category)}
                       className={`filter-option${
-                        category === entry.category.id ? " is-active" : ""
+                        category === catalogCategoryQueryId(entry.category)
+                          ? " is-active"
+                          : ""
                       }${
                         entry.category.id === "sale" ? " filter-option--sale" : ""
                       }`}

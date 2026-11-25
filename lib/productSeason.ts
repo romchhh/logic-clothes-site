@@ -36,7 +36,13 @@ export function categorySupportsSeasonFilter(
   categoryId: string,
   categories?: Category[]
 ): boolean {
-  if (!categoryId || categoryId === "all" || categoryId === "new" || categoryId === "sale") {
+  if (
+    !categoryId ||
+    categoryId === "all" ||
+    categoryId === "new" ||
+    categoryId === "new-ideas" ||
+    categoryId === "sale"
+  ) {
     // Collections / «all» — show filter (apparel-heavy grids).
     return true;
   }

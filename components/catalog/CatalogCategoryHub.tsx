@@ -16,11 +16,7 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import type { Locale } from "@/lib/i18n/config";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { SeasonFilter } from "@/lib/productSeason";
-
-function categoryHref(lang: Locale, id: string) {
-  if (id === "all") return `/${lang}/catalog?category=all`;
-  return `/${lang}/catalog?category=${encodeURIComponent(id)}`;
-}
+import { catalogCategoryHref } from "@/lib/catalogCollections";
 
 type CollageSlot = {
   l: number;
@@ -71,7 +67,7 @@ function HubCard({
 }) {
   return (
     <Link
-      href={categoryHref(lang, cat.id)}
+      href={catalogCategoryHref(lang, cat)}
       className={`catalog-hub-card catalog-hub-card--${variant}${className ? ` ${className}` : ""}${cat.id === "all" ? " catalog-hub-card--all" : ""}`}
     >
       {variant === "natural" ? (
@@ -207,7 +203,7 @@ export default function CatalogCategoryHub({
         ) : (
           <Link
             key={`nav-${entry.category.id}`}
-            href={categoryHref(lang, entry.category.id)}
+            href={catalogCategoryHref(lang, entry.category)}
             className={`catalog-hub-nav-link${
               entry.category.id === "sale" ? " catalog-hub-nav-link--sale" : ""
             }`}
@@ -290,7 +286,7 @@ export default function CatalogCategoryHub({
                   return (
                     <Link
                       key={cat.id}
-                      href={categoryHref(lang, cat.id)}
+                      href={catalogCategoryHref(lang, cat)}
                       className={`catalog-hub-card${cat.id === "all" ? " catalog-hub-card--all" : ""}`}
                       style={{
                         left: `${slot.l}%`,

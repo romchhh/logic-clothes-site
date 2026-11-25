@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import CatalogServer from "@/components/catalog/CatalogServer";
 import JsonLd from "@/components/shared/JsonLd";
 import PageShell from "@/components/shared/PageShell";
 import { getCategories } from "@/lib/categories";
+import { shouldRedirectNewestSlug } from "@/lib/catalogCollections";
+import { getCategoryById } from "@/lib/categories";
 import {
   catalogCategoryById,
   resolveCatalogCategory,
@@ -78,6 +81,13 @@ export default async function CatalogPage({
   const t = getMessages(lang);
   const copy = seoCopy[lang];
   const baseUrl = getSiteUrl();
+
+  if (category?.trim()) {
+    const catRow = await getCategoryById(category.trim());
+    if (shouldRedirectNewestSlug(category, catRow)) {
+      redirect(`/${lang}/catalog?category=new`);
+    }
+  }
 
   const categories = await getCategories();
   const showCategoryHub = !category;
