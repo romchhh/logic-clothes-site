@@ -63,8 +63,18 @@ export type CustomOrderLocaleContent = {
   gallery: ContentGalleryImage[];
 };
 
+/** /store — hero, text, photo strip (also synced to PDP store strip). */
+export type StoreLocaleContent = {
+  title: string;
+  lead: string;
+  heroImage: string;
+  bodyMarkdown: string;
+  gallery: ContentGalleryImage[];
+};
+
 export type SitePagesStore = {
   about: Record<Locale, AboutLocaleContent>;
   customOrder: Record<Locale, CustomOrderLocaleContent>;
+  store: Record<Locale, StoreLocaleContent>;
   legal: Record<Locale, LegalPage[]>;
 };

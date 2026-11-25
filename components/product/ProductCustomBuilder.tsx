@@ -10,6 +10,7 @@ import {
 } from "@/lib/colorPalette";
 import { SIZE_ROW_BASE, SIZE_ROW_MORE } from "@/lib/productSizes";
 import ProductSizeBoard from "@/components/product/ProductSizeBoard";
+import ProductSizeChartDisclosure from "@/components/product/ProductSizeChartDisclosure";
 import { formatDualPrice } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
@@ -187,7 +188,15 @@ export default function ProductCustomBuilder({
       ) : null}
 
       <ProductSizeBoard
-        inStock={new Set(inStockSizes)}
+        mode="builder"
+        inStock={
+          new Set([
+            ...SIZE_ROW_BASE,
+            ...SIZE_ROW_MORE,
+            ...sizes,
+            ...inStockSizes,
+          ])
+        }
         selected={size}
         extraSizes={sizes.filter(
           (sz) =>
@@ -195,6 +204,11 @@ export default function ProductCustomBuilder({
             !(SIZE_ROW_MORE as readonly string[]).includes(sz)
         )}
         onSelect={(sz) => setSize(sz)}
+      />
+
+      <ProductSizeChartDisclosure
+        id="pdp-builder-size-chart"
+        className="pdp-builder-size-chart"
       />
 
       <div className="pdp-builder-measures-toggle">

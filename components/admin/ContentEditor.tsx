@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import ContentGalleryEditor from "@/components/admin/ContentGalleryEditor";
 import ContentImageField from "@/components/admin/ContentImageField";
 import MarkdownEditor from "@/components/admin/MarkdownEditor";
-import StorePhotosForm from "@/components/admin/StorePhotosForm";
 import Label from "@/components/admin/form/Label";
 import Input from "@/components/admin/form/input/InputField";
 import {
@@ -18,6 +17,7 @@ import {
   type AboutLocaleContent,
   type ContentPageSlug,
   type CustomOrderLocaleContent,
+  type StoreLocaleContent,
   type SitePagesStore,
 } from "@/lib/sitePagesTypes";
 
@@ -97,6 +97,9 @@ export default function ContentEditor() {
   const customOrder: CustomOrderLocaleContent | null = store
     ? store.customOrder?.[lang] ?? null
     : null;
+  const storePage: StoreLocaleContent | null = store
+    ? store.store?.[lang] ?? null
+    : null;
 
   const legalPage: LegalPage | null =
     store && def.kind === "legal"
@@ -111,6 +114,22 @@ export default function ContentEditor() {
         about: {
           ...prev.about,
           [lang]: { ...prev.about[lang], ...patch },
+        },
+      };
+    });
+    setMessage(null);
+  };
+
+  const patchStorePage = (patch: Partial<StoreLocaleContent>) => {
+    setStore((prev) => {
+      if (!prev) return prev;
+      const current = prev.store?.[lang];
+      if (!current) return prev;
+      return {
+        ...prev,
+        store: {
+          ...prev.store,
+          [lang]: { ...current, ...patch },
         },
       };
     });
@@ -231,7 +250,8 @@ export default function ContentEditor() {
         </div>
         {def.kind === "about" ||
         def.kind === "legal" ||
-        def.kind === "custom" ? (
+        def.kind === "custom" ||
+        def.kind === "store" ? (
           <div className="flex items-center gap-2">
             {(["uk", "en"] as Lang[]).map((l) => (
               <button
@@ -254,11 +274,10 @@ export default function ContentEditor() {
         ) : null}
       </div>
 
-      {def.kind === "store" ? <StorePhotosForm /> : null}
-
       {def.kind === "about" ||
       def.kind === "legal" ||
-      def.kind === "custom" ? (
+      def.kind === "custom" ||
+      def.kind === "store" ? (
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 dark:border-gray-800 dark:bg-[#141414]">
         <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white">
@@ -272,7 +291,9 @@ export default function ContentEditor() {
               ? "/about"
               : def.kind === "custom"
                 ? "/custom-order"
-                : `/${slug}`}
+                : def.kind === "store"
+                  ? "/store"
+                  : `/${slug}`}
           </p>
         </div>
 
@@ -307,6 +328,55 @@ export default function ContentEditor() {
               images={about.gallery || []}
               onChange={(gallery) => patchAbout({ gallery })}
             />
+          </div>
+        ) : null}
+
+        {def.kind === "store" && storePage ? (
+          <div className="space-y-6">
+            <Field label="Заголовок сторінки">
+              <Input
+                value={storePage.title}
+                onChange={(e) => patchStorePage({ title: e.target.value })}
+              />
+            </Field>
+
+            <Field
+              label="Короткий опис (SEO)"
+              hint="1–2 речення для пошуку та прев’ю посилання."
+            >
+              <Input
+                value={storePage.lead}
+                onChange={(e) => patchStorePage({ lead: e.target.value })}
+              />
+            </Field>
+
+            <ContentImageField
+              label="Головне фото (hero)"
+              hint="Велике горизонтальне фото зверху сторінки /store (як «Про нас»)."
+              value={storePage.heroImage || ""}
+              onChange={(heroImage) => patchStorePage({ heroImage })}
+            />
+
+            <Field
+              label="Текст (Markdown)"
+              hint="Основний текст під hero. UA і EN окремо."
+            >
+              <MarkdownEditor
+                value={storePage.bodyMarkdown || ""}
+                onChange={(bodyMarkdown) => patchStorePage({ bodyMarkdown })}
+                rows={18}
+              />
+            </Field>
+
+            <Field
+              label="Галерея (маленькі фото)"
+              hint="Внизу /store і в смузі під карткою товару — після «Зберегти»."
+            >
+              <ContentGalleryEditor
+                images={storePage.gallery || []}
+                onChange={(gallery) => patchStorePage({ gallery })}
+              />
+            </Field>
           </div>
         ) : null}
 
@@ -405,7 +475,8 @@ export default function ContentEditor() {
 
       {def.kind === "about" ||
       def.kind === "legal" ||
-      def.kind === "custom" ? (
+      def.kind === "custom" ||
+      def.kind === "store" ? (
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-h-[1.25rem] text-sm">
           {error ? <p className="text-error-500">{error}</p> : null}
@@ -425,7 +496,8 @@ export default function ContentEditor() {
       ) : null}
       {def.kind === "about" ||
       def.kind === "legal" ||
-      def.kind === "custom" ? (
+      def.kind === "custom" ||
+      def.kind === "store" ? (
       <p className="text-[12px] text-gray-500 dark:text-gray-400">
         Зберігаються обидві мови (UK і EN) для всіх сторінок одразу. Фото й
         Markdown можна міняти самостійно без розробника.

@@ -4,6 +4,7 @@ import JsonLd from "@/components/shared/JsonLd";
 import PageShell from "@/components/shared/PageShell";
 import { SUPPORTED_LOCALES } from "@/lib/i18n/config";
 import { getMessages } from "@/lib/i18n/messages";
+import { getStorePage } from "@/lib/sitePages";
 import { getSiteUrl, pageAlternates, parseLangParam } from "@/lib/i18n/seo";
 import { generateBreadcrumbStructuredData } from "@/lib/seo";
 
@@ -21,12 +22,14 @@ export async function generateMetadata({
   const { lang: raw } = await params;
   const lang = parseLangParam(raw);
   const t = getMessages(lang);
+  const page = await getStorePage(lang);
   return {
-    title: t.product.storePhotosTitle,
+    title: page.title || t.product.storePhotosTitle,
     description:
-      lang === "uk"
+      page.lead?.trim() ||
+      (lang === "uk"
         ? "Concept store Logic Clothes у Києві — адреса, карта та фото."
-        : "Logic Clothes concept store in Kyiv — address, map and photos.",
+        : "Logic Clothes concept store in Kyiv — address, map and photos."),
     alternates: pageAlternates(lang, "store"),
   };
 }

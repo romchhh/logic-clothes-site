@@ -16,7 +16,7 @@ export default function VariantMeta({
     <ul className={className || "variant-meta"}>
       {lines.map((line) => (
         <li key={`${line.label}-${line.value}`}>
-          <span className="variant-meta-label">{line.label}:</span>{" "}
+          <span className="variant-meta-label">{line.label}</span>
           <span className="variant-meta-value">{line.value}</span>
         </li>
       ))}

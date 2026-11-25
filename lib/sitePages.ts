@@ -1,6 +1,8 @@
 import type { AboutContent } from "@/lib/content/about";
 import { aboutContent as defaultAbout } from "@/lib/content/about";
 import { defaultCustomOrder } from "@/lib/content/customOrderDefaults";
+import { defaultStorePage } from "@/lib/content/storeDefaults";
+import { saveStorePhotos } from "@/lib/storePhotos";
 import type { LegalPage } from "@/lib/content/legal";
 import { legalPages as defaultLegal } from "@/lib/content/legal";
 import {
@@ -14,6 +16,7 @@ import type {
   AboutLocaleContent,
   ContentGalleryImage,
   CustomOrderLocaleContent,
+  StoreLocaleContent,
   SitePagesStore,
 } from "@/lib/sitePagesTypes";
 
@@ -21,6 +24,7 @@ export type {
   AboutLocaleContent,
   ContentPageSlug,
   CustomOrderLocaleContent,
+  StoreLocaleContent,
   SitePagesStore,
 } from "@/lib/sitePagesTypes";
 export { CONTENT_PAGE_DEFS } from "@/lib/sitePagesTypes";
@@ -64,6 +68,10 @@ export function defaultSitePages(): SitePagesStore {
     customOrder: {
       uk: defaultCustomOrder("uk"),
       en: defaultCustomOrder("en"),
+    },
+    store: {
+      uk: defaultStorePage("uk"),
+      en: defaultStorePage("en"),
     },
     legal: {
       uk: legalUk,
@@ -130,6 +138,24 @@ function parseAboutLocale(
     merged.bodyMarkdown = aboutToMarkdown(merged);
   }
   return merged;
+}
+
+function parseStoreLocale(
+  raw: unknown,
+  fallback: StoreLocaleContent
+): StoreLocaleContent {
+  if (!isObj(raw)) return fallback;
+  const body = String(raw.bodyMarkdown ?? "").trim()
+    ? String(raw.bodyMarkdown)
+    : fallback.bodyMarkdown;
+  return {
+    title: String(raw.title ?? fallback.title),
+    lead: String(raw.lead ?? fallback.lead),
+    heroImage:
+      cleanUrl(raw.heroImage) || fallback.heroImage || DEFAULT_ABOUT_HERO,
+    bodyMarkdown: body,
+    gallery: parseGallery(raw.gallery ?? fallback.gallery),
+  };
 }
 
 function parseCustomOrderLocale(
@@ -212,6 +238,7 @@ function mergeStore(raw: unknown): SitePagesStore {
   };
 
   const customRaw = isObj(raw.customOrder) ? raw.customOrder : {};
+  const storeRaw = isObj(raw.store) ? raw.store : {};
 
   return {
     about: {
@@ -221,6 +248,10 @@ function mergeStore(raw: unknown): SitePagesStore {
     customOrder: {
       uk: parseCustomOrderLocale(customRaw.uk, defaults.customOrder.uk),
       en: parseCustomOrderLocale(customRaw.en, defaults.customOrder.en),
+    },
+    store: {
+      uk: parseStoreLocale(storeRaw.uk, defaults.store.uk),
+      en: parseStoreLocale(storeRaw.en, defaults.store.en),
     },
     legal: {
       uk: mergeLegal(legalUkDefaults, legalUkRaw),
@@ -243,10 +274,26 @@ export async function getSitePagesStore(): Promise<SitePagesStore> {
   }
 }
 
+async function syncStorePhotosFromPageContent(store: SitePagesStore) {
+  const gallery =
+    store.store.uk.gallery?.length
+      ? store.store.uk.gallery
+      : store.store.en.gallery || [];
+  if (!gallery.length) return;
+  await saveStorePhotos(
+    gallery.map((img) => ({
+      src: img.src,
+      altUk: img.altUk,
+      altEn: img.altEn,
+    }))
+  );
+}
+
 export async function saveSitePagesStore(
   store: SitePagesStore
 ): Promise<SitePagesStore> {
   const cleaned = mergeStore(store);
+  await syncStorePhotosFromPageContent(cleaned);
   await query(
     `INSERT INTO site_settings (key, value, updated_at)
      VALUES ($1, $2, NOW())
@@ -262,6 +309,8 @@ export async function saveSitePagesStore(
     revalidatePath("/en/about");
     revalidatePath("/uk/custom-order");
     revalidatePath("/en/custom-order");
+    revalidatePath("/uk/store");
+    revalidatePath("/en/store");
     revalidatePath("/uk/shipping-payment");
     revalidatePath("/en/shipping-payment");
     revalidatePath("/uk/contacts");
@@ -284,6 +333,24 @@ export async function getCustomOrderPage(
 ): Promise<CustomOrderLocaleContent> {
   const store = await getSitePagesStore();
   return store.customOrder[lang] || store.customOrder.uk;
+}
+
+export async function getStorePage(lang: Locale): Promise<StoreLocaleContent> {
+  const store = await getSitePagesStore();
+  const page = store.store[lang] || store.store.uk;
+  const { getStorePhotos } = await import("@/lib/storePhotos");
+  if (!page.gallery?.length) {
+    const legacy = await getStorePhotos();
+    return {
+      ...page,
+      gallery: legacy.map((p) => ({
+        src: p.src,
+        altUk: p.altUk,
+        altEn: p.altEn,
+      })),
+    };
+  }
+  return page;
 }
 
 export async function getLegalPageContent(

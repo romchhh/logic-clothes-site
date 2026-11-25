@@ -30,7 +30,7 @@ import {
   SIZE_ROW_MORE,
 } from "@/lib/productSizes";
 import { formatLengthLabel } from "@/lib/lengthDisplay";
-import { SIZE_CHART_ROWS } from "@/lib/sizeChart";
+import ProductSizeChartDisclosure from "@/components/product/ProductSizeChartDisclosure";
 import { SITE_MAP_LINK } from "@/lib/siteContact";
 import type { StorePhoto } from "@/lib/storePhotos";
 import {
@@ -69,7 +69,6 @@ export default function ProductClient({
     materialOptions.length === 1 ? materialOptions[0] : null
   );
   const [sizeHint, setSizeHint] = useState(false);
-  const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [measuresOpen, setMeasuresOpen] = useState(false);
   const [careOpen, setCareOpen] = useState(false);
   const [shippingOpen, setShippingOpen] = useState(false);
@@ -168,7 +167,7 @@ export default function ProductClient({
       setPinnedSewSize(null);
     } else {
       setSelectedSize(null);
-      setPinnedSewSize(sz);
+      setPinnedSewSize((prev) => (prev === sz ? null : sz));
     }
     setSizeHint(false);
   }
@@ -350,64 +349,24 @@ export default function ProductClient({
             ref={sizeBlockRef}
           >
             <ProductSizeBoard
+              mode="pdp"
               inStock={inStockSizeSet}
-              selected={selectedSize || pinnedSewSize}
+              selected={selectedSize}
+              pinned={pinnedSewSize}
               extraSizes={extraSizes}
               onSelect={selectSize}
             />
-            <div className="pdp-size-actions">
-              <button
-                type="button"
-                className="pdp-disclosure pdp-size-actions-chart"
-                aria-expanded={sizeChartOpen}
-                onClick={() => setSizeChartOpen((v) => !v)}
-              >
-                {sizeChartOpen
-                  ? t.product.closeSizeChart
-                  : t.product.openSizeChart}
-              </button>
-              <button
-                type="button"
-                className="pdp-size-sew-cta is-inline"
-                onClick={openBuilder}
-              >
-                {t.product.sewMySize}
-              </button>
-            </div>
-            {sizeChartOpen ? (
-              <div
-                className="pdp-size-chart pdp-size-chart--inline"
-                id="pdp-size-chart"
-              >
-                <table className="pdp-size-table pdp-size-table--brand">
-                  <thead>
-                    <tr>
-                      <th scope="col">{t.product.sizeCol}</th>
-                      <th scope="col">{t.product.bust}</th>
-                      <th scope="col">{t.product.waist}</th>
-                      <th scope="col">{t.product.hips}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {SIZE_CHART_ROWS.map((row) => (
-                      <tr key={row.size}>
-                        <th scope="row">{row.size}</th>
-                        <td>{row.bust}</td>
-                        <td>{row.waist}</td>
-                        <td>{row.hips}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <ProductSizeChartDisclosure id="pdp-size-chart">
+              {pinnedSewSize ? (
                 <button
                   type="button"
-                  className="pdp-disclosure"
-                  onClick={() => setSizeChartOpen(false)}
+                  className="pdp-size-sew-cta is-inline"
+                  onClick={openBuilder}
                 >
-                  {t.product.closeSizeChart}
+                  {t.product.sewMySize}
                 </button>
-              </div>
-            ) : null}
+              ) : null}
+            </ProductSizeChartDisclosure>
             {sizeHint && (
               <p className="pdp-inline-hint" role="status">
                 {t.product.pickSize}

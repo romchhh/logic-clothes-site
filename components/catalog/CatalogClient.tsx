@@ -16,6 +16,7 @@ import SidebarFilter, {
   type SortOrder,
 } from "@/components/layout/SidebarFilter";
 import type { Category, CategoryId } from "@/lib/categories";
+import { catalogCategoryById } from "@/lib/catalogResolve";
 import {
   catalogCategoryDisplayLabel,
   catalogNavEntries,
@@ -107,7 +108,9 @@ export default function CatalogClient({
     [categories, lang]
   );
 
-  const activeCat = orderedCategories.find((c) => c.id === category);
+  const activeCat =
+    orderedCategories.find((c) => c.id === category) ??
+    catalogCategoryById(categories, category);
   const activeLabel = activeCat
     ? catalogCategoryDisplayLabel(activeCat, lang)
     : t.catalog.title;

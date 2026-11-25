@@ -534,7 +534,7 @@ export default function ProductForm({ productId }: Props) {
           madeToOrder: Boolean(p.madeToOrder),
           season: normalizeProductSeason(p.season),
           isDraft: p.isVisible === false,
-          isNew: Boolean(p.isNew),
+          isNew: p.isNew !== false,
           isPopular: Boolean(p.isPopular),
           isSale: Boolean(p.isSale),
           media,
@@ -1279,6 +1279,10 @@ export default function ProductForm({ productId }: Props) {
                 setEnabled={(v) => set("isPopular", v)}
               />
             </div>
+            <p className="text-[12px] leading-snug text-gray-500 dark:text-gray-400">
+              «Найновіше» увімкнено за замовчуванням — товар потрапляє в
+              колекцію «найновіше» в каталозі.
+            </p>
             <div className="admin-toggle-row">
               <ToggleSwitch
                 label="Літо"

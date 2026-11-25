@@ -3,6 +3,10 @@ import CatalogServer from "@/components/catalog/CatalogServer";
 import JsonLd from "@/components/shared/JsonLd";
 import PageShell from "@/components/shared/PageShell";
 import { getCategories } from "@/lib/categories";
+import {
+  catalogCategoryById,
+  resolveCatalogCategory,
+} from "@/lib/catalogResolve";
 import { getMessages } from "@/lib/i18n/messages";
 import {
   parseLangParam,
@@ -32,7 +36,8 @@ export async function generateMetadata({
   const lang = parseLangParam(raw);
   const copy = seoCopy[lang];
   const categories = await getCategories();
-  const active = categories.find((c) => c.id === category);
+  const activeId = resolveCatalogCategory(category, categories);
+  const active = catalogCategoryById(categories, activeId);
 
   const title = active
     ? `${active.label[lang]} — ${copy.catalogTitle}`
@@ -76,9 +81,8 @@ export default async function CatalogPage({
 
   const categories = await getCategories();
   const showCategoryHub = !category;
-  const active =
-    category && categories.some((c) => c.id === category) ? category : "all";
-  const activeCat = categories.find((c) => c.id === active);
+  const active = resolveCatalogCategory(category, categories);
+  const activeCat = catalogCategoryById(categories, active);
   const products = showCategoryHub ? [] : await getProductsByCategory(active);
   const title = activeCat?.label[lang] || copy.catalogTitle;
   const description = copy.catalogDescription;

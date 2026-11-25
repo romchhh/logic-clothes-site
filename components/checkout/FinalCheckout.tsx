@@ -191,6 +191,7 @@ export default function FinalCheckout({
     clearBasket();
   }, [returnOrderId, returnPaid, clearBasket]);
 
+  /** Online charge now (WayForPay). Store pay shows full total in the UI only. */
   const amountDueNow = useMemo(() => {
     if (paymentType === "prepay") return PREPAY_AMOUNT_UAH;
     if (paymentType === "pay_after") return 0;
@@ -997,12 +998,8 @@ export default function FinalCheckout({
               aria-label={t.checkout.paymentMethod}
             >
               {visiblePaymentMethods.map((method) => {
-                const due =
-                  method === "prepay"
-                    ? PREPAY_AMOUNT_UAH
-                    : method === "full"
-                      ? total
-                      : 0;
+                const displayAmount =
+                  method === "prepay" ? PREPAY_AMOUNT_UAH : total;
                 return (
                   <label
                     key={method}
@@ -1021,15 +1018,9 @@ export default function FinalCheckout({
                     <span className="checkout-choice-hint">
                       {t.checkout.paymentHints[method]}
                     </span>
-                    {due > 0 ? (
-                      <span className="checkout-choice-amount">
-                        {formatMoney(due)}
-                      </span>
-                    ) : (
-                      <span className="checkout-choice-amount checkout-choice-amount--muted">
-                        0 ₴
-                      </span>
-                    )}
+                    <span className="checkout-choice-amount">
+                      {formatMoney(displayAmount)}
+                    </span>
                   </label>
                 );
               })}

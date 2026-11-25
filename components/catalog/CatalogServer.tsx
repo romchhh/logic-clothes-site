@@ -6,6 +6,7 @@ import {
   priceBounds,
 } from "@/lib/catalogFilters";
 import { getCategories, type CategoryId } from "@/lib/categories";
+import { resolveCatalogCategory } from "@/lib/catalogResolve";
 import type { Locale } from "@/lib/i18n/config";
 import { getProductsByCategory } from "@/lib/products";
 
@@ -32,8 +33,7 @@ export default async function CatalogServer({
       />
     );
   }
-  const active: CategoryId =
-    category && categories.some((c) => c.id === category) ? category : "all";
+  const active: CategoryId = resolveCatalogCategory(category, categories);
   const products = await getProductsByCategory(active);
   const sizes = collectSizes(products);
   const colors = collectColors(products);

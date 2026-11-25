@@ -32,11 +32,16 @@ function tileLabel(size: string): string {
 export default function ProductSizeBoard({
   inStock,
   selected,
+  pinned = null,
+  mode = "pdp",
   onSelect,
   extraSizes = [],
 }: {
   inStock: ReadonlySet<string>;
   selected: string | null;
+  /** Out-of-stock size tapped for made-to-order (PDP only). */
+  pinned?: string | null;
+  mode?: "pdp" | "builder";
   onSelect: (size: string, stocked: boolean) => void;
   /** Sizes outside the two brand rows, shown on the more line. */
   extraSizes?: string[];
@@ -61,20 +66,24 @@ export default function ProductSizeBoard({
               aria-label={row.label}
             >
               {sizes.map((sz) => {
-                const stocked = inStock.has(sz);
-                const active = selected === sz;
+                const stocked =
+                  mode === "builder" ? true : inStock.has(sz);
+                const active = stocked && selected === sz;
+                const isPinned =
+                  mode === "pdp" && !stocked && pinned === sz;
                 return (
                   <button
                     key={sz}
                     type="button"
                     role="option"
-                    aria-selected={active}
+                    aria-selected={active || isPinned}
                     className={[
                       "pdp-size-tile",
                       WIDE.has(sz) ? "is-wide" : "",
                       LETTERS.has(sz) ? "is-letter" : "",
                       stocked ? "is-stocked" : "is-off",
                       active ? "is-active" : "",
+                      isPinned ? "is-pinned" : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}
