@@ -3073,12 +3073,12 @@
   .pdp-size-board{
     display:flex;
     flex-direction:column;
-    gap:16px;
+    gap:12px;
     width:100%;
   }
   .pdp-size-board-label{
-    margin:0 0 8px;
-    font-size:clamp(18px, 4.2vw, 22px);
+    margin:0 0 6px;
+    font-size:clamp(15px, 3.4vw, 17px);
     font-weight:700;
     line-height:1;
     letter-spacing:-0.03em;
@@ -3087,22 +3087,22 @@
   }
   .pdp-size-board-row{
     display:grid;
-    grid-template-columns:minmax(96px, 1.75fr) repeat(4, minmax(0, 1fr));
-    gap:8px;
+    grid-template-columns:minmax(72px, 1.55fr) repeat(4, minmax(0, 1fr));
+    gap:6px;
     width:100%;
   }
   .pdp-size-tile{
     display:flex;
     align-items:center;
     justify-content:center;
-    min-height:58px;
-    padding:6px 4px;
-    border:1.5px solid #111;
+    min-height:44px;
+    padding:4px 3px;
+    border:1px solid #111;
     border-radius:0;
     background:#fff;
     color:#111;
     font:inherit;
-    font-size:clamp(12px, 2.7vw, 15px);
+    font-size:clamp(10px, 2.2vw, 12px);
     font-weight:500;
     line-height:1.1;
     letter-spacing:0;
@@ -3112,11 +3112,11 @@
     -webkit-tap-highlight-color:transparent;
   }
   .pdp-size-tile.is-letter{
-    font-size:clamp(18px, 4.4vw, 22px);
+    font-size:clamp(14px, 3.2vw, 16px);
     font-weight:600;
   }
   .pdp-size-tile.is-wide{
-    font-size:clamp(13px, 3vw, 16px);
+    font-size:clamp(10px, 2.4vw, 12px);
     letter-spacing:0.01em;
   }
   .pdp-size-tile.is-off{
@@ -3135,8 +3135,8 @@
     color:#fff;
   }
   @media (max-width:420px){
-    .pdp-size-board-row{gap:5px;}
-    .pdp-size-tile{min-height:48px;padding:4px 2px;}
+    .pdp-size-board-row{gap:4px;}
+    .pdp-size-tile{min-height:40px;padding:3px 2px;}
   }
   .pdp-size-actions-chart{
     flex:0 1 auto;
