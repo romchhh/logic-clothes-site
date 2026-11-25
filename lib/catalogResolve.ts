@@ -1,8 +1,12 @@
 import type { Category, CategoryId } from "@/lib/categories";
+import {
+  categoryLooksLikeNewest,
+  categoryLooksLikeSale,
+} from "@/lib/catalogCollections";
 import type { Locale } from "@/lib/i18n/config";
 
-/** Collections that filter by product flags / dates, not `products.category`. */
-const VIRTUAL_COLLECTIONS = new Set<CategoryId>(["new", "sale"]);
+/** URL params that work even when the row is missing from `categories`. */
+const VIRTUAL_COLLECTIONS = new Set<CategoryId>(["new", "sale", "new-ideas"]);
 
 export function resolveCatalogCategory(
   category: string | null | undefined,
@@ -40,13 +44,23 @@ export function catalogCategoryById(
   categories: Category[],
   active: CategoryId
 ): Category | undefined {
-  if (active === "new") {
-    return categories.find((c) => c.id === "new") ?? FALLBACK_NEW;
+  const direct = categories.find((c) => c.id === active);
+  if (direct) return direct;
+
+  if (active === "new" || active === "new-ideas") {
+    const newest =
+      categories.find((c) => c.id === "new") ??
+      categories.find((c) => categoryLooksLikeNewest(c));
+    return newest ?? FALLBACK_NEW;
   }
   if (active === "sale") {
-    return categories.find((c) => c.id === "sale") ?? FALLBACK_SALE;
+    return (
+      categories.find((c) => c.id === "sale") ??
+      categories.find((c) => categoryLooksLikeSale(c)) ??
+      FALLBACK_SALE
+    );
   }
-  return categories.find((c) => c.id === active);
+  return undefined;
 }
 
 export function catalogActiveTitle(

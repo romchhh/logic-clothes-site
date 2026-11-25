@@ -1,6 +1,11 @@
 import { unstable_cache } from "next/cache";
 import { readProducts } from "@/lib/adminStore";
 import { isCatalogProduct } from "@/lib/catalogProduct";
+import {
+  isNewestCategoryParam,
+  isSaleCategoryParam,
+} from "@/lib/catalogCollections";
+import { getCategoryById } from "@/lib/categories";
 import { resolvePaletteId } from "@/lib/colorPalette";
 import { isDbUnavailableError } from "@/lib/db";
 import { getProductsEpoch } from "@/lib/productCache";
@@ -210,7 +215,15 @@ export async function getProductsByCategory(
 ): Promise<Product[]> {
   const products = (await getProducts()).filter(isCatalogProduct);
   if (!category || category === "all") return products;
-  if (category === "new") return productsForNewestSection(products);
-  if (category === "sale") return products.filter(productOnSale);
+
+  const cat = await getCategoryById(category);
+
+  if (isNewestCategoryParam(category, cat)) {
+    return productsForNewestSection(products);
+  }
+  if (isSaleCategoryParam(category, cat)) {
+    return products.filter(productOnSale);
+  }
+
   return products.filter((p) => p.category === category);
 }

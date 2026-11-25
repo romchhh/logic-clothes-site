@@ -39,9 +39,9 @@ function mapCategory(row: CategoryRow): Category {
   const count =
     row.product_count == null ? undefined : Number(row.product_count);
   const labelUk =
-    row.id === "new" ? "найновіше" : row.label_uk;
+    row.id === "new" || row.id === "new-ideas" ? "найновіше" : row.label_uk;
   const labelEn =
-    row.id === "new" ? "newest" : row.label_en;
+    row.id === "new" || row.id === "new-ideas" ? "newest" : row.label_en;
   return {
     id: row.id,
     image: row.image || "",
