@@ -3307,8 +3307,15 @@
     border-top:0.5px solid var(--pdp-line);
     scroll-margin-top:calc(var(--site-bar-h) + 12px);
   }
-  .pdp-builder-title{
+  .pdp-builder-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
     margin:14px 0 8px;
+  }
+  .pdp-builder-title{
+    margin:0;
     font-size:16px;
     font-weight:600;
     letter-spacing:.02em;
@@ -3322,13 +3329,6 @@
     text-transform:lowercase;
     color:#888;
   }
-  .pdp-builder-colours-head{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    gap:12px;
-  }
-  .pdp-builder-colours-head .pdp-builder-label{margin-bottom:0;}
   .pdp-builder-reset{
     flex-shrink:0;
     margin:0;

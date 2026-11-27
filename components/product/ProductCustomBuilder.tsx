@@ -81,30 +81,43 @@ export default function ProductCustomBuilder({
     );
   }
 
-  function resetColours() {
+  const hasPicks =
+    shadeIds.length > 0 ||
+    openGroupId != null ||
+    size != null ||
+    customMeasures ||
+    Boolean(height || bust || waist || hips);
+
+  function resetAll() {
     setShadeIds([]);
     setOpenGroupId(null);
+    setSize(null);
+    setCustomMeasures(false);
+    setHeight("");
+    setBust("");
+    setWaist("");
+    setHips("");
   }
 
   return (
     <section className="pdp-builder" aria-label={t.product.customOrderTitle}>
-      <h2 className="pdp-builder-title">{t.product.customOrderTitle}</h2>
-      <p className="pdp-builder-lead">{t.product.customOrderLead}</p>
-
-      <div className="pdp-builder-colours-head">
-        <p className="pdp-builder-label">
-          {lang === "uk" ? "бажані кольори" : "desired colours"}
-        </p>
-        {shadeIds.length > 0 || openGroupId ? (
+      <div className="pdp-builder-head">
+        <h2 className="pdp-builder-title">{t.product.customOrderTitle}</h2>
+        {hasPicks ? (
           <button
             type="button"
             className="pdp-builder-reset"
-            onClick={resetColours}
+            onClick={resetAll}
           >
             {t.catalog.reset}
           </button>
         ) : null}
       </div>
+      <p className="pdp-builder-lead">{t.product.customOrderLead}</p>
+
+      <p className="pdp-builder-label">
+        {lang === "uk" ? "бажані кольори" : "desired colours"}
+      </p>
       <div className="pdp-palette-row pdp-palette-row--cards pdp-builder-palettes">
         {groups.map((group) => {
           const label = lang === "en" ? group.labelEn : group.label;
