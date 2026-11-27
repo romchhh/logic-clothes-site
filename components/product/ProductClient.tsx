@@ -179,9 +179,18 @@ export default function ProductClient({
   useEffect(() => {
     if (!builderOpen) return;
     const id = window.setTimeout(() => {
-      document
-        .querySelector(".pdp-builder")
-        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      const el = document.querySelector<HTMLElement>(".pdp-builder");
+      if (!el) return;
+      // Keep the constructor title under the sticky bar — do not jump past it.
+      const barH =
+        Number.parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue(
+            "--site-bar-h"
+          )
+        ) || 76;
+      const top =
+        el.getBoundingClientRect().top + window.scrollY - barH - 12;
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
     }, 50);
     return () => window.clearTimeout(id);
   }, [builderOpen]);
@@ -646,14 +655,13 @@ export default function ProductClient({
 
           {builderOpen ? (
             <ProductCustomBuilder
-              key={pinnedShadeId || product.id}
+              key={`builder-${product.id}`}
               product={product}
               lang={lang}
               sizes={displaySizes}
               inStockSizes={[...inStockSizeSet]}
               initialSize={pinnedSewSize || selectedSize}
               onAdd={addCustom}
-              preferredShadeId={pinnedShadeId}
             />
           ) : null}
         </div>

@@ -2,12 +2,7 @@
 
 import { useMemo, useState, type CSSProperties } from "react";
 import ProductDiscussOrder from "@/components/product/ProductDiscussOrder";
-import {
-  getPaletteColor,
-  getPaletteGroups,
-  groupForPaletteId,
-  resolvePaletteId,
-} from "@/lib/colorPalette";
+import { getPaletteColor, getPaletteGroups } from "@/lib/colorPalette";
 import { SIZE_ROW_BASE, SIZE_ROW_MORE } from "@/lib/productSizes";
 import ProductSizeBoard from "@/components/product/ProductSizeBoard";
 import ProductSizeChartDisclosure from "@/components/product/ProductSizeChartDisclosure";
@@ -34,7 +29,6 @@ export default function ProductCustomBuilder({
   inStockSizes = [],
   initialSize = null,
   onAdd,
-  preferredShadeId = null,
 }: {
   product: Product;
   lang: Locale;
@@ -42,23 +36,16 @@ export default function ProductCustomBuilder({
   inStockSizes?: string[];
   initialSize?: string | null;
   onAdd: (size: string, note: string) => void;
+  /** @deprecated Ignored — constructor always starts with no colour selected. */
   preferredShadeId?: string | null;
 }) {
   const { t } = useI18n();
   const groups = getPaletteGroups();
-  const productShadeId =
-    resolvePaletteId({
-      color: product.color,
-      colorHex: product.colorHex,
-    }) ?? null;
-  const defaultShadeId = preferredShadeId || productShadeId;
-  const defaultGroupId = groupForPaletteId(defaultShadeId)?.id ?? null;
 
   const [size, setSize] = useState<string | null>(initialSize);
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
-  const [shadeIds, setShadeIds] = useState<string[]>(
-    defaultShadeId ? [defaultShadeId] : []
-  );
+  // Always start blank — do not inherit PDP / product colour.
+  const [shadeIds, setShadeIds] = useState<string[]>([]);
   const [customMeasures, setCustomMeasures] = useState(false);
   const [height, setHeight] = useState("");
   const [bust, setBust] = useState("");
@@ -94,14 +81,30 @@ export default function ProductCustomBuilder({
     );
   }
 
+  function resetColours() {
+    setShadeIds([]);
+    setOpenGroupId(null);
+  }
+
   return (
     <section className="pdp-builder" aria-label={t.product.customOrderTitle}>
       <h2 className="pdp-builder-title">{t.product.customOrderTitle}</h2>
       <p className="pdp-builder-lead">{t.product.customOrderLead}</p>
 
-      <p className="pdp-builder-label">
-        {lang === "uk" ? "бажані кольори" : "desired colours"}
-      </p>
+      <div className="pdp-builder-colours-head">
+        <p className="pdp-builder-label">
+          {lang === "uk" ? "бажані кольори" : "desired colours"}
+        </p>
+        {shadeIds.length > 0 || openGroupId ? (
+          <button
+            type="button"
+            className="pdp-builder-reset"
+            onClick={resetColours}
+          >
+            {t.catalog.reset}
+          </button>
+        ) : null}
+      </div>
       <div className="pdp-palette-row pdp-palette-row--cards pdp-builder-palettes">
         {groups.map((group) => {
           const label = lang === "en" ? group.labelEn : group.label;
